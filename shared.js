@@ -17,7 +17,7 @@ const APP_CONFIG = {
 };
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDAJUEFUwkieMGFxRIZ6vRwzLbXF31c_BM",
+    apiKey: "AIzaSyDAJUEFUWkieMGFxRIZ6vRwzLbXF31c_BM",
     authDomain: "augx-d75c2.firebaseapp.com",
     databaseURL: "https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "augx-d75c2",
