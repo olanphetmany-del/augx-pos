@@ -392,6 +392,26 @@
                     <label class="switch"><input type="checkbox" id="feat-tables" checked onchange="saveFeatureSetting('tables', this.checked)"><span class="slider"></span></label>
                 </div>
             </div>
+            <div class="box" id="online-settings">
+                <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🛵 ลูกค้าสั่งเองออนไลน์ (order.html)</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div><strong>เปิดรับออร์เดอร์ออนไลน์</strong><div class="hint">ปิดแล้วลูกค้าเปิดลิงก์จะเห็นข้อความ "ยังไม่เปิดรับ" แทนเมนู</div></div>
+                    <label class="switch"><input type="checkbox" id="on-enabled" checked><span class="slider"></span></label>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+                    <label><strong>เบอร์ WhatsApp ร้าน</strong><input type="text" id="on-wa" placeholder="020 7766 6667" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><div class="hint">ข้อความออร์เดอร์ของลูกค้าจะเปิดแชทไปหาเบอร์นี้ (ต้องมี WhatsApp)</div></label>
+                    <label><strong>คำนำหน้าเลขบิล (2 ตัวอักษร)</strong><input type="text" id="on-prefix" maxlength="2" placeholder="ON" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;text-transform:uppercase;"><div class="hint">เช่น ON → ON131026001-ABC</div></label>
+                </div>
+                <label style="display:block;margin-top:12px;"><strong>บรรทัดแรกของข้อความลูกค้า</strong><input type="text" id="on-greeting" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                <label style="display:block;margin-top:12px;"><strong>บรรทัดท้ายของข้อความลูกค้า</strong><input type="text" id="on-closing" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                <label style="display:block;margin-top:12px;"><strong>ข้อความตอบลูกค้า (ปุ่ม 💬 ในหน้าแคชเชียร์)</strong><textarea id="on-reply" rows="4" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;font-family:inherit;"></textarea><div class="hint">ใช้ {name} = ชื่อลูกค้า, {bill} = เลขบิล, {total} = ยอดรวมที่ระบบคิด</div></label>
+                <label style="display:block;margin-top:12px;"><strong>ข้อความตอนปิดรับออนไลน์</strong><input type="text" id="on-closed" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px;">
+                    <button class="btn btn-green" onclick="saveOnlineSettings()">💾 บันทึก</button>
+                    <span class="hint" style="margin:0;">ลิงก์ให้ลูกค้า: <b id="on-link" style="user-select:all;"></b></span>
+                    <button class="btn btn-blue btn-sm" type="button" onclick="copyOnlineLink()">คัดลอกลิงก์</button>
+                </div>
+            </div>
             <div class="box">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">💾 สำรองข้อมูล (Backup)</h3>
                 <p class="hint" style="margin-top:0;">ดาวน์โหลดข้อมูลทั้งหมด (เมนู ออร์เดอร์ ตั้งค่า) เป็นไฟล์ JSON เก็บไว้เป็นประจำ เช่น สัปดาห์ละครั้ง</p>
@@ -487,6 +507,7 @@
         /* ---------- โหลดข้อมูลทั้งหมด ---------- */
         function startListeners() {
             receiptInit();
+            database.ref('settings/online').on('value', snap => fillOnlineSettings(snap.val() || {}));
             database.ref('store_logo').on('value', snap => {
                 const url = snap.val();
                 const prev = document.getElementById('current-logo-preview'), txt = document.getElementById('no-logo-text');
@@ -637,6 +658,44 @@
             toast('ส่งไปที่ RawBT แล้ว');
         }
         function saveFeatureSetting(key, val) { database.ref('settings/features/' + key).set(val); }
+        /* ---------- ลูกค้าสั่งเองออนไลน์ ---------- */
+        const ONLINE_DEF = {
+            enabled: true, waNumber: '+8562077666667', prefix: 'ON',
+            greeting: 'ສະບາຍດີ ຕ້ອງການສັ່ງອໍເດີ້',
+            closing: 'ລົບກວນທາງຮ້ານສະຫຼຸບຍອດ ແລະ ສົ່ງຄິວອາໃຫ້ແນ່ເດີ້ ຂໍຂອບໃຈ',
+            replyText: 'ສະບາຍດີ {name}\nຮ້ານໄດ້ຮັບອໍເດີ້ {bill} ແລ້ວ\nຍອດລວມ: {total}\nກະລຸນາໂອນເງິນ ແລະ ສົ່ງສະລິບມາທາງນີ້ ຂໍຂອບໃຈ 🙏',
+            closedText: 'ຕອນນີ້ຮ້ານຍັງບໍ່ເປີດຮັບອໍເດີ້ອອນລາຍ ກະລຸນາທັກ WhatsApp ຫາຮ້ານ'
+        };
+        function onlineLink() { return location.href.replace(/[^/]*([?#].*)?$/, 'order.html'); }
+        function fillOnlineSettings(v) {
+            const c = Object.assign({}, ONLINE_DEF, v);
+            document.getElementById('on-enabled').checked = c.enabled !== false;
+            document.getElementById('on-wa').value = c.waNumber || '';
+            document.getElementById('on-prefix').value = c.prefix || 'ON';
+            document.getElementById('on-greeting').value = c.greeting || '';
+            document.getElementById('on-closing').value = c.closing || '';
+            document.getElementById('on-reply').value = c.replyText || '';
+            document.getElementById('on-closed').value = c.closedText || '';
+            document.getElementById('on-link').innerText = onlineLink();
+        }
+        function saveOnlineSettings() {
+            const wa = waNumber(document.getElementById('on-wa').value);
+            const prefix = document.getElementById('on-prefix').value.trim().toUpperCase();
+            if (!wa || wa.length < 10) return toast('เบอร์ WhatsApp ไม่ถูกต้อง', false);
+            if (!/^[A-Z]{2}$/.test(prefix)) return toast('คำนำหน้าเลขบิลต้องเป็นตัวอักษรอังกฤษ 2 ตัว', false);
+            database.ref('settings/online').set({
+                enabled: document.getElementById('on-enabled').checked,
+                waNumber: '+' + wa, prefix: prefix,
+                greeting: document.getElementById('on-greeting').value.trim() || ONLINE_DEF.greeting,
+                closing: document.getElementById('on-closing').value.trim(),
+                replyText: document.getElementById('on-reply').value.trim() || ONLINE_DEF.replyText,
+                closedText: document.getElementById('on-closed').value.trim() || ONLINE_DEF.closedText
+            }).then(() => toast('บันทึกตั้งค่าออนไลน์แล้ว')).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
+        }
+        function copyOnlineLink() {
+            const t = onlineLink();
+            (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('คัดลอกลิงก์แล้ว')).catch(() => prompt('คัดลอกลิงก์นี้', t));
+        }
         function backupAll() {
             database.ref().once('value').then(snap => {
                 downloadFile('augustx-backup-' + dayKey(Date.now()) + '.json', JSON.stringify(snap.val() || {}, null, 1), 'application/json');
@@ -786,12 +845,12 @@
         }
         function channelNames(hiddenStr) {
             return String(hiddenStr || '').split(',').filter(Boolean)
-                .map(id => id === 'store' ? 'Cashier' : (globalPartners.find(p => p.id === id) || {}).name)
+                .map(id => id === 'store' ? 'Cashier' : id === 'online' ? 'Online' : (globalPartners.find(p => p.id === id) || {}).name)
                 .filter(Boolean).join(', ');
         }
         function renderItemModalChannels(hiddenStr) {
             const hidden = String(hiddenStr || '').split(',').filter(Boolean);
-            const chans = [{ id: 'store', name: 'Cashier (หน้าร้าน)' }].concat(globalPartners.map(p => ({ id: p.id, name: p.name })));
+            const chans = [{ id: 'store', name: 'Cashier (หน้าร้าน)' }, { id: 'online', name: 'Online (ลูกค้าสั่งเอง)' }].concat(globalPartners.map(p => ({ id: p.id, name: p.name })));
             document.getElementById('modal-item-channels').innerHTML = chans.map(c =>
                 `<label><input type="checkbox" value="${esc(c.id)}" ${hidden.includes(c.id) ? '' : 'checked'}> ${esc(c.name)}</label>`).join('');
         }
