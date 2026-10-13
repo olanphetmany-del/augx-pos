@@ -79,6 +79,10 @@
         .footer-btns { display: flex; gap: 6px; align-items: center; }
         .undo-btn { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; color: #64748b; }
     </style>
+    <link rel="manifest" href="kitchen.webmanifest">
+    <meta name="theme-color" content="#b45309">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon-kitchen-192.png">
 </head>
 <body>
     <div class="kitchen-container">
@@ -297,5 +301,11 @@
 
         startApp('staff', startListeners);
     </script>
+<script>
+/* เต็มจอ: เปิดจากไอคอนหน้าจอหลัก = เต็มจออัตโนมัติ / เปิดจากเบราว์เซอร์ = แตะจอครั้งแรกแล้วขอเต็มจอ */
+(function(){var app=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches;
+if(app||!document.documentElement.requestFullscreen)return;
+document.addEventListener('click',function f(){document.removeEventListener('click',f,true);document.documentElement.requestFullscreen().catch(function(){});},true);})();
+</script>
 </body>
 </html>

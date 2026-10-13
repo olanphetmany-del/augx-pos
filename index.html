@@ -196,6 +196,10 @@
         .ctl-btns .big:disabled{opacity:.45;cursor:not-allowed}.ctl-hint{font-size:12px;color:#b45309;margin-top:6px}.ctl-l{font-size:13px;color:#475569;display:block}
         #cart-ctl .linkbtn{display:block;margin:2px 0;color:var(--blue)}#cart-ctl .seg button{padding:14px 8px}
     </style>
+    <link rel="manifest" href="cashier.webmanifest">
+    <meta name="theme-color" content="#0b4db3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon-cashier-192.png">
 </head>
 <body>
     <div class="pos-container">
@@ -842,5 +846,11 @@
         startApp('staff', startListeners);
     </script>
     <script src="online-cashier.js"></script>
+<script>
+/* เต็มจอ: เปิดจากไอคอนหน้าจอหลัก = เต็มจออัตโนมัติ / เปิดจากเบราว์เซอร์ = แตะจอครั้งแรกแล้วขอเต็มจอ */
+(function(){var app=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches;
+if(app||!document.documentElement.requestFullscreen)return;
+document.addEventListener('click',function f(){document.removeEventListener('click',f,true);document.documentElement.requestFullscreen().catch(function(){});},true);})();
+</script>
 </body>
 </html>
