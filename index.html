@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUGUSTX - Cashier POS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <style>
+
+        :root { --blue: #1a365d; --green: #689f38; --red: #ef4444; --orange: #f59e0b; --bg: #f4f6f8; --white: #ffffff; --text: #334155; --border: #e0e0e0; }
+        * { font-family: 'Noto Sans Lao', sans-serif, 'Segoe UI', Tahoma; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html { height: 100%; }
+        body { background-color: var(--bg); margin: 0; padding: 0; color: var(--text); height: 100vh; height: 100dvh; overflow: hidden; touch-action: manipulation; }
+
+        .pos-container { display: flex; width: 100%; height: 100%; }
+        .menu-section { flex: 1; min-width: 0; min-height: 0; padding: 10px 14px; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+        .cart-section { width: clamp(300px, 34vw, 400px); flex-shrink: 0; height: 100%; min-height: 0; background: var(--white); border-left: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: -2px 0 10px rgba(0,0,0,0.02); }
+
+        .pos-header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pos-header h1 { margin: 0; color: var(--blue); font-size: 1.25rem; white-space: nowrap; }
+
+        .top-controls { display: flex; align-items: center; gap: 8px; }
+        .top-btn { background: var(--blue); color: white; padding: 7px 12px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .top-btn.kitchen { background: var(--orange); }
+
+        .nav-row { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        .nav-tabs-bar { display: flex; gap: 8px; overflow-x: auto; min-width: 0; flex: 1; }
+        .nav-tab-btn { padding: 8px 16px; background: white; border: 1px solid var(--border); border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; color: var(--blue); transition: 0.2s; white-space: nowrap; flex-shrink: 0; }
+        .nav-tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+        .nav-tab-btn.delivery-tab.active { background: var(--orange); border-color: var(--orange); }
+
+        .order-type-switch { flex-shrink: 0; display: flex; background: var(--blue); border-radius: 6px; overflow: hidden; border: 1px solid var(--blue); }
+        .type-btn { background: transparent; color: white; border: none; padding: 8px 12px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .type-btn.active { background: #0f172a; color: white; }
+        .type-divider { width: 1px; background: rgba(255,255,255,0.2); }
+
+        .categories-bar { flex-shrink: 0; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 6px; }
+        .cat-btn { padding: 7px 14px; background: white; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap; flex-shrink: 0; transition: 0.2s; }
+        .cat-btn.active, .cat-btn:hover { background: var(--blue); color: white; border-color: var(--blue); }
+
+        .menu-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; align-content: start; overflow-y: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
+        .menu-card { background: url('images/bg.jpg') center/cover no-repeat; border-radius: 10px; padding: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid transparent; position: relative; }
+        .menu-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); border-radius: 8px; z-index: 1; }
+        .menu-card > * { position: relative; z-index: 2; }
+        .menu-card:hover { transform: translateY(-3px); border-color: var(--green); }
+        .menu-card img { width: 100%; height: 85px; object-fit: cover; border-radius: 6px; margin-bottom: 6px; background: #e2e8f0; }
+        .menu-name { font-weight: bold; font-size: 13px; margin-bottom: 3px; color: var(--blue); }
+        .menu-price { font-size: 12px; color: #64748b; }
+
+        .cart-header { flex-shrink: 0; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 1.05rem; font-weight: bold; color: var(--blue); display: flex; justify-content: space-between; align-items: center; }
+        .cart-items { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
+
+        .cart-item-card { background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .cart-item-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .cart-item-info { flex: 1; }
+        .cart-item-name { font-weight: bold; font-size: 14px; color: var(--blue); }
+        .cart-item-details { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+        .cart-item-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+        .cart-item-controls { display: flex; align-items: center; gap: 8px; }
+        .qty-btn { width: 32px; height: 32px; background: #e2e8f0; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .qty-btn:hover { background: #cbd5e1; }
+
+        .cart-footer { flex-shrink: 0; padding: 10px 14px; border-top: 1px solid var(--border); background: #f8fafc; }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 13px; }
+        .summary-row.total { font-size: 1.15rem; font-weight: bold; color: var(--blue); margin-bottom: 8px; }
+        .checkout-btn { width: 100%; padding: 12px; background: var(--green); color: white; border: none; border-radius: 8px; font-size: 1.05rem; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .checkout-btn:hover { background: #558b2f; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .receipt-modal-box { background: #fff; width: 90%; max-width: 420px; border-radius: 8px; max-height: 95vh; max-height: 95dvh; overflow-y: auto; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px dashed #cbd5e1; position: relative; }
+        
+        /* ปุ่มกากบาท (✕) มุมขวาบน */
+        .close-modal-x { position: absolute; top: 12px; right: 15px; background: none; border: none; font-size: 1.4rem; font-weight: bold; color: #64748b; cursor: pointer; }
+        .close-modal-x:hover { color: var(--red); }
+
+        .receipt-header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 12px; margin-bottom: 12px; }
+        .receipt-title { font-size: 1.3rem; font-weight: bold; letter-spacing: 1px; margin: 0; color: #000; }
+        .receipt-subtitle { font-size: 0.85rem; font-weight: bold; color: #555; margin-top: 2px; }
+
+        .receipt-meta { font-size: 12px; color: #333; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+        .receipt-items-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px; }
+        .receipt-items-table th { border-bottom: 1px solid #333; padding-bottom: 5px; text-align: left; }
+        .receipt-items-table td { padding: 6px 0; border-bottom: 1px dotted #e2e8f0; vertical-align: top; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 3px; font-weight: bold; font-size: 12px; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; }
+
+        .receipt-totals { border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 5px; }
+        .receipt-totals .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; color: #000; }
+
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-green { background: var(--green); }
+        .btn-red { background: var(--red); }
+        .btn-blue { background: var(--blue); }
+    
+
+        /* ---------- เพิ่มใหม่ ---------- */
+        .cart-item-note { font-size: 12px; color: var(--red); margin-top: 2px; }
+        .qty-wrap { display: flex; align-items: center; gap: 8px; }
+        .note-btn { background: none; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; color: #64748b; }
+        .opt-title { font-size: 1.15rem; font-weight: bold; color: var(--blue); margin-bottom: 10px; padding-right: 30px; }
+        .opt-group { margin-bottom: 14px; }
+        .opt-gname { font-weight: bold; font-size: 13px; color: #555; margin-bottom: 6px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { padding: 9px 14px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: 13px; font-weight: bold; cursor: pointer; color: var(--text); }
+        .chip.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .inline-row { display: flex; gap: 8px; }
+        .inline-row > * { flex: 1; }
+        .quick-btn { padding: 6px 10px; font-size: 12px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 6px; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .receipt-totals .minus { color: var(--red); }
+
+        /* ======== รอบที่ 1: ขั้นตอน 5 ขั้น / บิลเปิด / ปรับขนาดจอ ======== */
+        .top-btn.badge-btn { background: #0f766e; }
+        .top-btn .cnt { background: #fff; color: #0f766e; border-radius: 10px; padding: 0 7px; font-size: 12px; }
+        .top-btn .cnt.warn { background: #ef4444; color: #fff; }
+        .pos-header { flex-wrap: wrap; }
+        .top-controls { flex-wrap: wrap; }
+
+        .add-banner { display: none; background: #fef3c7; color: #92400e; padding: 8px 12px; font-size: 13px; font-weight: bold; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #fde68a; }
+        .add-banner.on { display: flex; }
+        .add-banner button { background: #fff; border: 1px solid #f59e0b; color: #92400e; border-radius: 6px; padding: 5px 10px; font-weight: bold; cursor: pointer; }
+        .cart-hide { display: none; background: none; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; font-weight: bold; color: #64748b; cursor: pointer; }
+        .cart-bar { display: none; position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 850; background: var(--green); color: #fff; border: none; border-radius: 12px; padding: 14px 16px; font-weight: bold; font-size: 1rem; justify-content: space-between; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+
+        @media (max-width: 760px) {
+            .pos-container { flex-direction: column; }
+            .menu-section { padding: 8px 10px 76px; }
+            .cart-section { position: fixed; left: 0; right: 0; bottom: 0; top: 10%; width: auto; height: auto; z-index: 900; transform: translateY(105%); transition: transform .25s; border-left: none; border-radius: 16px 16px 0 0; box-shadow: 0 -4px 20px rgba(0,0,0,.3); }
+            .cart-section.open { transform: none; }
+            .cart-bar { display: flex; }
+            .cart-hide { display: inline-block; }
+            .pos-header h1 { font-size: 1.05rem; }
+            .top-btn { padding: 7px 9px; font-size: 12px; }
+            .menu-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+        }
+
+        .sheet { position: fixed; inset: 0; z-index: 1500; background: var(--bg); display: none; flex-direction: column; height: 100vh; height: 100dvh; }
+        .sh-head { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--border); }
+        .sh-back { flex-shrink: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; font-weight: bold; font-size: 14px; color: var(--blue); cursor: pointer; }
+        .sh-title { flex: 1; min-width: 0; font-weight: bold; color: var(--blue); font-size: 1.1rem; }
+        .sh-steps { font-size: 12px; color: #64748b; font-weight: bold; white-space: nowrap; }
+        .sh-x { background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; padding: 4px 8px; }
+        .sh-body { flex: 1; min-height: 0; display: flex; }
+        .sh-sum { display: none; width: min(38%, 380px); flex-shrink: 0; background: #fff; border-right: 1px solid var(--border); padding: 14px; overflow-y: auto; }
+        .sh-main { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+        .sh-inner { max-width: 640px; margin: 0 auto; }
+        @media (min-width: 900px) { .sh-sum.show { display: block; } }
+        .sh-foot { flex-shrink: 0; display: flex; gap: 10px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--border); }
+        .sh-foot .big { flex: 1; padding: 16px 10px; font-size: 1.05rem; border: none; border-radius: 10px; color: #fff; font-weight: bold; cursor: pointer; line-height: 1.3; font-family: inherit; }
+        .sh-foot .big:disabled { opacity: .45; cursor: not-allowed; }
+        .sh-foot .big.sm { flex: 0 0 auto; padding: 16px 16px; }
+        .big.green { background: var(--green); } .big.orange { background: var(--orange); } .big.blue { background: var(--blue); } .big.gray { background: #64748b; } .big.red { background: var(--red); }
+
+        .sh-main h3 { margin: 0 0 10px; color: var(--blue); font-size: 1.05rem; }
+        .sh-main input, .sh-main select { width: 100%; padding: 14px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 16px; background: #fff; font-family: inherit; }
+        .sh-main label { display: block; font-weight: bold; font-size: 13px; color: #555; margin: 14px 0 6px; }
+        .seg { display: flex; gap: 10px; }
+        .seg button { flex: 1; padding: 18px 8px; border: 2px solid #cbd5e1; border-radius: 12px; background: #fff; font-weight: bold; font-size: 1.05rem; color: var(--blue); cursor: pointer; font-family: inherit; }
+        .seg button.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .ln { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; font-size: 1rem; }
+        .ln .sub { font-size: 12px; color: #64748b; } .ln .nt { font-size: 12px; color: var(--red); }
+        .ln .nm { font-weight: bold; color: var(--blue); }
+        .tot { display: flex; justify-content: space-between; align-items: baseline; font-size: 1.6rem; font-weight: bold; color: var(--blue); padding: 14px 0 4px; }
+        .tot small { font-size: .9rem; color: #64748b; }
+        .hintbox { font-size: 12px; color: #64748b; margin-top: 6px; }
+        .okbox { text-align: center; padding: 20px 0; }
+        .okbox .tick { font-size: 3.5rem; color: var(--green); line-height: 1; }
+        .okbox .amt { font-size: 2rem; font-weight: bold; color: var(--blue); margin-top: 8px; }
+        .okbox .chg { font-size: 1.3rem; color: var(--green); font-weight: bold; margin-top: 6px; }
+        .linkbtn { background: none; border: none; color: var(--red); font-weight: bold; font-size: 13px; cursor: pointer; padding: 10px 0; font-family: inherit; }
+
+        .bills { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .bill-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+        .bill-card:active { border-color: var(--green); }
+        .bill-card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+        .bill-card .no { font-weight: bold; color: var(--blue); font-size: 1.2rem; }
+        .bill-card .nm { font-weight: bold; }
+        .bill-card .sm { font-size: 12px; color: #64748b; }
+        .bill-card .amt { font-weight: bold; font-size: 1.1rem; color: var(--blue); }
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .pill.open { background: #fef3c7; color: #92400e; } .pill.paid { background: #dcfce7; color: #166534; }
+        .pill.void { background: #e2e8f0; color: #475569; } .pill.late { background: #fee2e2; color: #b91c1c; }
+        .empty { text-align: center; color: #94a3b8; padding: 60px 10px; font-size: 1.05rem; }
+        .rmbtn { background: #fee2e2; color: #b91c1c; border: none; border-radius: 8px; padding: 8px 12px; font-weight: bold; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+        .rmbtn:disabled { opacity: .4; }
+    
+        .ctl-btns{display:flex;gap:8px;margin-top:8px}.ctl-btns .big{border:none;border-radius:10px;color:#fff;font-weight:bold;cursor:pointer;font-family:inherit;line-height:1.25;flex:1;min-height:52px;font-size:15px;padding:8px}
+        #cart-ctl .seg{margin-bottom:6px}#cart-ctl input,#cart-ctl select{width:100%;margin-top:6px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+        .ctl-btns .big:disabled{opacity:.45;cursor:not-allowed}.ctl-hint{font-size:12px;color:#b45309;margin-top:6px}.ctl-l{font-size:13px;color:#475569;display:block}
+        #cart-ctl .linkbtn{display:block;margin:2px 0;color:var(--blue)}#cart-ctl .seg button{padding:14px 8px}
+    </style>
+</head>
+<body>
+    <div class="pos-container">
+        <div class="menu-section">
+            <div class="pos-header">
+                <h1>AUGUSTX - POS</h1>
+                <div class="top-controls">
+                    <button class="top-btn badge-btn" onclick="openPanel('open')">📋 บิลที่เปิดอยู่ <span class="cnt" id="open-cnt">0</span></button>
+                    <button class="top-btn badge-btn" onclick="openPanel('today')">🧾 บิลวันนี้</button>
+                    <a href="kitchen.html" class="top-btn kitchen">👨‍🍳 จอครัว</a>
+                    <a href="admin.html" class="top-btn">⚙️ Admin</a>
+                </div>
+            </div>
+
+            <div class="nav-row">
+                <div class="nav-tabs-bar" id="nav-tabs-container"></div>
+            </div>
+
+            <div class="categories-bar" id="categories-container"></div>
+            <div class="menu-grid" id="menu-grid-container"></div>
+        </div>
+
+        <div class="cart-section" id="cart-section">
+            <div class="add-banner" id="add-banner"><span id="add-banner-text"></span><button onclick="cancelAddMode()">ยกเลิก</button></div>
+            <div class="cart-header">
+                <span>ตะกร้าสินค้า</span>
+                <span>
+                    <button onclick="clearCart()" style="background:none; border:none; color:var(--red); font-size:13px; cursor:pointer; font-weight:bold; padding:6px;">ล้างตะกร้า</button>
+                    <button class="cart-hide" onclick="toggleCart(false)">ซ่อน ▼</button>
+                </span>
+            </div>
+            <div class="cart-items" id="cart-items-container"></div>
+            <div class="cart-footer">
+                <div class="summary-row">
+                    <span>ช่องทาง: <strong id="cart-source-display" style="color:var(--blue);">Cashier (Store)</strong></span>
+                    <span id="cart-item-count">0 รายการ</span>
+                </div>
+                <div class="summary-row total"><span>ยอดรวม</span><span id="cart-total-price">0 ₭</span></div>
+                <div id="cart-ctl"></div>
+            </div>
+        </div>
+    </div>
+    <button class="cart-bar" id="cart-bar" onclick="toggleCart(true)"><span id="cart-bar-text">🛒 ตะกร้า (0)</span><span id="cart-bar-total">0 ₭</span></button>
+
+    <!-- เลือกไซส์ / ตัวเลือกเสริม -->
+    <div class="modal-overlay" id="option-modal"><div class="receipt-modal-box" id="option-modal-box"></div></div>
+
+    <!-- ขั้นตอนสั่ง/ชำระเงิน (เต็มจอ ไม่ต้องเลื่อนหาปุ่ม) -->
+    <div class="sheet" id="sheet">
+        <div class="sh-head">
+            <button class="sh-back" id="sh-back" onclick="sheetBack()">←</button>
+            <div class="sh-title" id="sh-title"></div>
+            <div class="sh-steps" id="sh-steps"></div>
+            <button class="sh-x" onclick="closeSheet()">✕</button>
+        </div>
+        <div class="sh-body"><div class="sh-sum" id="sh-sum"></div><div class="sh-main"><div class="sh-inner" id="sh-main"></div></div></div>
+        <div class="sh-foot" id="sh-foot"></div>
+    </div>
+
+    <!-- บิลที่เปิดอยู่ / บิลวันนี้ / รายละเอียดบิล -->
+    <div class="sheet" id="panel">
+        <div class="sh-head">
+            <button class="sh-back" id="pn-back" onclick="panelBack()">←</button>
+            <div class="sh-title" id="pn-title"></div>
+            <button class="sh-x" onclick="closePanel()">✕</button>
+        </div>
+        <div class="sh-body"><div class="sh-main"><div class="sh-inner" style="max-width:1000px" id="pn-main"></div></div></div>
+        <div class="sh-foot" id="pn-foot" style="display:none"></div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        /* ================= ข้อมูลและสถานะ ================= */
+        let globalCategories = [], globalItems = [], globalPartners = [], globalModifiers = [], globalCustomers = [], tableNames = [];
+        let featureTables = true;
+        let currentCategory = 'ALL', currentOrderSource = 'store';
+        let cart = [], opt = null;
+        let bills = {};                 // บิลย้อนหลัง 14 วัน (id -> บิล)
+        let addToBillId = null;         // โหมดสั่งเพิ่มในบิลที่เปิดอยู่
+        let W = null;                   // สถานะของขั้นตอน (sheet)
+        let P = { view: 'open', billId: null, from: 'open' };
+
+        function billList() { return Object.keys(bills).map(id => Object.assign({ id: id }, bills[id])); }
+        function openBills() { return billList().filter(isOpenBill).sort((a, b) => (a.openedAt || a.timestamp || 0) - (b.openedAt || b.timestamp || 0)); }
+
+        /* ================= โหลดข้อมูลจาก Firebase ================= */
+        function startListeners() {
+            receiptInit();
+            database.ref('tables').on('value', snap => { tableNames = []; snap.forEach(c => { const t = c.val(); if (t && t.name) tableNames.push(t.name); }); });
+            database.ref('customers').on('value', snap => { globalCustomers = []; snap.forEach(c => { const x = c.val(); x.id = c.key; globalCustomers.push(x); }); });
+            database.ref('delivery_partners').on('value', snap => {
+                globalPartners = [];
+                snap.forEach(c => { const p = c.val(); p.id = c.key; globalPartners.push(p); });
+                if (currentOrderSource !== 'store' && !globalPartners.some(p => p.name === currentOrderSource)) { currentOrderSource = 'store'; document.getElementById('cart-source-display').innerText = 'Cashier (Store)'; }
+                renderNavTabs(); renderMenuGrid();
+            });
+            database.ref('categories').on('value', snap => {
+                globalCategories = [];
+                snap.forEach(c => { const x = c.val(); x.id = c.key; globalCategories.push(x); });
+                if (currentCategory !== 'ALL' && !globalCategories.some(c => c.name === currentCategory)) currentCategory = 'ALL';
+                renderCategories(); renderMenuGrid();
+            });
+            database.ref('modifiers').on('value', snap => { globalModifiers = []; snap.forEach(c => { const m = c.val(); m.id = c.key; globalModifiers.push(normalizeModifier(m)); }); });
+            database.ref('menu_items').on('value', snap => {
+                globalItems = [];
+                snap.forEach(c => { const it = c.val(); it.id = c.key; it.prices = parsePrices(it.priceOptions); globalItems.push(it); });
+                renderMenuGrid();
+            });
+            database.ref('settings/features/tables').on('value', snap => { featureTables = snap.val() !== false; });
+            database.ref('orders').orderByChild('timestamp').startAt(Date.now() - 14 * 86400000).on('value', snap => {
+                bills = {};
+                snap.forEach(c => { bills[c.key] = c.val(); });
+                refreshBillUi();
+            });
+            setInterval(refreshBillUi, 30000);
+        }
+        function refreshBillUi() {
+            const ob = openBills(), today = dayKey(Date.now());
+            const el = document.getElementById('open-cnt');
+            el.innerText = ob.length;
+            el.className = 'cnt' + (ob.some(b => b.dayKey !== today) ? ' warn' : '');
+            if (document.getElementById('panel').style.display === 'flex') renderPanel();
+            if (W && W.step === 4 && !W.paying) { /* ยอดบิลอาจเปลี่ยนจากเครื่องอื่น */ W.bill = bills[W.billId] || W.bill; updatePayNumbers(); }
+        }
+
+        /* ================= แท็บช่องทาง / หมวด / เมนู ================= */
+        function renderNavTabs() {
+            let html = `<button class="nav-tab-btn ${currentOrderSource === 'store' ? 'active' : ''}" data-src="store" onclick="switchMainTab(this.dataset.src)">Cashier</button>`;
+            globalPartners.forEach(p => { html += `<button class="nav-tab-btn delivery-tab ${currentOrderSource === p.name ? 'active' : ''}" data-src="${esc(p.name)}" onclick="switchMainTab(this.dataset.src)">${esc(p.name)}</button>`; });
+            document.getElementById('nav-tabs-container').innerHTML = html;
+        }
+        function switchMainTab(source) {
+            currentOrderSource = source;
+            document.getElementById('cart-source-display').innerText = source === 'store' ? 'Cashier (Store)' : source;
+            renderNavTabs(); renderMenuGrid();
+        }
+        function renderCategories() {
+            let html = `<button class="cat-btn ${currentCategory === 'ALL' ? 'active' : ''}" data-cat="ALL" onclick="filterCategory(this.dataset.cat)">ທຸກເມນູ (All)</button>`;
+            globalCategories.forEach(c => { html += `<button class="cat-btn ${currentCategory === c.name ? 'active' : ''}" data-cat="${esc(c.name)}" onclick="filterCategory(this.dataset.cat)">${esc(c.name)}</button>`; });
+            document.getElementById('categories-container').innerHTML = html;
+        }
+        function filterCategory(n) { currentCategory = n; renderCategories(); renderMenuGrid(); }
+        function channelKey() {
+            if (currentOrderSource === 'store') return 'store';
+            const p = globalPartners.find(x => x.name === currentOrderSource);
+            return p ? p.id : null;
+        }
+        function itemVisible(item) { const k = channelKey(); return !k || !String(item.hiddenChannels || '').split(',').includes(k); }
+        function renderMenuGrid() {
+            const base = currentCategory === 'ALL' ? globalItems : globalItems.filter(i => i.category === currentCategory);
+            let html = '';
+            base.filter(itemVisible).forEach(item => {
+                const prices = item.prices.map(p => p.price), min = prices.length ? Math.min.apply(null, prices) : 0;
+                const label = prices.length > 1 ? 'เริ่ม ' + money(min) : money(min);
+                html += `<div class="menu-card" data-id="${esc(item.id)}" onclick="onItemClick(this.dataset.id)"><img src="${esc(item.image || 'images/bg.jpg')}"><div><div class="menu-name">${esc(item.name)}</div><div class="menu-price">${label}</div></div></div>`;
+            });
+            document.getElementById('menu-grid-container').innerHTML = html || '<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:40px;">ไม่มีสินค้า</div>';
+        }
+
+        /* ================= เลือกสินค้า / ตัวเลือกเสริม ================= */
+        function getItemGroups(item) {
+            return String(item.modifierIds || '').split(',').filter(Boolean).map(id => globalModifiers.find(m => m.id === id)).filter(m => m && m.options.length);
+        }
+        function onItemClick(id) {
+            const item = globalItems.find(i => i.id === id);
+            if (!item) return;
+            const groups = getItemGroups(item);
+            if (item.prices.length <= 1 && groups.length === 0) { const p = item.prices[0] || { label: '', price: 0 }; addLine(item, p.label, p.price, [], ''); return; }
+            opt = { item: item, variantIdx: 0, sel: {}, note: '' };
+            groups.forEach(g => { opt.sel[g.id] = []; });
+            renderOptionModal();
+            document.getElementById('option-modal').style.display = 'flex';
+        }
+        function optionPrice() {
+            let price = (opt.item.prices[opt.variantIdx] || { price: 0 }).price;
+            getItemGroups(opt.item).forEach(g => { (opt.sel[g.id] || []).forEach(i => { price += Number(g.options[i].price || 0); }); });
+            return price;
+        }
+        function renderOptionModal() {
+            const item = opt.item, groups = getItemGroups(item);
+            let html = `<button class="close-modal-x" onclick="closeOptionModal()">✕</button><div class="opt-title">${esc(item.name)}</div>`;
+            if (item.prices.length > 1) {
+                html += '<div class="opt-group"><div class="opt-gname">ขนาด / ประเภท</div><div class="chips">';
+                item.prices.forEach((p, i) => { html += `<button class="chip ${opt.variantIdx === i ? 'on' : ''}" onclick="pickVariant(${i})">${esc(p.label || '-')} · ${money(p.price)}</button>`; });
+                html += '</div></div>';
+            }
+            groups.forEach(g => {
+                html += `<div class="opt-group"><div class="opt-gname">${esc(g.name)}${g.multi ? ' (เลือกได้หลายอย่าง)' : ''}</div><div class="chips">`;
+                g.options.forEach((o, i) => {
+                    const on = (opt.sel[g.id] || []).includes(i);
+                    html += `<button class="chip ${on ? 'on' : ''}" onclick="pickMod('${esc(g.id)}', ${i})">${esc(o.name)}${o.price ? ' +' + money(o.price) : ''}</button>`;
+                });
+                html += '</div></div>';
+            });
+            html += `<div class="opt-group"><div class="opt-gname">หมายเหตุ</div><input type="text" id="opt-note" value="${esc(opt.note)}" placeholder="เช่น ไม่ใส่น้ำแข็ง" oninput="opt.note = this.value" style="width:100%; padding:10px 8px; border:1px solid var(--border); border-radius:4px; font-size:16px;"></div>`;
+            html += `<button class="btn btn-green" style="width:100%;" onclick="confirmOption()">เพิ่มลงตะกร้า (${money(optionPrice())})</button>`;
+            document.getElementById('option-modal-box').innerHTML = html;
+        }
+        function pickVariant(i) { opt.variantIdx = i; renderOptionModal(); }
+        function pickMod(gid, i) {
+            const g = globalModifiers.find(m => m.id === gid);
+            let cur = opt.sel[gid] || [];
+            if (cur.includes(i)) cur = cur.filter(x => x !== i); else cur = g && g.multi ? cur.concat([i]) : [i];
+            opt.sel[gid] = cur; renderOptionModal();
+        }
+        function closeOptionModal() { document.getElementById('option-modal').style.display = 'none'; opt = null; }
+        function confirmOption() {
+            const item = opt.item, v = item.prices[opt.variantIdx] || { label: '', price: 0 }, mods = [];
+            getItemGroups(item).forEach(g => { (opt.sel[g.id] || []).forEach(i => { mods.push({ group: g.name, option: g.options[i].name, price: Number(g.options[i].price || 0) }); }); });
+            const price = optionPrice(), note = (opt.note || '').trim();
+            closeOptionModal(); addLine(item, v.label, price, mods, note);
+        }
+
+        /* ================= ตะกร้า ================= */
+        function lineKey(itemId, variant, mods, note) { return [itemId, variant, mods.map(m => m.group + ':' + m.option).sort().join('+'), note].join('|'); }
+        function addLine(item, variant, price, mods, note) {
+            const key = lineKey(item.id, variant, mods, note), ex = cart.find(c => c.key === key);
+            if (ex) ex.quantity++;
+            else cart.push({ key: key, itemId: item.id, name: item.name, variant: variant || '', price: price, quantity: 1, modifiers: mods, note: note || '', cup: item.usesCup !== false });
+            renderCart();
+        }
+        function updateQty(i, d) { cart[i].quantity += d; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
+        function editNote(i) {
+            const n = prompt('หมายเหตุสำหรับรายการนี้', cart[i].note || '');
+            if (n === null) return;
+            cart[i].note = n.trim(); cart[i].key = lineKey(cart[i].itemId, cart[i].variant, cart[i].modifiers, cart[i].note); renderCart();
+        }
+        function clearCart() { if (cart.length && !confirm('ล้างตะกร้าทั้งหมด?')) return; cart = []; renderCart(); }
+        function cartSubtotal() { return cart.reduce((s, c) => s + Number(c.price || 0) * c.quantity, 0); }
+        function cartCups() { return cart.reduce((s, c) => s + (c.cup === false ? 0 : c.quantity), 0); }
+        function cartLines() { return cart.map(c => ({ itemId: c.itemId, name: c.name, variant: c.variant, price: c.price, quantity: c.quantity, modifiers: c.modifiers, note: c.note, cup: c.cup })); }
+        function toggleCart(open) { document.getElementById('cart-section').classList.toggle('open', !!open); }
+        function renderCart() {
+            const box = document.getElementById('cart-items-container');
+            let qty = 0, html = '';
+            cart.forEach((c, i) => {
+                qty += c.quantity;
+                const det = lineDetails(c);
+                html += `<div class="cart-item-card">
+                    <div class="cart-item-top"><div class="cart-item-info"><div class="cart-item-name">${esc(c.name)}</div>${det ? `<div class="cart-item-details">${esc(det)}</div>` : ''}${c.note ? `<div class="cart-item-note">หมายเหตุ: ${esc(c.note)}</div>` : ''}</div><div>${money(c.price)}</div></div>
+                    <div class="cart-item-actions"><span>รวม: ${money(Number(c.price || 0) * c.quantity)}</span>
+                    <div class="qty-wrap"><button class="note-btn" onclick="editNote(${i})">📝</button><button class="qty-btn" onclick="updateQty(${i}, -1)">-</button><b>${c.quantity}</b><button class="qty-btn" onclick="updateQty(${i}, 1)">+</button></div></div></div>`;
+            });
+            box.innerHTML = html || '<div style="text-align:center; color:#94a3b8; margin-top:40px;">ยังไม่มีสินค้าในตะกร้า</div>';
+            document.getElementById('cart-item-count').innerText = qty + ' รายการ';
+            document.getElementById('cart-total-price').innerText = money(cartSubtotal());
+            document.getElementById('cart-bar-text').innerText = '🛒 ตะกร้า (' + qty + ')';
+            document.getElementById('cart-bar-total').innerText = money(cartSubtotal());
+            renderCartCtl();
+        }
+
+        /* ================= โหมดสั่งเพิ่มในบิลเดิม ================= */
+        function startAddMode(id) {
+            const b = bills[id];
+            if (!b || !isOpenBill(b)) return toast('บิลนี้ปิดแล้ว', false);
+            addToBillId = id;
+            if (b.source && b.source !== 'store' && globalPartners.some(p => p.name === b.source)) switchMainTab(b.source); else switchMainTab('store');
+            document.getElementById('add-banner').classList.add('on');
+            document.getElementById('add-banner-text').innerText = 'สั่งเพิ่มบิล #' + b.orderNo + (billName(b) ? ' · ' + billName(b) : '');
+            renderCartCtl();
+            closePanel();
+        }
+        function cancelAddMode() {
+            addToBillId = null;
+            document.getElementById('add-banner').classList.remove('on');
+            renderCartCtl();
+        }
+
+        /* ================= ขั้นตอน 5 ขั้น (sheet) =================
+           1 ทวนรายการ -> 2 ยืนยัน(กินที่นี่/กลับบ้าน/ชื่อ/เบอร์) -> 3 ส่งครัว -> 4 ชำระเงิน -> 5 ถามเรื่องบิล */
+        function isDelivery() { return currentOrderSource !== 'store'; }
+        /* ---- ควบคุมในตะกร้า (Loyverse-style): เลือกประเภท -> ส่งครัว ได้เลย ---- */
+        let C = null;
+        function resetC() { C = { orderType: '', name: '', phone: '', email: '', customerId: '', table: '', appNo: '', nameTouched: false, more: false }; }
+        resetC();
+        function cartCtlHtml() {
+            const cups = cartCups(), empty = cart.length === 0;
+            if (addToBillId) {
+                return `<div class="ctl-btns"><button class="big green" ${empty ? 'disabled' : ''} onclick="sendFromCart(false)">👨‍🍳 ส่งเพิ่มเข้าครัว</button><button class="big orange" ${cups && !empty ? '' : 'disabled'} onclick="sendFromCart(true)">👨‍🍳🏷️ ส่งเข้าครัว + สติกเกอร์${cups ? ' (' + cups + ' ใบ)' : ''}</button></div>`;
+            }
+            const deliv = isDelivery();
+            let top;
+            if (deliv) {
+                top = `<label class="ctl-l">เลขออร์เดอร์ของแอป</label><input id="c-app" type="text" value="${esc(C.appNo)}" placeholder="เช่น A-1234" oninput="C.appNo=this.value">`;
+            } else {
+                top = `<div class="seg"><button id="c-din" class="${C.orderType === 'Dine-in' ? 'on' : ''}" onclick="setCOT('Dine-in')">🍽️ Dine-in</button><button id="c-take" class="${C.orderType === 'Take away' ? 'on' : ''}" onclick="setCOT('Take away')">🥡 Take away</button></div>
+                <div id="c-more-wrap">${C.more ? cartMoreHtml() : '<button class="linkbtn" onclick="C.more=true;renderCartCtl()">＋ ชื่อ / เบอร์ลูกค้า' + (featureTables && tableNames.length ? ' / โต๊ะ' : '') + '</button>'}</div>`;
+            }
+            const need = !deliv && !C.orderType;
+            const dis = (empty || need) ? 'disabled' : '';
+            const hint = empty ? '' : (need ? '<div class="ctl-hint">เลือก Dine-in หรือ Take away ก่อนส่ง</div>' : '');
+            return top + hint + `<div class="ctl-btns"><button class="big green" id="c-send-a" ${dis} onclick="sendFromCart(false)">👨‍🍳 ส่งครัว</button><button class="big orange" id="c-send-b" ${(dis || !cups) ? 'disabled' : ''} onclick="sendFromCart(true)">👨‍🍳🏷️ ส่งครัว + สติกเกอร์${cups ? ' (' + cups + ')' : ''}</button></div>`;
+        }
+        function cartMoreHtml() {
+            let h = `<input id="c-phone" type="tel" inputmode="tel" value="${esc(C.phone)}" placeholder="เบอร์โทร (ไม่บังคับ)" oninput="onCPhone(this.value)">
+                <input id="c-name" type="text" value="${esc(C.name)}" placeholder="ชื่อลูกค้า (ไม่บังคับ)" oninput="C.name=this.value;C.nameTouched=true"><div class="ctl-hint" id="c-hint"></div>`;
+            if (featureTables && C.orderType === 'Dine-in' && tableNames.length) h += '<select id="c-table" onchange="C.table=this.value"><option value="">โต๊ะ: ไม่ระบุ</option>' + tableNames.map(n => `<option value="${esc(n)}" ${C.table === n ? 'selected' : ''}>${esc(n)}</option>`).join('') + '</select>';
+            return h;
+        }
+        function renderCartCtl() { const el = document.getElementById('cart-ctl'); if (el) el.innerHTML = cartCtlHtml(); }
+        function setCOT(t) { C.orderType = t; if (t !== 'Dine-in') C.table = ''; renderCartCtl(); }
+        function onCPhone(v) {
+            C.phone = v;
+            const c = findCustomer(v), hint = document.getElementById('c-hint');
+            if (c) {
+                C.customerId = c.id; C.email = c.email || '';
+                if (!C.nameTouched || !C.name) { C.name = c.name; const f = document.getElementById('c-name'); if (f) f.value = c.name; }
+                if (hint) hint.innerText = '✓ ลูกค้าเดิม: ' + c.name;
+            } else { C.customerId = ''; C.email = ''; if (hint) hint.innerText = ''; }
+        }
+        function sendFromCart(sticker) {
+            if (cart.length === 0) return toast('ตะกร้าว่างเปล่า!', false);
+            toggleCart(false);
+            if (addToBillId) W = { mode: 'add', step: 3, billId: addToBillId, sending: false, fromCart: true };
+            else {
+                const d = isDelivery();
+                if (!d && !C.orderType) return toast('เลือก Dine-in หรือ Take away ก่อน', false);
+                W = Object.assign({ mode: 'new', step: 3, delivery: d, source: currentOrderSource, sending: false, fromCart: true }, C, { orderType: d ? 'Delivery' : C.orderType });
+            }
+            doSend(sticker);
+        }
+        function closeSheet() { document.getElementById('sheet').style.display = 'none'; W = null; }
+        function sheetBack() {
+            if (!W) return;
+            if (W.mode === 'new' && W.step > 1 && W.step <= 3) { W.step--; renderSheet(); } else closeSheet();
+        }
+        function stepTitle() {
+            return { 1: 'ทวนรายการ', 2: W && W.delivery ? 'ข้อมูลออร์เดอร์ Delivery' : 'ยืนยันรายการ', 3: W && W.mode === 'add' ? 'ส่งเพิ่มเข้าครัว' : 'ส่งเข้าครัว', 4: 'ชำระเงิน', 5: 'ใบเสร็จ' }[W.step];
+        }
+        function linesHtml(lines) {
+            return lines.map(c => {
+                const det = lineDetails(c);
+                return `<div class="ln"><div><div class="nm">${esc(c.name)} × ${c.quantity}</div>${det ? `<div class="sub">${esc(det)}</div>` : ''}${c.note ? `<div class="nt">* ${esc(c.note)}</div>` : ''}</div><div>${money(Number(c.price || 0) * Number(c.quantity || 0))}</div></div>`;
+            }).join('');
+        }
+
+        function renderSheet() {
+            const back = document.getElementById('sh-back');
+            const total = W.step >= 4 ? money(currentBill().total) : money(cartSubtotal());
+            document.getElementById('sh-title').innerText = stepTitle();
+            const maxStep = W.mode === 'pay' ? '' : (W.delivery ? '/3' : (W.mode === 'add' ? '' : '/5'));
+            document.getElementById('sh-steps').innerText = W.mode === 'new' ? 'ขั้น ' + W.step + maxStep : '';
+            back.style.display = W.step >= 5 ? 'none' : '';
+            back.innerText = W.mode === 'new' && W.step === 1 ? '← แก้ตะกร้า' : (W.step === 4 ? '← จ่ายทีหลัง' : '← กลับ');
+            const sum = document.getElementById('sh-sum');
+            if (W.step >= 2 && W.step <= 4) {
+                sum.classList.add('show');
+                const ls = W.step >= 4 ? arr(currentBill().items) : cart;
+                sum.innerHTML = '<h3 style="margin:0 0 8px;color:var(--blue)">รายการ</h3>' + linesHtml(ls) + `<div class="tot"><small>ยอดรวม</small><span>${total}</span></div>`;
+            } else sum.classList.remove('show');
+            ({ 1: renderStep1, 2: renderStep2, 3: renderStep3, 4: renderStep4, 5: renderStep5 })[W.step]();
+        }
+        function setFoot(html) { document.getElementById('sh-foot').innerHTML = html; }
+        function setMain(html) { const m = document.getElementById('sh-main'); m.innerHTML = html; m.parentElement.scrollTop = 0; }
+
+        function renderStep1() {
+            setMain('<h3>อ่านรายการให้ลูกค้าฟัง และแจ้งยอด</h3>' + linesHtml(cart) + `<div class="tot"><small>ยอดรวม</small><span>${money(cartSubtotal())}</span></div>`);
+            setFoot('<button class="big green" onclick="W.step=2;renderSheet()">ถัดไป →</button>');
+        }
+
+        function renderStep2() {
+            if (W.delivery) {
+                setMain(`<h3>ช่องทาง: ${esc(W.source)}</h3>
+                    <label>เลขออร์เดอร์ของแอป (ใช้เทียบกับใบสรุปของแอปภายหลัง)</label>
+                    <input id="f-app" type="text" value="${esc(W.appNo)}" placeholder="เช่น A-1234" oninput="W.appNo=this.value">
+                    <div class="hintbox">ออร์เดอร์ Delivery ไม่ต้องรับเงินที่เคาน์เตอร์ ระบบปิดบิลเป็น "แอปจ่าย" ให้อัตโนมัติ</div>`);
+                setFoot('<button class="big green" onclick="W.step=3;renderSheet()">ถัดไป →</button>');
+                return;
+            }
+            setMain(`<h3>กินที่นี่ หรือ กลับบ้าน?</h3>
+                <div class="seg"><button id="ot-din" class="${W.orderType === 'Dine-in' ? 'on' : ''}" onclick="setOT('Dine-in')">🍽️ Dine-in</button><button id="ot-take" class="${W.orderType === 'Take away' ? 'on' : ''}" onclick="setOT('Take away')">🥡 Take away</button></div>
+                <div id="tbl-wrap"></div>
+                <label>เบอร์โทรศัพท์ (ไม่บังคับ)</label>
+                <input id="f-phone" type="tel" inputmode="tel" value="${esc(W.phone)}" placeholder="เช่น 020 5555 5555" oninput="onPhoneInput(this.value)">
+                <div class="hintbox" id="f-cust-hint"></div>
+                <label>ชื่อลูกค้า (ไม่บังคับ)</label>
+                <input id="f-name" type="text" value="${esc(W.name)}" placeholder="ถ้าเว้นว่าง จะแสดงเป็นเลขบิล" oninput="W.name=this.value;W.nameTouched=true">`);
+            renderTableSelect(); updateStep2Foot(); onPhoneInput(W.phone, true);
+        }
+        function setOT(t) {
+            W.orderType = t;
+            document.getElementById('ot-din').className = t === 'Dine-in' ? 'on' : '';
+            document.getElementById('ot-take').className = t === 'Take away' ? 'on' : '';
+            renderTableSelect(); updateStep2Foot();
+        }
+        function renderTableSelect() {
+            const w = document.getElementById('tbl-wrap');
+            if (!w) return;
+            if (featureTables && W.orderType === 'Dine-in' && tableNames.length) {
+                w.innerHTML = '<label>โต๊ะ (ไม่บังคับ)</label><select id="f-table" onchange="W.table=this.value"><option value="">-- ไม่ระบุ --</option>' + tableNames.map(n => `<option value="${esc(n)}" ${W.table === n ? 'selected' : ''}>${esc(n)}</option>`).join('') + '</select>';
+            } else { w.innerHTML = ''; W.table = ''; }
+        }
+        function updateStep2Foot() {
+            setFoot(`<button class="big green" ${W.orderType ? '' : 'disabled'} onclick="W.step=3;renderSheet()">${W.orderType ? 'ถัดไป →' : 'เลือก Dine-in หรือ Take away ก่อน'}</button>`);
+        }
+        function findCustomer(phone) {
+            const n = waNumber(phone);
+            if (!n || n.length < 9) return null;
+            return globalCustomers.find(c => waNumber(c.phone) === n) || null;
+        }
+        function onPhoneInput(v, silent) {
+            W.phone = v;
+            const c = findCustomer(v), hint = document.getElementById('f-cust-hint');
+            if (c) {
+                W.customerId = c.id; W.email = c.email || '';
+                if (!W.nameTouched || !W.name) { W.name = c.name; const f = document.getElementById('f-name'); if (f) f.value = c.name; }
+                if (hint) hint.innerText = '✓ ลูกค้าเดิม: ' + c.name;
+            } else { W.customerId = ''; W.email = ''; if (hint) hint.innerText = ''; }
+        }
+
+        function renderStep3() {
+            const lines = W.mode === 'add' ? cart : cart;
+            const cups = cartCups();
+            const info = W.mode === 'add'
+                ? `เพิ่มในบิล #${esc((bills[W.billId] || {}).orderNo || '')}`
+                : (W.delivery ? esc(W.source) + (W.appNo ? ' · ' + esc(W.appNo) : '') : esc(W.orderType) + (W.table ? ' · โต๊ะ ' + esc(W.table) : '') + (W.name ? ' · ' + esc(W.name) : ''));
+            setMain(`<h3>${info}</h3>${linesHtml(lines)}<div class="tot"><small>${W.mode === 'add' ? 'ยอดที่เพิ่ม' : 'ยอดรวม'}</small><span>${money(cartSubtotal())}</span></div>
+                <div class="hintbox">ทั้งสองปุ่มลงออร์เดอร์และส่งให้ครัวเหมือนกัน ต่างกันที่ปริ้นสติกเกอร์ (1 แก้ว 1 ใบ${cups ? ' = ' + cups + ' ใบ' : ''})</div>`);
+            setFoot(`<button class="big green" id="send-a" onclick="doSend(false)">👨‍🍳 ส่งเข้าครัว</button><button class="big orange" id="send-b" ${cups ? '' : 'disabled'} onclick="doSend(true)">👨‍🍳🏷️ ส่งเข้าครัว + พิมพ์สติกเกอร์${cups ? ' (' + cups + ' ใบ)' : ''}</button>`);
+        }
+
+        async function doSend(sticker) {
+            if (!W || W.sending) return;
+            W.sending = true;
+            document.querySelectorAll('#sh-foot .big, #cart-ctl .big').forEach(b => { b.disabled = true; });
+            try {
+                if (W.mode === 'add') {
+                    const res = await addItemsToBill(W.billId, cartLines());
+                    if (sticker) printStickers(res.bill, res.added);
+                    const id = W.billId;
+                    cart = []; cancelAddMode(); renderCart(); closeSheet();
+                    toast('ส่งเพิ่มเข้าครัวแล้ว (บิล #' + res.bill.orderNo + ')');
+                    openPanel('detail', id, 'open');
+                    return;
+                }
+                const r = await createBill({
+                    items: cartLines(), source: W.source, orderType: W.orderType, customerId: W.customerId, customerName: W.name.trim(), customerPhone: W.phone.trim(), customerEmail: W.email,
+                    table: W.table, appOrderNo: W.appNo.trim(), paidByApp: W.delivery
+                });
+                saveNewCustomer();
+                if (sticker) printStickers(r.bill, r.bill.items);
+                cart = []; resetC(); renderCart();
+                bills[r.id] = r.bill;
+                if (W.delivery) { toast('ส่งออร์เดอร์ #' + r.bill.orderNo + ' เข้าครัวแล้ว (แอปจ่าย)'); closeSheet(); return; }
+                W.billId = r.id; W.bill = r.bill; W.step = 4; W.sending = false;
+                W.discType = 'amount'; W.discVal = ''; W.method = 'cash'; W.received = '';
+                document.getElementById('sheet').style.display = 'flex';
+                renderSheet();
+            } catch (e) {
+                toast('ไม่สำเร็จ: ' + e.message, false);
+                if (W) { if (W.fromCart) W = null; else { W.sending = false; renderStep3(); } renderCartCtl(); }
+            }
+        }
+        function saveNewCustomer() {
+            const phone = W.phone.trim(), name = W.name.trim();
+            if (!phone || !name || W.customerId || findCustomer(phone)) return;
+            database.ref('customers').push({ name: name, phone: phone, email: '' });
+        }
+
+        /* ---- ขั้นที่ 4: ชำระเงิน ---- */
+        function currentBill() { return bills[W.billId] || W.bill || {}; }
+        function payCalc() {
+            const b = currentBill(), sub = itemsSubtotal(b.items);
+            const val = Math.max(0, parseFloat(W.discVal) || 0);
+            let disc = W.discType === 'percent' ? sub * Math.min(val, 100) / 100 : val;
+            disc = Math.round(Math.min(disc, sub));
+            const net = sub - disc;
+            const rec = W.received === '' ? net : (parseFloat(W.received) || 0);
+            return { sub: sub, disc: disc, net: net, rec: rec, change: Math.max(0, rec - net) };
+        }
+        function renderStep4() {
+            const b = currentBill();
+            setMain(`<h3>บิล #${esc(b.orderNo || '')} ${billName(b) ? '· ' + esc(billName(b)) : ''}</h3>
+                <div class="tot"><small>ยอดสุทธิ</small><span id="p-net">0 ₭</span></div>
+                <div id="p-disc-line" class="hintbox"></div>
+                <label>ส่วนลด (ไม่บังคับ)</label>
+                <div style="display:flex;gap:8px"><select id="p-dtype" style="flex:1" onchange="W.discType=this.value;updatePayNumbers()"><option value="amount" ${W.discType === 'amount' ? 'selected' : ''}>จำนวนเงิน (₭)</option><option value="percent" ${W.discType === 'percent' ? 'selected' : ''}>เปอร์เซ็นต์ (%)</option></select>
+                <input id="p-dval" type="number" inputmode="decimal" min="0" style="flex:1" value="${esc(W.discVal)}" placeholder="0" oninput="W.discVal=this.value;updatePayNumbers()"></div>
+                <label>วิธีชำระเงิน</label>
+                <div class="seg"><button id="m-cash" class="${W.method === 'cash' ? 'on' : ''}" onclick="setMethod('cash')">💵 เงินสด</button><button id="m-tr" class="${W.method === 'transfer' ? 'on' : ''}" onclick="setMethod('transfer')">📱 โอน QR</button></div>
+                <div id="cash-wrap"><label>รับเงินมา (เว้นว่าง = พอดี)</label>
+                <div style="display:flex;gap:8px"><input id="p-rec" type="number" inputmode="numeric" min="0" value="${esc(W.received)}" placeholder="พอดี" oninput="W.received=this.value;updatePayNumbers()"><button class="rmbtn" style="background:#e2e8f0;color:#334155" onclick="W.received='';document.getElementById('p-rec').value='';updatePayNumbers()">พอดี</button></div>
+                <div class="tot"><small>เงินทอน</small><span id="p-chg" style="color:var(--green)">0 ₭</span></div></div>
+                <button class="linkbtn" onclick="voidFromSheet()">✕ ยกเลิกบิลนี้</button>`);
+            setFoot('<button class="big gray sm" onclick="closeSheet()">จ่ายทีหลัง</button><button class="big green" id="p-ok" onclick="doPay()">✓ ยืนยันรับเงิน</button>');
+            updatePayNumbers();
+        }
+        function setMethod(m) {
+            W.method = m;
+            document.getElementById('m-cash').className = m === 'cash' ? 'on' : '';
+            document.getElementById('m-tr').className = m === 'transfer' ? 'on' : '';
+            updatePayNumbers();
+        }
+        function updatePayNumbers() {
+            if (!W || W.step !== 4 || !document.getElementById('p-net')) return;
+            const c = payCalc();
+            document.getElementById('p-net').innerText = money(c.net);
+            document.getElementById('p-disc-line').innerText = c.disc > 0 ? 'รวม ' + money(c.sub) + '  ส่วนลด -' + money(c.disc) : '';
+            document.getElementById('cash-wrap').style.display = W.method === 'cash' ? 'block' : 'none';
+            document.getElementById('p-chg').innerText = money(c.change);
+            const short = W.method === 'cash' && c.rec < c.net;
+            const ok = document.getElementById('p-ok');
+            ok.disabled = short;
+            ok.innerText = short ? 'รับเงินมาน้อยกว่ายอด' : '✓ ยืนยันรับเงิน ' + money(c.net);
+        }
+        function voidFromSheet() {
+            const b = currentBill();
+            openVoidDialog(W.billId, b, 'cashier', () => { closeSheet(); });
+        }
+        async function doPay() {
+            if (W.paying) return;
+            W.paying = true;
+            const ok = document.getElementById('p-ok'); ok.disabled = true;
+            try {
+                const bill = await payBill(W.billId, { discountType: W.discType, discountValue: W.discVal, method: W.method, cashReceived: W.received });
+                bills[W.billId] = bill; W.bill = bill; W.paying = false; W.step = 5;
+                renderSheet();
+            } catch (e) { W.paying = false; ok.disabled = false; toast(e.message, false); }
+        }
+
+        /* ---- ขั้นที่ 5: ถามเรื่องบิล ---- */
+        function renderStep5() {
+            const b = currentBill();
+            setMain(`<div class="okbox"><div class="tick">✓</div><div style="font-weight:bold;color:var(--green)">ชำระเงินเรียบร้อย · บิล #${esc(b.orderNo || '')}</div>
+                <div class="amt">${money(b.total)}</div>${b.paymentMethod === 'cash' ? `<div class="chg">เงินทอน ${money(b.change)}</div>` : '<div class="chg">โอนเงิน QR</div>'}</div>
+                <h3 style="text-align:center">ลูกค้าต้องการบิลไหม?</h3><div class="hintbox" style="text-align:center">ต้องการ 2 ใบ ให้กด "พิมพ์บิล" อีกครั้ง</div>`);
+            setFoot(`<button class="big blue sm" onclick="printReceipt(currentBill(), false, W.billId)">🖨️ พิมพ์บิล</button><button class="big blue sm" onclick="openShareModal(currentBill())">📤 WhatsApp / อีเมล</button><button class="big green" onclick="closeSheet()">ไม่เอาบิล (เสร็จ)</button>`);
+        }
+
+        /* ================= สติกเกอร์: 1 แก้ว 1 ใบ ================= */
+        function stickerBlocks(bill, items) {
+            const where = (bill.source && bill.source !== 'store') ? bill.source + (bill.appOrderNo ? ' ' + bill.appOrderNo : '') : (bill.orderType || '');
+            const nm = bill.source === 'store' || !bill.source ? (bill.table ? 'โต๊ะ ' + bill.table : bill.customerName || '') : '';
+            const out = [];
+            arr(items).forEach(c => {
+                if (c.cup === false) return;
+                for (let k = 1; k <= c.quantity; k++) {
+                    let t = '#' + bill.orderNo + '  ' + where + (nm ? '  ' + nm : '') + '\n' + c.name + '\n';
+                    const d = lineDetails(c);
+                    if (d) t += d + '\n';
+                    if (c.note) t += '* ' + c.note + '\n';
+                    t += k + '/' + c.quantity + '\n====================\n\n\n';
+                    out.push(t);
+                }
+            });
+            return out;
+        }
+        function printStickers(bill, items) {
+            const cfg = stickerCfg();
+            if (cfg.method === 'text') {
+                const blocks = stickerBlocks(bill, items);
+                if (!blocks.length) { toast('ไม่มีสินค้าที่ใช้แก้ว จึงไม่พิมพ์สติกเกอร์', false); return 0; }
+                window.location.href = 'rawbt:data:base64,' + btoa(unescape(encodeURIComponent(blocks.join(''))));
+                return blocks.length;
+            }
+            const list = [];
+            arr(items).forEach(c => {
+                if (c.cup === false) return;
+                for (let k = 1; k <= c.quantity; k++) list.push(stkData(bill, c, k, c.quantity, cfg));
+            });
+            if (!list.length) { toast('ไม่มีสินค้าที่ใช้แก้ว จึงไม่พิมพ์สติกเกอร์', false); return 0; }
+            stkSendAll(list, cfg);
+            return list.length;
+        }
+
+        /* ================= บิลที่เปิดอยู่ / บิลวันนี้ / รายละเอียดบิล ================= */
+        function openPanel(view, billId, from) {
+            P = { view: view, billId: billId || null, from: from || view };
+            document.getElementById('panel').style.display = 'flex';
+            renderPanel();
+        }
+        function closePanel() { document.getElementById('panel').style.display = 'none'; }
+        function panelBack() { if (P.view === 'detail') { P.view = P.from; P.billId = null; renderPanel(); } else closePanel(); }
+        function ago(ts) {
+            const m = Math.max(0, Math.floor((Date.now() - ts) / 60000));
+            return m < 60 ? m + ' นาที' : (m < 1440 ? Math.floor(m / 60) + ' ชม.' + (m % 60) + ' น.' : Math.floor(m / 1440) + ' วัน');
+        }
+        function statusPill(b) {
+            if (b.status === 'void') return '<span class="pill void">ยกเลิก</span>';
+            if (isOpenBill(b)) return '<span class="pill open">ยังไม่จ่าย</span>';
+            return '<span class="pill paid">จ่ายแล้ว</span>';
+        }
+        function renderPanel() {
+            const main = document.getElementById('pn-main'), foot = document.getElementById('pn-foot'), today = dayKey(Date.now());
+            foot.style.display = 'none';
+            document.getElementById('pn-back').style.display = P.view === 'detail' ? '' : 'none';
+            if (P.view === 'detail') return renderBillDetail(main, foot);
+            let list;
+            if (P.view === 'open') { list = openBills(); document.getElementById('pn-title').innerText = 'บิลที่เปิดอยู่ (' + list.length + ')'; }
+            else { list = billList().filter(b => b.dayKey === today).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); document.getElementById('pn-title').innerText = 'บิลวันนี้ (' + list.length + ')'; }
+            if (!list.length) { main.innerHTML = `<div class="empty">${P.view === 'open' ? 'ไม่มีบิลที่เปิดค้างอยู่ 🎉' : 'วันนี้ยังไม่มีบิล'}</div>`; return; }
+            main.innerHTML = '<div class="bills">' + list.map(b => {
+                const late = isOpenBill(b) && b.dayKey !== today;
+                const sum = arr(b.items).map(c => c.name + ' ×' + c.quantity).join(', ');
+                return `<div class="bill-card" data-id="${esc(b.id)}" onclick="openPanel('detail', this.dataset.id, P.view)">
+                    <div class="top"><span class="no">#${esc(b.orderNo || '-')}</span>${statusPill(b)}${late ? '<span class="pill late">ค้างข้ามวัน</span>' : ''}</div>
+                    <div class="nm">${esc(billName(b) || 'ลูกค้าทั่วไป')} <span class="sm">· ${esc(b.orderType || b.source || '')}</span></div>
+                    <div class="sm">${esc(sum)}</div>
+                    <div class="top"><span class="sm">${isOpenBill(b) ? 'เปิดมา ' + ago(b.openedAt || b.timestamp) : timeHHMM(b.paidAt || b.timestamp)}</span><span class="amt">${money(b.total)}</span></div></div>`;
+            }).join('') + '</div>';
+        }
+        function renderBillDetail(main, foot) {
+            const b = bills[P.billId];
+            if (!b) { main.innerHTML = '<div class="empty">ไม่พบบิลนี้</div>'; return; }
+            const open = isOpenBill(b), items = arr(b.items);
+            document.getElementById('pn-title').innerText = 'บิล #' + (b.orderNo || '-') + (billName(b) ? ' · ' + billName(b) : '');
+            let html = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">${statusPill(b)}<span class="sm" style="color:#64748b">${esc(b.orderType || '')} ${esc(b.source && b.source !== 'store' ? '· ' + b.source : '')} · เปิด ${fmtDateTime(b.openedAt || b.timestamp)}</span></div>`;
+            if (b.status === 'void') html += `<div class="sx-warn" style="background:#fef2f2;color:#b91c1c;border-radius:8px;padding:8px 10px;margin-bottom:8px">ยกเลิกแล้ว: ${esc(b.voidReason || '-')} (${esc(b.voidedBy || '')})</div>`;
+            items.forEach((c, i) => {
+                const det = lineDetails(c);
+                html += `<div class="ln"><div><div class="nm">${esc(c.name)} × ${c.quantity}${c.round > 1 ? ' <span class="pill open">เพิ่มรอบ ' + c.round + '</span>' : ''}</div>${det ? `<div class="sub">${esc(det)}</div>` : ''}${c.note ? `<div class="nt">* ${esc(c.note)}</div>` : ''}</div>
+                    <div style="display:flex;gap:8px;align-items:center"><span>${money(Number(c.price || 0) * Number(c.quantity || 0))}</span>${open ? `<button class="rmbtn" ${items.length <= 1 ? 'disabled title="รายการสุดท้ายลบไม่ได้ ใช้ยกเลิกบิล"' : ''} data-lid="${esc(c.lid || 'idx:' + i)}" onclick="removeLine(this.dataset.lid)">ลบ</button>` : ''}</div></div>`;
+            });
+            if (Number(b.discount) > 0) html += `<div class="ln"><span>ส่วนลด</span><span>-${money(b.discount)}</span></div>`;
+            html += `<div class="tot"><small>ยอดรวม</small><span>${money(b.total)}</span></div>`;
+            if (!open && b.status !== 'void') html += `<div class="hintbox">ชำระ: ${b.paymentMethod === 'cash' ? 'เงินสด' : b.paymentMethod === 'transfer' ? 'โอน QR' : b.paymentMethod === 'delivery' ? 'แอป Delivery' : '-'}${b.printCount ? ' · พิมพ์แล้ว ' + b.printCount + ' ครั้ง' : ''}<br>ยกเลิกบิลที่ชำระแล้ว ทำได้ที่ Admin เท่านั้น (เพราะอาจต้องคืนเงิน)</div>`;
+            main.innerHTML = html;
+            const id = b.id || P.billId;
+            let btns = '';
+            if (open) btns = `<button class="big red sm" onclick="voidFromPanel()">✕ ยกเลิกบิล</button><button class="big gray sm" onclick="stickersFromPanel()">🏷️</button><button class="big orange" onclick="startAddMode(P.billId)">➕ สั่งเพิ่ม</button><button class="big green" onclick="payFromPanel()">💳 ชำระเงิน</button>`;
+            else if (b.status !== 'void') btns = `<button class="big gray sm" onclick="stickersFromPanel()">🏷️ สติกเกอร์</button><button class="big blue" onclick="reprintFromPanel()">🖨️ พิมพ์ซ้ำ (สำเนา)</button><button class="big blue" onclick="openShareModal(panelBill())">📤 ส่ง WhatsApp / อีเมล</button>`;
+            foot.innerHTML = btns; foot.style.display = btns ? 'flex' : 'none';
+        }
+        function panelBill() { return Object.assign({ id: P.billId }, bills[P.billId]); }
+        function removeLine(lid) {
+            const b = panelBill();
+            if (!confirm('ลบรายการนี้ออกจากบิล #' + b.orderNo + ' ?\nครัวจะเห็นป้ายแดง "ยกเลิก"')) return;
+            removeBillLine(P.billId, lid).then(() => toast('ลบรายการแล้ว (แจ้งครัวแล้ว)')).catch(e => toast(e.message, false));
+        }
+        function voidFromPanel() { openVoidDialog(P.billId, panelBill(), 'cashier', () => { P.view = 'open'; P.billId = null; renderPanel(); }); }
+        function stickersFromPanel() { const b = panelBill(); printStickers(b, b.items); }
+        function reprintFromPanel() { printReceipt(panelBill(), true, P.billId); }
+        function payFromPanel() {
+            const id = P.billId; closePanel();
+            W = { mode: 'pay', step: 4, billId: id, bill: bills[id], sending: false, discType: 'amount', discVal: '', method: 'cash', received: '' };
+            renderSheet();
+            document.getElementById('sheet').style.display = 'flex';
+        }
+
+        renderNavTabs();
+        renderCategories();
+        renderCart();
+        startApp('staff', startListeners);
+    </script>
+</body>
+</html>

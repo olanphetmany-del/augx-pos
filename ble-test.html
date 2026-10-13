@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ทดสอบบลูทูธตรง DP30S</title>
+<style>
+body{font-family:system-ui,'Noto Sans Thai',sans-serif;margin:0;padding:16px;background:#f1f5f9;color:#0f172a;max-width:600px;margin-inline:auto}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 6px}p{margin:6px 0;color:#475569;font-size:14px}
+.pv{overflow-x:auto;background:#fff;border:1px solid #cbd5e1}canvas{display:block;image-rendering:pixelated}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row label{flex:1 1 130px;font-size:13px;color:#334155}
+input,select{width:100%;box-sizing:border-box;padding:10px;font-size:16px;border:1px solid #94a3b8;border-radius:8px;margin-top:3px;font-family:inherit}
+button{display:block;width:100%;padding:15px;margin:8px 0;border:0;border-radius:10px;color:#fff;font-size:16px;font-weight:bold;font-family:inherit;background:#0f766e}
+button.r{background:#b45309}button.n{background:#475569;padding:10px;font-size:14px}
+</style></head><body>
+<h1>ทดสอบส่งตรงผ่านบลูทูธ (ไม่ผ่าน RawBT)</h1>
+<p>หน้านี้ใช้ Chrome บนแท็บเล็ตคุยกับเครื่องพิมพ์ตรงๆ เพื่อทดสอบว่าเครื่องรับข้อมูลได้เต็มใบเมื่อส่งช้าๆ หรือไม่ ขั้นตอน: (1) ปิดการเชื่อมต่อ RawBT ก่อน (2) กด "เชื่อมต่อเครื่องพิมพ์" แล้วเลือกเครื่อง DP30S (3) กดพิมพ์แถบวัด</p>
+<div class="pv"><canvas id="cv"></canvas></div>
+<p style="font-size:12px">กรอบเส้นประในภาพ = ตำแหน่งสติกเกอร์ 60×40mm (เส้นประไม่ถูกพิมพ์)</p>
+
+<h2>ตั้งค่า</h2>
+<div class="row">
+ <label>ภาษาคำสั่ง (ที่ออกถูกจากรอบก่อน)<select id="kind"><option value="esc">A · ESC/POS</option><option value="tspl">B · TSPL</option><option value="cpcl">C · CPCL</option></select></label>
+ <label>ความกว้างหัวพิมพ์ (จุด)<select id="head"><option value="640">640 (80mm)</option><option value="576">576 (72mm)</option><option value="480">480 (60mm)</option></select></label>
+</div>
+<div class="row">
+ <label>ขยับไปทางขวา (จุด) · 8 จุด = 1mm<input id="ox" type="number" value="0" step="8"></label>
+ <label>ขยับลง (จุด) · ติดลบ = ขึ้น<input id="oy" type="number" value="0" step="8"></label>
+</div>
+<button class="n" onclick="conn()">1) เชื่อมต่อเครื่องพิมพ์ (บลูทูธตรง)</button>
+<div class="row">
+ <label>ขนาดชิ้นที่ส่ง (ไบต์)<input id="chunk" type="number" value="100" step="20" min="20" max="500"></label>
+ <label>เว้นระหว่างชิ้น (ms)<input id="gap" type="number" value="30" step="10" min="0"></label>
+</div>
+<button onclick="go(false)">พิมพ์สติกเกอร์ตัวอย่าง</button>
+<button class="r" onclick="go(true)">พิมพ์แถบวัด (ไม้บรรทัด)</button>
+<p id="msg"></p><pre id="log" style="font-size:12px;white-space:pre-wrap;background:#fff;border:1px solid #cbd5e1;padding:8px;max-height:260px;overflow:auto"></pre>
+
+<script>
+const W=480,H=320,$=id=>document.getElementById(id);
+const F='"Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif';
+function sticker(c,ox,oy){
+  c.save();c.translate(ox,oy);c.fillStyle='#000';c.textBaseline='top';
+  c.font='bold 56px '+F;c.fillText('#12',16,4);
+  c.textAlign='right';c.fillText('1/2',W-16,4);c.textAlign='left';
+  c.font='bold 44px '+F;c.fillText('คุณสมชาย',16,66);
+  c.font='bold 38px '+F;c.fillText('LATTE ICED',16,122);
+  c.font='30px '+F;c.fillText('หวาน 50% · นมโอ๊ต',16,166);c.fillText('* ไม่ใส่น้ำแข็งเยอะ',16,202);
+  c.fillRect(16,254,W-32,3);
+  c.font='28px '+F;c.fillText('Take away',16,268);c.textAlign='right';c.fillText('20:26',W-16,268);
+  c.restore();
+}
+function ruler(c,cw){ /* ขีดทุก 5mm (40 จุด) ตลอดความกว้างหัวพิมพ์ เลขทุก 10mm */
+  c.fillStyle='#000';c.textBaseline='top';c.font='bold 22px '+F;
+  for(let x=0,mm=0;x<cw;x+=40,mm+=5){
+    const long=mm%10===0;c.fillRect(x,0,3,long?60:34);
+    if(long){c.textAlign='left';c.fillText(String(mm),x+5,64)}
+  }
+  c.fillRect(0,0,3,H);c.fillRect(0,H-3,cw,3);
+  for(let y=0,mm=0;y<H;y+=40,mm+=5)c.fillRect(0,y,mm%10===0?50:28,3);
+  c.textAlign='left';c.font='26px '+F;c.fillText('วัดจากซ้ายหัวพิมพ์ (mm)',70,150);
+}
+function make(cw,isRuler,ox,oy){
+  const k=document.createElement('canvas');k.width=cw;k.height=H;const c=k.getContext('2d');
+  c.fillStyle='#fff';c.fillRect(0,0,cw,H);
+  if(isRuler)ruler(c,cw);else sticker(c,ox,oy);return k;
+}
+function preview(){
+  const head=+$('head').value,ox=+$('ox').value||0,oy=+$('oy').value||0,cv=$('cv');
+  cv.width=head;cv.height=H;cv.style.width=head+'px';
+  const c=cv.getContext('2d');c.drawImage(make(head,false,ox,oy),0,0);
+  c.strokeStyle='#2563eb';c.setLineDash([6,5]);c.strokeRect(ox+.5,oy+.5,W-1,H-1);
+}
+function bits(k,invert){
+  const w=k.width,d=k.getContext('2d').getImageData(0,0,w,H).data,bw=w/8,o=new Uint8Array(bw*H);
+  for(let y=0;y<H;y++)for(let x=0;x<w;x++){const i=(y*w+x)*4,bl=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)<140;if(bl!==invert)o[y*bw+(x>>3)]|=0x80>>(x&7)}
+  return o;
+}
+const enc=s=>new TextEncoder().encode(s);
+function cat(...p){const n=p.reduce((a,b)=>a+b.length,0),o=new Uint8Array(n);let k=0;p.forEach(b=>{o.set(b,k);k+=b.length});return o}
+function build(kind,isRuler){
+  const head=+$('head').value,ox=+$('ox').value||0,oy=+$('oy').value||0;
+  if(kind==='esc'){const k=make(W,isRuler,0,oy),bw=W/8,mg=Math.max(0,ox),b=bits(k,false),ps=[Uint8Array.of(0x1B,0x40,0x1D,0x4C,mg&255,mg>>8)];
+    for(let y=0;y<H;y+=40){const n=Math.min(40,H-y);ps.push(Uint8Array.of(0x1D,0x76,0x30,0,bw&255,bw>>8,n&255,n>>8),b.subarray(y*bw,(y+n)*bw))}
+    ps.push(Uint8Array.of(0x0C));return cat(...ps);}
+  if(kind==='tspl'){ /* TSPL: หน้ากระดาษ 60mm วางภาพที่ x=ขยับขวา (ไม่ติดลบ) */
+    const k=make(W,isRuler,0,oy),x=Math.max(0,ox);
+    return cat(enc('SIZE 60 mm,40 mm\r\nGAP 2 mm,0 mm\r\nDIRECTION 1\r\nCLS\r\nBITMAP '+x+',0,'+(W/8)+','+H+',0,'),bits(k,true),enc('\r\nPRINT 1,1\r\n'));}
+  const k=make(head,isRuler,ox,oy);
+  return cat(enc('! 0 203 203 '+H+' 1\r\nPW '+head+'\r\nEG '+(head/8)+' '+H+' 0 0 '),bits(k,false),enc('\r\nFORM\r\nPRINT\r\n'));
+}
+function b64(u){let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)}
+function save(){try{localStorage.setItem('stk',JSON.stringify({kind:$('kind').value,head:$('head').value,ox:$('ox').value,oy:$('oy').value}))}catch(e){}}
+const SV=['000018f0-0000-1000-8000-00805f9b34fb','0000ff00-0000-1000-8000-00805f9b34fb','0000ffe0-0000-1000-8000-00805f9b34fb','0000ffe5-0000-1000-8000-00805f9b34fb','0000fff0-0000-1000-8000-00805f9b34fb','0000ff12-0000-1000-8000-00805f9b34fb','0000fee7-0000-1000-8000-00805f9b34fb','0000af30-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455','e7810a71-73ae-499d-8c15-faa9aef0c3f2','0000ae00-0000-1000-8000-00805f9b34fb','0000a002-0000-1000-8000-00805f9b34fb','0000ffb0-0000-1000-8000-00805f9b34fb','00001800-0000-1000-8000-00805f9b34fb','0000180a-0000-1000-8000-00805f9b34fb'];
+let CH=null;
+function log(t){const l=$('log');l.textContent+=t+'\n';l.scrollTop=l.scrollHeight}
+async function conn(){
+  if(!navigator.bluetooth){log('Chrome เครื่องนี้ไม่รองรับบลูทูธตรง (Web Bluetooth)');return}
+  try{
+    const d=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:SV});
+    log('เลือก: '+d.name);const srv=await d.gatt.connect();let found=null;
+    const ss=await srv.getPrimaryServices();
+    for(const sv of ss){log('service '+sv.uuid);const cs=await sv.getCharacteristics();
+      for(const c of cs){const p=Object.keys(c.properties).filter(k=>c.properties[k]).join(',');log('   char '+c.uuid+' ['+p+']');
+        if(!found&&(c.properties.writeWithoutResponse||c.properties.write)&&!/^0000(2a|18)/.test(c.uuid))found=c}}
+    if(!found){log('ไม่พบช่องเขียนข้อมูล - ถ่ายภาพ log นี้ส่งมา');return}
+    CH=found;log('ใช้ช่อง '+found.uuid);$('msg').innerText='เชื่อมต่อแล้ว กดพิมพ์ได้'
+  }catch(e){log('ผิดพลาด: '+e.message)}
+}
+async function go(isRuler){
+  if(!CH){log('ยังไม่ได้เชื่อมต่อ');return}
+  save();const u=build($('kind').value,isRuler),n=Math.max(20,+$('chunk').value||100),gap=Math.max(0,+$('gap').value||0),wr=!CH.properties.writeWithoutResponse;
+  log('ส่ง '+u.length+' ไบต์ ชิ้นละ '+n+' หน่วง '+gap+'ms');
+  try{for(let i=0;i<u.length;i+=n){const p=u.subarray(i,i+n);if(wr)await CH.writeValue(p);else await CH.writeValueWithoutResponse(p);if(gap)await new Promise(r=>setTimeout(r,gap))}
+    log('ส่งครบแล้ว รอเครื่องพิมพ์')}catch(e){log('ผิดพลาดตอนส่ง: '+e.message)}
+}
+try{const s=JSON.parse(localStorage.getItem('stk')||'null');if(s){$('kind').value=s.kind;$('head').value=s.head;$('ox').value=s.ox;$('oy').value=s.oy}}catch(e){}
+['head','ox','oy'].forEach(i=>$(i).addEventListener('input',preview));
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(preview);preview();
+</script></body></html>
