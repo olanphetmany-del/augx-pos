@@ -113,6 +113,9 @@
       desc: String(pick(raw, FIELD.desc) || ''),
       sort: num(pick(raw, FIELD.sort) || 0),
       available: isAvailable(raw),
+      retail: raw.retail === true,        // ขายปลีก ไม่เข้าครัว
+      preorder: raw.preorder === true,    // สินค้าสั่งจอง
+      photos: Number(raw.photoCount || 0), // จำนวนรูปใหญ่ใน menu_photos/<id>
       usesCup: raw.usesCup !== false,
       // ช่องทางที่ซ่อนเมนูนี้ เช่น "store,<partnerId>"
       hiddenChannels: String(raw.hiddenChannels || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean),

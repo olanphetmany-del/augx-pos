@@ -137,6 +137,103 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .shopnum b { color: var(--ink); user-select: all; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 50; background: var(--chip); color: var(--chip-ink); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.banner { position: relative; margin: 14px 0 2px; border-radius: 14px; overflow: hidden; background: var(--surface); }
+.slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.slides::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 3 / 1; position: relative; border: 0; padding: 0; text-align: left; color: #fff; overflow: hidden; }
+.slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.slide .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,12,28,.72) 0%, rgba(5,12,28,.25) 60%, transparent); }
+.slide .cap { position: absolute; left: 16px; bottom: 12px; right: 40%; }
+.slide .cap b { display: block; font-family: var(--display); font-size: clamp(20px, 6vw, 30px); letter-spacing: .04em; line-height: 1; }
+.slide .cap span { display: block; font-size: 13px; opacity: .92; margin-top: 4px; }
+.slide.matcha { background: radial-gradient(circle at 80% 40%, #6f9a3e 0, #2f5a1d 45%, #183313 100%); }
+.slide.shoes { background: linear-gradient(120deg, #0e1626 0%, #0e1626 55%, #0b4db3 55%, #0b4db3 100%); }
+.slide .mark { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-family: var(--display); font-size: clamp(34px, 11vw, 64px); opacity: .9; letter-spacing: .02em; }
+.dots { position: absolute; right: 10px; bottom: 8px; display: flex; gap: 5px; }
+.dots i { width: 6px; height: 6px; border-radius: 99px; background: rgba(255,255,255,.5); }
+.dots i.on { background: #fff; width: 14px; }
+.item .th { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; flex: none; background: var(--line); }
+.badge { display: inline-block; font-family: var(--body); font-size: 11px; font-weight: 700; letter-spacing: .04em; border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: 3px; background: var(--chip); color: var(--chip-ink); }
+.hero { position: relative; margin: -18px -16px 0; border-radius: 18px 18px 0 0; overflow: hidden; background: var(--line); }
+.hero .gal { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.hero .gal::-webkit-scrollbar { display: none; }
+.hero img { flex: 0 0 100%; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; scroll-snap-align: start; display: block; }
+.hero .x { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,.9); color: #0e1626; }
+.hero .cnt { position: absolute; left: 12px; bottom: 10px; background: rgba(5,12,28,.65); color: #fff; font-size: 12px; font-weight: 700; border-radius: 99px; padding: 2px 9px; }
+.notice { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
+.track { position: fixed; inset: 0; z-index: 25; background: var(--bg); overflow-y: auto; }
+.track-in { max-width: 560px; margin: 0 auto; padding: 20px 16px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 16px; }
+.track-top { display: flex; justify-content: space-between; align-items: center; }
+.track-top .logo { font-size: 30px; color: var(--brand); }
+.back { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px; }
+.st-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 16px 18px; text-align: center; }
+.st-icon { width: 76px; height: 76px; border-radius: 999px; margin: 0 auto 12px; display: grid; place-items: center; font-size: 36px; background: var(--brand-soft); color: var(--brand); }
+.st-card[data-s="ready"] .st-icon, .st-card[data-s="paid"] .st-icon { background: var(--ok); color: #fff; }
+.st-card[data-s="rejected"] .st-icon { background: var(--bad); color: #fff; }
+@media (prefers-reduced-motion: no-preference) {
+  .st-card[data-s="new"] .st-icon, .st-card[data-s="making"] .st-icon, .st-card[data-s="delivering"] .st-icon { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.07); } }
+  .st-card[data-s="ready"] .st-icon, .st-card[data-s="paid"] .st-icon { animation: pop .4s ease-out; } @keyframes pop { from { transform: scale(.6); } }
+}
+.st-card h2 { margin: 0; font-size: 22px; font-weight: 700; line-height: 1.3; text-wrap: balance; }
+.st-card p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.st-bill { display: inline-block; margin-top: 10px; font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: .06em; }
+.pay { display: inline-block; margin: 10px 0 0 8px; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 700; vertical-align: 3px; color: #fff; background: var(--bad); }
+.pay.ok { background: var(--ok); }
+.steps { list-style: none; margin: 18px 0 0; padding: 0; text-align: left; }
+.steps li { position: relative; display: flex; gap: 12px; padding-bottom: 16px; color: var(--muted); }
+.steps li:last-child { padding-bottom: 0; }
+.steps li:not(:last-child)::after { content: ""; position: absolute; left: 13px; top: 28px; bottom: 2px; width: 2px; background: var(--line); }
+.steps li.done:not(:last-child)::after { background: var(--ok); }
+.steps .dot { width: 28px; height: 28px; border-radius: 999px; flex: none; display: grid; place-items: center; font-size: 14px; font-weight: 700; border: 2px solid var(--line); background: var(--surface); color: var(--muted); }
+.steps .t { padding-top: 3px; line-height: 1.3; }
+.steps .t b { display: block; font-size: 15px; }
+.steps .t small { font-size: 12.5px; }
+.steps li.done { color: var(--ink); }
+.steps li.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps li.now .dot { background: var(--brand); border-color: var(--brand); color: #fff; }
+.steps li.now { color: var(--ink); }
+.steps li.unpaid .dot { background: var(--bad); border-color: var(--bad); color: #fff; }
+.steps li.unpaid .t b, .steps li.unpaid .t small { color: var(--bad); }
+.steps li.paid .t small { color: var(--ok); font-weight: 600; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px 14px; }
+.panel h3 { margin: 12px 0 0; font-size: 14px; display: flex; justify-content: space-between; color: var(--muted); font-weight: 600; }
+.tline { display: flex; align-items: center; gap: 12px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.tline img, .tline .ph { width: 44px; height: 44px; border-radius: 999px; object-fit: cover; flex: none; background: var(--line); }
+.tline .txt { flex: 1; min-width: 0; }
+.tline .en { font-weight: 700; font-size: 14.5px; }
+.tline .meta { color: var(--muted); font-size: 12.5px; }
+.tline .r { text-align: right; font-size: 14px; white-space: nowrap; }
+.tline .r small { display: block; color: var(--muted); font-size: 12px; }
+.panel .total { font-size: 20px; margin-top: 12px; }
+.chip-track { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 21; border: 0; border-radius: 999px; background: var(--chip); color: var(--chip-ink); padding: 10px 16px; font-weight: 700; font-size: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.25); white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.chip-track i { width: 9px; height: 9px; border-radius: 99px; background: #60a5fa; font-style: normal; }
+.chip-track[data-s="ready"] i { background: #4ade80; }
+.chip-track[data-s="rejected"] i, .chip-track[data-s="new"] i { background: #f87171; }
+.chip-track[data-s="paid"] i { background: #4ade80; }
+.chip-track[hidden] { display: none; }
+.chip-track.up { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+.linkbox { font-size: 12.5px; color: var(--muted); word-break: break-all; }
+/* ---------- จัดส่ง ---------- */
+.qbox { background: var(--code-bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 6px; }
+.qbox.bad { border-color: var(--bad); color: var(--bad); background: transparent; font-size: 14px; }
+.qrow { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.qrow span { color: var(--muted); }
+.qrow.ok b { color: var(--ok); }
+.qrow.tot { border-top: 1px dashed var(--line); padding-top: 8px; font-size: 15.5px; }
+.qrow.tot span { color: var(--ink); font-weight: 600; }
+.free { font-size: 13.5px; display: grid; gap: 6px; }
+.fbar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.fbar i { display: block; height: 100%; background: var(--brand); border-radius: 99px; }
+.free.ok { color: var(--ok); font-weight: 700; }
+.dbox { padding-bottom: 12px; }
+.dbox .qrow { padding-top: 10px; }
+.beta { display: inline-block; vertical-align: 5px; margin-left: 6px; font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #7a4b00; background: #ffd66b; border-radius: 4px; padding: 1px 7px; }
+[hidden] { display: none !important; }
+.item .ph { width: 56px; height: 56px; border-radius: 10px; flex: none; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 20px; }
+.hero .loadpic { aspect-ratio: 4 / 3; width: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.badge.pre { background: var(--brand); color: var(--brand-ink); }
+.err-inline { color: var(--bad); font-size: 13.5px; }
 </style>
 </head>
 <body>
@@ -146,17 +243,21 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       <div class="logo">AUGX.</div>
       <div class="logo-sub">AUGUSTX HOME COFFEE</div>
     </div>
+    <span class="beta" id="beta-tag" hidden>BETA</span>
   </div>
 </header>
 
 <main>
   <div class="loading" id="loading">ກຳລັງໂຫຼດເມນູ…</div>
   <div class="closed" id="closed" hidden><h2 id="closed-title">ຂໍອະໄພ</h2><p id="closed-text"></p></div>
+  <div class="banner" id="banner" hidden aria-label="ໂປຣໂມຊັ່ນ"><div class="slides" id="slides"></div><div class="dots" id="dots"></div></div>
   <nav class="tabs" id="tabs" aria-label="ໝວດເມນູ" hidden></nav>
   <div id="menu"></div>
 </main>
 
 <div class="bar" id="bar" hidden><button type="button" id="bar-btn"><span id="bar-count"></span><span class="num" id="bar-total"></span></button></div>
+<button class="chip-track" id="chip-track" type="button" hidden></button>
+<section class="track" id="track" hidden aria-live="polite"><div class="track-in" id="track-in"></div></section>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="sheet-in" id="sheet-in"></div></div>
 
@@ -173,49 +274,93 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   });
   var db = firebase.database();
 
-  // ---------- ค่าตั้งต้น (แก้ได้ในหน้า Admin → ສັ່ງອອນລາຍ) ----------
+  // ---------- ค่าตั้งต้น (แก้ได้ในหน้า Admin → ลูกค้าสั่งเองออนไลน์) ----------
   var CFG = {
     enabled: true,
-    waNumber: '+8562077666667',
+    beta: true,
+    waNumber: '+8562057388383',
     prefix: 'ON',
     greeting: 'ສະບາຍດີ ຕ້ອງການສັ່ງອໍເດີ້',
     closing: 'ລົບກວນທາງຮ້ານສະຫຼຸບຍອດ ແລະ ສົ່ງຄິວອາໃຫ້ແນ່ເດີ້ ຂໍຂອບໃຈ',
     closedText: 'ຕອນນີ້ຮ້ານຍັງບໍ່ເປີດຮັບອໍເດີ້ອອນລາຍ ກະລຸນາທັກ WhatsApp ຫາຮ້ານ'
   };
+  // จัดส่ง: ค่าประมาณ = base + perKm × กม. · ยอดถึง freeMin ร้านออกค่ารถให้ไม่เกิน freeCap · ส่งไม่เกิน maxKm
+  var DLV = { enabled: false, base: 10000, perKm: 5000, freeMin: 180000, freeCap: 25000, maxKm: 5, lat: null, lng: null };
   var CHANNEL = 'online';
   var TEMP_LO = { HOT: 'ຮ້ອນ', ICED: 'ເຢັນ', FRAPPE: 'ປັ່ນ' };
+  var SPOTS = { gate: 'ປະຕູໃຫຍ່ / ທາງເຂົ້າ', guard: 'ປ້ອມຍາມ', other: 'ອື່ນໆ' };
 
   var MENU = null, cart = [], draft = null, lastMsg = '', saved = { name: '', phone: '' };
+  var ship = { mode: 'pickup', ll: null, km: null, spot: 'gate', spotText: '', err: '' };
+  var photoCache = {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function kip(n) { return Number(n || 0).toLocaleString('en-US') + ' ₭'; }
-  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); if (v === null) return localStorage.removeItem(k); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
   function toast(t) { var el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(function () { el.remove(); }, 2400); }
+  function num(v, d) { var n = Number(v); return isFinite(n) && v !== '' && v != null ? n : d; }
 
-  // ---------- โหลดตั้งค่า + เมนู ----------
+  // ---------- โหลดตั้งค่า + เมนู + ป้ายโฆษณา ----------
   function val(path) { return db.ref(path).once('value').then(function (s) { return s.val(); }, function () { return null; }); }
-  Promise.all([val('settings/online'), val('menu_items'), val('modifiers'), val('categories')]).then(function (v) {
+  Promise.all([val('settings/online'), val('menu_items'), val('modifiers'), val('categories'), val('banners')]).then(function (v) {
     var s = v[0] || {};
     Object.keys(CFG).forEach(function (k) { if (s[k] !== undefined && s[k] !== '') CFG[k] = s[k]; });
+    var d = s.delivery || {};
+    DLV.enabled = d.enabled === true;
+    ['base', 'perKm', 'freeMin', 'freeCap', 'maxKm'].forEach(function (k) { DLV[k] = num(d[k], DLV[k]); });
+    DLV.lat = num(d.lat, null); DLV.lng = num(d.lng, null);
+    if (DLV.lat == null || DLV.lng == null) DLV.enabled = false;
+    $('beta-tag').hidden = CFG.beta === false;
     $('loading').hidden = true;
-    if (CFG.enabled === false) return closed('ຂໍອະໄພ', CFG.closedText);
+    if (CFG.enabled === false) { closed('ຂໍອະໄພ', CFG.closedText); return startTrackFromHash(); }
     MENU = AugustxMenu.buildMenu(v[1] || {}, v[2] || {}, v[3] || {});
     MENU.items = MENU.items.filter(function (it) { return it.hiddenChannels.indexOf(CHANNEL) < 0; });
     MENU.categories = MENU.categories.filter(function (c) { return MENU.items.some(function (it) { return it.category === c; }); });
-    if (!MENU.items.length) return closed('ຍັງບໍ່ມີເມນູ', 'ກະລຸນາທັກ WhatsApp ຫາຮ້ານ');
+    if (!MENU.items.length) { closed('ຍັງບໍ່ມີເມນູ', 'ກະລຸນາທັກ WhatsApp ຫາຮ້ານ'); return startTrackFromHash(); }
     cart = (store('augx-cart') || []).filter(function (l) { return MENU.byId[l.itemId] && AugustxMenu.unitPrice(MENU, l) != null; });
     cart.forEach(function (l) { l.unitPrice = AugustxMenu.unitPrice(MENU, l); });
     saved = store('augx-customer') || saved;
     $('tabs').hidden = false;
+    renderBanners(v[4] || {});
     renderMenu(); updateBar();
+    startTrackFromHash();
   });
   function closed(title, text) {
     $('loading').hidden = true;
     $('closed').hidden = false; $('closed-title').textContent = title; $('closed-text').textContent = text;
   }
 
+  // ---------- ป้ายโฆษณา (ตั้งใน Admin) ----------
+  var SLIDES = [];
+  function renderBanners(raw) {
+    SLIDES = Object.keys(raw).map(function (k) { return raw[k]; })
+      .filter(function (b) { return b && b.img && b.active !== false; })
+      .sort(function (a, b) { return num(a.order, 0) - num(b.order, 0); });
+    if (!SLIDES.length) return;
+    $('banner').hidden = false;
+    $('slides').innerHTML = SLIDES.map(function (x, i) {
+      return '<button class="slide" type="button" data-i="' + i + '" aria-label="' + esc(x.title || 'ໂປຣໂມຊັ່ນ') + '"><img alt="" src="' + esc(x.img) + '">' +
+        (x.title || x.sub ? '<span class="shade"></span><span class="cap"><b>' + esc(x.title || '') + '</b><span>' + esc(x.sub || '') + '</span></span>' : '') + '</button>';
+    }).join('');
+    $('dots').innerHTML = SLIDES.length > 1 ? SLIDES.map(function (x, i) { return '<i class="' + (i ? '' : 'on') + '"></i>'; }).join('') : '';
+    var sl = $('slides'), cur = 0;
+    function showDot() { cur = Math.round(sl.scrollLeft / sl.clientWidth); document.querySelectorAll('#dots i').forEach(function (d, i) { d.className = i === cur ? 'on' : ''; }); }
+    sl.addEventListener('scroll', function () { clearTimeout(sl._t); sl._t = setTimeout(showDot, 80); });
+    sl.addEventListener('click', function (e) {
+      var b = e.target.closest('.slide'); if (!b) return;
+      var cat = SLIDES[+b.dataset.i].category, ci = MENU.categories.indexOf(cat);
+      if (ci >= 0) { var t = document.querySelector('.tab[data-cat="' + ci + '"]'); if (t) t.click(); }
+    });
+    if (SLIDES.length > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(function () {
+      if (document.hidden || !$('sheet').hidden) return;
+      sl.scrollTo({ left: ((cur + 1) % SLIDES.length) * sl.clientWidth, behavior: 'smooth' });
+    }, 5000);
+  }
+
   // ---------- เมนู ----------
   function minPrice(it) { return Math.min.apply(null, it.variants.map(function (v) { return v.price; })); }
+  function hasImg(it) { return it.image && it.image !== 'images/bg.jpg'; }
+  function isSize(t) { return /^[0-9]+(\.[0-9]+)?$/.test(String(t)); }
   function renderMenu() {
     $('tabs').innerHTML = MENU.categories.map(function (c, i) {
       return '<button class="tab" type="button" aria-pressed="' + (i === 0) + '" data-cat="' + i + '">' + esc(c || 'MENU') + '</button>';
@@ -225,8 +370,11 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         MENU.items.filter(function (it) { return it.category === c; }).map(function (it) {
           var q = cart.reduce(function (s, l) { return s + (l.itemId === it.id ? l.qty : 0); }, 0);
           var multi = it.variants.length > 1;
-          var sub = it.variants.map(function (v) { return v.label; }).filter(Boolean).join(' · ');
-          return '<button class="item" type="button" data-id="' + esc(it.id) + '"><span class="txt"><span class="en">' + esc(it.name.toUpperCase()) +
+          var labels = it.variants.map(function (v) { return v.label; }).filter(Boolean);
+          var sub = labels.length && labels.every(isSize) ? 'ໄຊສ໌ ' + labels.join(' · ') : labels.join(' · ');
+          return '<button class="item" type="button" data-id="' + esc(it.id) + '">' +
+            (hasImg(it) ? '<img class="th" alt="" loading="lazy" src="' + esc(it.image) + '">' : '<span class="ph" aria-hidden="true">' + esc(it.name.charAt(0).toUpperCase()) + '</span>') +
+            '<span class="txt"><span class="en">' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') +
             (q ? '<span class="in-cart">' + q + '</span>' : '') + '</span>' + (sub ? '<br><span class="lo">' + esc(sub) + '</span>' : '') + '</span>' +
             '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + kip(minPrice(it)) + '</span></button>';
         }).join('') + '</div>';
@@ -245,15 +393,22 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function closeSheet() { $('sheet').hidden = true; $('scrim').hidden = true; document.body.style.overflow = ''; draft = null; }
   $('scrim').addEventListener('click', closeSheet);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
-  function head(title, sub) {
-    return '<div class="sheet-head"><div><h2>' + esc(title) + '</h2>' + (sub ? '<p>' + esc(sub) + '</p>' : '') + '</div><button class="x" type="button" data-act="close" aria-label="ປິດ">×</button></div>';
+  function head(title, sub, beta) {
+    return '<div class="sheet-head"><div><h2>' + esc(title) + (beta ? ' <span class="beta">BETA · ທົດລອງໃຊ້</span>' : '') + '</h2>' + (sub ? '<p>' + esc(sub) + '</p>' : '') + '</div><button class="x" type="button" data-act="close" aria-label="ປິດ">×</button></div>';
   }
 
-  // ---------- เลือกรายละเอียด ----------
+  // ---------- เลือกรายละเอียด (รูปใหญ่โหลดเฉพาะตอนเปิดเมนูนี้) ----------
   function openItem(it) {
-    draft = { itemId: it.id, variant: it.variants[0].label, sel: {}, note: '', qty: 1 };
+    draft = { itemId: it.id, variant: it.variants[0].label, sel: {}, note: '', qty: 1, gal: 0 };
     it.groups.forEach(function (g, gi) { draft.sel[gi] = []; });
     renderItem();
+    if (it.photos > 0 && !photoCache[it.id]) {
+      val('menu_photos/' + it.id).then(function (p) {
+        var list = p ? (Array.isArray(p.p) ? p.p : Object.keys(p.p || {}).map(function (k) { return p.p[k]; })).filter(Boolean) : [];
+        photoCache[it.id] = list;
+        if (draft && draft.itemId === it.id) { draft.scroll = $('sheet').scrollTop; renderItem(); }
+      });
+    }
   }
   function draftLine() {
     var it = MENU.byId[draft.itemId], options = [];
@@ -263,11 +418,26 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     return l;
   }
   function renderItem() {
-    var it = MENU.byId[draft.itemId], h = head(it.name.toUpperCase(), it.desc);
+    var it = MENU.byId[draft.itemId], h = '';
+    var pics = photoCache[it.id];
+    if (it.photos > 0) {
+      if (pics && pics.length) {
+        h += '<div class="hero"><div class="gal" id="gal">' + pics.map(function (u) { return '<img alt="" src="' + esc(u) + '">'; }).join('') + '</div>' +
+          (pics.length > 1 ? '<span class="cnt" id="gcnt">1 / ' + pics.length + '</span>' : '') + '<button class="x" type="button" data-act="close" aria-label="ປິດ">×</button></div>';
+      } else if (!pics) {
+        h += '<div class="hero"><div class="loadpic">ກຳລັງໂຫຼດຮູບ…</div><button class="x" type="button" data-act="close" aria-label="ປິດ">×</button></div>';
+      }
+    }
+    var showHero = it.photos > 0 && (!pics || pics.length);
+    h += showHero ? '<div class="sheet-head"><div><h2>' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</h2>' + (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + '</div></div>'
+      : head(it.name.toUpperCase(), it.desc);
+    if (it.preorder) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ຮ້ານຈະແຈ້ງວັນທີ່ຂອງມາຮອດ ແລະ ການມັດຈຳ ທາງ WhatsApp</div>';
     if (it.variants.length > 1) {
-      h += '<div class="group"><h3>ເລືອກແບບ <small>ເລືອກ 1</small></h3><div class="seg">' + it.variants.map(function (v, i) {
+      var labs = it.variants.map(function (v) { return v.label; });
+      var sizes = labs.every(isSize);
+      h += '<div class="group"><h3>' + (sizes ? 'ໄຊສ໌' : 'ເລືອກແບບ') + ' <small>' + (sizes ? 'ລາຄາຕາມໄຊສ໌ · ' : '') + 'ເລືອກ 1</small></h3><div class="seg">' + it.variants.map(function (v, i) {
         var lab = v.label || '—';
-        return '<button class="opt" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"><b>' + (TEMP_LO[lab.toUpperCase()] ? TEMP_LO[lab.toUpperCase()] + ' · ' : '') + esc(lab) + '</b><span class="num">' + kip(v.price) + '</span></button>';
+        return '<button class="opt" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"><b>' + (sizes ? 'ໄຊສ໌ ' : TEMP_LO[lab.toUpperCase()] ? TEMP_LO[lab.toUpperCase()] + ' · ' : '') + esc(lab) + '</b><span class="num">' + kip(v.price) + '</span></button>';
       }).join('') + '</div></div>';
     }
     it.groups.forEach(function (g, gi) {
@@ -283,7 +453,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         }).join('') + '</div>';
       }
     });
-    h += '<label class="f" for="note">ໝາຍເຫດ <span class="hint">ເຊັ່ນ ແຍກນ້ຳກ້ອນ, ນ້ຳກ້ອນໜ້ອຍ</span><textarea class="in" id="note" rows="2" maxlength="100"></textarea></label>';
+    h += '<label class="f" for="note">ໝາຍເຫດ <span class="hint">' + (it.retail ? 'ເຊັ່ນ ສີ, ຫໍ່ຂອງຂວັນ' : 'ເຊັ່ນ ແຍກນ້ຳກ້ອນ, ນ້ຳກ້ອນໜ້ອຍ') + '</span><textarea class="in" id="note" rows="2" maxlength="100"></textarea></label>';
     h += '<div class="qty"><button type="button" data-q="-1" aria-label="ລົດ">−</button><b class="num">' + draft.qty + '</b><button type="button" data-q="1" aria-label="ເພີ່ມ">+</button></div>';
     h += '<div class="err" id="item-err"></div>';
     h += '<button class="primary" type="button" data-act="add">ໃສ່ກະຕ່າ · <span class="num">' + kip(draftLine().unitPrice * draft.qty) + '</span></button>';
@@ -291,6 +461,15 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     openSheet(h);
     $('note').value = draft.note;
     if (open) $('sheet').scrollTop = draft.scroll || 0;
+    var g = $('gal');
+    if (g) {
+      g.scrollLeft = (draft.gal || 0) * g.clientWidth;
+      if ($('gcnt')) $('gcnt').textContent = ((draft.gal || 0) + 1) + ' / ' + pics.length;
+      g.addEventListener('scroll', function () {
+        draft && (draft.gal = Math.round(g.scrollLeft / g.clientWidth));
+        if ($('gcnt') && draft) $('gcnt').textContent = (draft.gal + 1) + ' / ' + pics.length;
+      });
+    }
   }
 
   // ---------- ตะกร้า ----------
@@ -299,9 +478,10 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function saveCart() { store('augx-cart', cart); }
   function updateBar() {
     var n = cartCount();
-    $('bar').hidden = n === 0;
+    $('bar').hidden = n === 0 || !$('track').hidden;
     $('bar-count').textContent = 'ເບິ່ງກະຕ່າ · ' + n + ' ລາຍການ';
     $('bar-total').textContent = kip(cartTotal());
+    updateChip();
   }
   $('bar-btn').addEventListener('click', openCart);
   function optText(l) {
@@ -309,26 +489,85 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     l.options.forEach(function (o) { (by[o.group] = by[o.group] || []).push(o.name); });
     return Object.keys(by).map(function (g) { return g + ': ' + by[g].join(', '); });
   }
+  function varText(l) { return l.variant ? (isSize(l.variant) ? 'ໄຊສ໌ ' + l.variant : l.variant) : ''; }
   function openCart() {
     var h = head('ກະຕ່າຂອງທ່ານ', cartCount() + ' ລາຍການ') + '<div>' + cart.map(function (l, i) {
-      var meta = [l.variant].concat(optText(l)).filter(Boolean).join(' · ');
-      return '<div class="line"><div class="txt"><div class="en">' + esc(l.name.toUpperCase()) + '</div>' + (meta ? '<div class="meta">' + esc(meta) + '</div>' : '') +
+      var it = MENU.byId[l.itemId];
+      var meta = [varText(l)].concat(optText(l)).filter(Boolean).join(' · ');
+      return '<div class="line"><div class="txt"><div class="en">' + esc(l.name.toUpperCase()) + (it && it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</div>' + (meta ? '<div class="meta">' + esc(meta) + '</div>' : '') +
         (l.note ? '<div class="meta">ໝາຍເຫດ: ' + esc(l.note) + '</div>' : '') + '</div><div class="r"><span class="num">' + kip(l.unitPrice * l.qty) + '</span>' +
         '<span class="mini"><button type="button" data-line="' + i + '" data-d="-1" aria-label="ລົດ">−</button><b class="num">' + l.qty + '</b><button type="button" data-line="' + i + '" data-d="1" aria-label="ເພີ່ມ">+</button></span></div></div>';
     }).join('') + '</div>';
     h += '<div class="total"><span>ລວມ</span><span class="num">' + kip(cartTotal()) + '</span></div>';
+    if (DLV.enabled) h += freeBar(cartTotal());
     h += '<button class="primary" type="button" data-act="checkout">ສັ່ງອໍເດີ້</button><button class="ghost" type="button" data-act="close">ເລືອກເພີ່ມ</button>';
     openSheet(h);
   }
 
-  // ---------- ข้อมูลติดต่อ ----------
-  function openContact(err) {
-    var h = head('ຂໍ້ມູນຕິດຕໍ່', 'ຮ້ານຈະຕອບກັບທາງ WhatsApp ເພື່ອສະຫຼຸບຍອດ ແລະ ສົ່ງ QR ຊຳລະເງິນ');
+  // ---------- จัดส่ง ----------
+  function hav(a, b) {
+    var R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r;
+    var x = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+  function quote(km, sub) {
+    var fee = Math.ceil((DLV.base + DLV.perKm * km) / 1000) * 1000;
+    var shop = sub >= DLV.freeMin ? Math.min(fee, DLV.freeCap) : 0;
+    return { fee: fee, shop: shop, cust: fee - shop };
+  }
+  function kmText(km) { return (Math.round(km * 10) / 10).toFixed(1); }
+  function spotLabel() { return ship.spot === 'other' ? ship.spotText.trim().slice(0, 40) : SPOTS[ship.spot]; }
+  function freeBar(sub) {
+    if (sub >= DLV.freeMin) return '<div class="free ok">✓ ຈັດສົ່ງຟຣີ · ຮ້ານອອກຄ່າສົ່ງໃຫ້ສູງສຸດ ' + kip(DLV.freeCap) + '</div>';
+    return '<div class="free"><div class="fbar"><i style="width:' + Math.round(sub / DLV.freeMin * 100) + '%"></i></div>' +
+      '<span>🛵 ສັ່ງເພີ່ມອີກ <b class="num">' + kip(DLV.freeMin - sub) + '</b> ຈັດສົ່ງຟຣີ</span></div>';
+  }
+  function keepContact() {
+    if ($('cname')) saved.name = $('cname').value;
+    if ($('cphone')) saved.phone = $('cphone').value;
+    if ($('spot-other')) ship.spotText = $('spot-other').value;
+  }
+  function quoteBox() {
+    if (ship.km == null) return '';
+    if (ship.km > DLV.maxKm) return '<div class="qbox bad">ໄລຍະທາງ ' + kmText(ship.km) + ' ກມ. — ຂໍອະໄພ ຮ້ານຈັດສົ່ງໄດ້ບໍ່ເກີນ ' + DLV.maxKm + ' ກມ. ເພື່ອໃຫ້ເຄື່ອງດື່ມຍັງແຊບຢູ່ · ເລືອກ "ຮັບທີ່ຮ້ານ" ໄດ້</div>';
+    var sub = cartTotal(), q = quote(ship.km, sub);
+    var h = '<div class="qbox"><div class="qrow"><span>ໄລຍະທາງ</span><b class="num">' + kmText(ship.km) + ' ກມ.</b></div>' +
+      '<div class="qrow"><span>ຄ່າສົ່ງປະມານ</span><b class="num">' + kip(q.fee) + '</b></div>';
+    if (q.shop) h += '<div class="qrow ok"><span>ຮ້ານອອກໃຫ້</span><b class="num">−' + kip(q.shop) + '</b></div>';
+    h += '<div class="qrow tot"><span>ທ່ານຈ່າຍຄົນຂັບປະມານ</span><b class="num">' + (q.cust ? kip(q.cust) : 'ສົ່ງຟຣີ 🎉') + '</b></div>';
+    if (sub < DLV.freeMin) h += freeBar(sub);
+    return h + '<div class="hint">ຄ່າສົ່ງຕົວຈິງຕາມແອັບຮຽກລົດ ຮ້ານຈະແຈ້ງອີກຄັ້ງ</div></div>';
+  }
+
+  // ---------- ข้อมูลการสั่ง ----------
+  function openContact(err, keepScroll) {
+    var top = keepScroll && !$('sheet').hidden ? $('sheet').scrollTop : 0;
+    var h = head('ຂໍ້ມູນການສັ່ງ', 'ຮ້ານຈະຕອບກັບທາງ WhatsApp ເພື່ອສະຫຼຸບຍອດ ແລະ ສົ່ງ QR ຊຳລະເງິນ', CFG.beta !== false);
+    if (CFG.beta !== false) h += '<div class="notice">ລະບົບສັ່ງອອນລາຍນີ້ຢູ່ໃນຊ່ວງທົດລອງໃຊ້ (BETA) · ຖ້າມີບັນຫາ ທັກ WhatsApp ຮ້ານໄດ້ເລີຍ</div>';
+    if (DLV.enabled) {
+      h += '<div class="group"><h3>ວິທີຮັບ</h3><div class="seg">' +
+        '<button class="opt" type="button" data-ship="pickup" aria-pressed="' + (ship.mode === 'pickup') + '"><b>🏠 ຮັບທີ່ຮ້ານ</b><span>ພ້ອມແລ້ວແຈ້ງເຕືອນ</span></button>' +
+        '<button class="opt" type="button" data-ship="delivery" aria-pressed="' + (ship.mode === 'delivery') + '"><b>🛵 ຈັດສົ່ງ</b><span>ບໍ່ເກີນ ' + DLV.maxKm + ' ກມ.</span></button></div></div>';
+    }
+    if (DLV.enabled && ship.mode === 'delivery') {
+      h += '<button class="ghost" type="button" data-act="locate">📍 ' + (ship.ll ? 'ອັບເດດຕຳແໜ່ງຂອງຂ້ອຍ' : 'ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍ') + '</button>';
+      if (ship.err) h += '<div class="err-inline">' + esc(ship.err) + '</div>';
+      h += quoteBox();
+      if (ship.km != null && ship.km <= DLV.maxKm) {
+        h += '<div class="group"><h3>ຈຸດຮັບເຄື່ອງ <small>ເລືອກ 1</small></h3><div class="seg">' + Object.keys(SPOTS).map(function (k) {
+          return '<button class="opt" type="button" data-spot="' + k + '" aria-pressed="' + (ship.spot === k) + '"><b>' + SPOTS[k] + '</b></button>';
+        }).join('') + '</div>';
+        if (ship.spot === 'other') h += '<input class="in" id="spot-other" maxlength="40" placeholder="ເຊັ່ນ ໜ້າຮ້ານ 7-Eleven" value="' + esc(ship.spotText) + '" style="margin-top:8px">';
+        h += '<p class="hint" style="margin:8px 0 0">ຄົນຂັບຈະສົ່ງຢູ່ຈຸດນີ້ ແລະ ໂທຫາທ່ານເມື່ອມາຮອດ · ກະລຸນາລົງມາຮັບ</p></div>';
+      }
+    }
     h += '<label class="f" for="cname">ຊື່<input class="in" id="cname" autocomplete="name" maxlength="40" value="' + esc(saved.name) + '"></label>';
-    h += '<label class="f" for="cphone">ເບີ WhatsApp <span class="hint">ເຊັ່ນ 020 7749 9999</span><input class="in num" id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" value="' + esc(saved.phone) + '"></label>';
+    h += '<label class="f" for="cphone">ເບີ WhatsApp <span class="hint">ເບີຂອງທ່ານ ເຊັ່ນ 020 xxxx xxxx</span><input class="in num" id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" value="' + esc(saved.phone) + '"></label>';
     h += '<div class="err" id="cerr">' + esc(err || '') + '</div>';
     h += '<button class="primary" type="button" data-act="confirm">ຢືນຢັນ · <span class="num">' + kip(cartTotal()) + '</span></button><button class="ghost" type="button" data-act="cart">ກັບໄປກະຕ່າ</button>';
     openSheet(h);
+    if (keepScroll) $('sheet').scrollTop = top;
+    if (err) $('cerr').scrollIntoView({ block: 'center' });
   }
   // เบอร์ลาว 020xxxxxxxx / 20xxxxxxxx / +85620xxxxxxxx → +85620xxxxxxxx (ต่างประเทศใส่ + นำหน้า)
   function normPhone(raw) {
@@ -341,25 +580,36 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 
   // ---------- เลขบิล: ON + ddmmyy + ลำดับของวัน + รหัสสุ่ม ----------
   function dayCode() { var n = new Date(); return ('0' + n.getDate()).slice(-2) + ('0' + (n.getMonth() + 1)).slice(-2) + String(n.getFullYear()).slice(-2); }
-  function rnd3() { var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ', b = new Uint32Array(3), s = ''; crypto.getRandomValues(b); for (var i = 0; i < 3; i++) s += a[b[i] % a.length]; return s; }
+  function rnd(n, abc) { var b = new Uint32Array(n), s = ''; crypto.getRandomValues(b); for (var i = 0; i < n; i++) s += abc[b[i] % abc.length]; return s; }
   function nextBillNo() {
     var dc = dayCode();
     return db.ref('counters_online/' + dc).transaction(function (n) { return (n || 0) + 1; }).then(function (r) {
       if (!r.committed) throw new Error('counter');
       var seq = r.snapshot.val();
-      return String(CFG.prefix || 'ON').toUpperCase() + dc + (seq < 1000 ? ('00' + seq).slice(-3) : String(seq)) + '-' + rnd3();
+      return String(CFG.prefix || 'ON').toUpperCase() + dc + (seq < 1000 ? ('00' + seq).slice(-3) : String(seq)) + '-' + rnd(3, 'ABCDEFGHJKLMNPQRSTUVWXYZ');
     });
   }
+  function trackUrl(tok) { return location.href.replace(/[?#].*$/, '') + '#t=' + tok; }
 
-  function buildMessage(name, phone, bill) {
+  function buildMessage(name, phone, bill, tok) {
     var out = [CFG.greeting, 'ຊື່: ' + name, 'ເບີຕິດຕໍ່ WhatsApp: ' + phone, 'ເລກບິນ: ' + bill, ''];
     cart.forEach(function (l, i) {
-      out.push((i + 1) + '. ' + l.name.toUpperCase() + (l.variant ? ' (' + l.variant + ')' : '') + ' x' + l.qty);
+      var it = MENU.byId[l.itemId];
+      out.push((i + 1) + '. ' + l.name.toUpperCase() + (l.variant ? ' (' + (isSize(l.variant) ? 'SIZE ' + l.variant : l.variant) + ')' : '') + (it && it.preorder ? ' [PRE-ORDER]' : '') + ' x' + l.qty);
       var opts = optText(l);
       if (l.note) opts.push('ໝາຍເຫດ: ' + l.note);
       if (opts.length) out.push('   ' + opts.join(' | '));
     });
-    out.push('', 'ລວມ: ' + kip(cartTotal()), '', CFG.closing);
+    out.push('', 'ລວມ: ' + kip(cartTotal()), '');
+    if (ship.mode === 'delivery') {
+      var q = quote(ship.km, cartTotal());
+      out.push('🛵 ຈັດສົ່ງ · ' + kmText(ship.km) + ' ກມ.');
+      out.push(q.cust === 0 ? 'ຄ່າສົ່ງ: ສົ່ງຟຣີ (ຮ້ານອອກໃຫ້)' : q.shop ? 'ຄ່າສົ່ງ: ຮ້ານອອກ ' + kip(q.shop) + ' · ລູກຄ້າຈ່າຍສ່ວນເກີນປະມານ ' + kip(q.cust) + ' ກັບຄົນຂັບ' : 'ຄ່າສົ່ງປະມານ ' + kip(q.fee) + ' (ຈ່າຍກັບຄົນຂັບ)');
+      out.push('📍 ແຜນທີ່: https://maps.google.com/?q=' + ship.ll[0].toFixed(5) + ',' + ship.ll[1].toFixed(5));
+      out.push('ຈຸດຮັບເຄື່ອງ: ' + spotLabel());
+    } else out.push('🏠 ຮັບທີ່ຮ້ານ');
+    out.push('', CFG.closing);
+    if (tok) out.push('', '🔎 ຕິດຕາມອໍເດີ: ' + trackUrl(tok));
     return out.join('\n');
   }
 
@@ -369,32 +619,177 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var items = cart.map(function (l) {
       return { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty, unitPrice: l.unitPrice };
     });
+    var tok = rnd(20, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789');
+    var dl = null;
+    if (ship.mode === 'delivery') {
+      var q = quote(ship.km, cartTotal());
+      dl = { km: Math.round(ship.km * 100) / 100, lat: Math.round(ship.ll[0] * 1e5) / 1e5, lng: Math.round(ship.ll[1] * 1e5) / 1e5, spot: spotLabel(), estFee: q.fee, free: cartTotal() >= DLV.freeMin, freeCap: DLV.freeCap };
+    }
     var bill;
     return nextBillNo().then(function (b) {
       bill = b;
-      return db.ref('online_orders/' + bill).set({
-        name: name, phone: phone, items: items, total: cartTotal(),
-        status: 'new', createdAt: firebase.database.ServerValue.TIMESTAMP
-      });
+      var o = { name: name, phone: phone, items: items, total: cartTotal(), status: 'new', trackTok: tok, createdAt: firebase.database.ServerValue.TIMESTAMP };
+      if (dl) o.delivery = dl;
+      return db.ref('online_orders/' + bill).set(o);
     }).then(function () {
-      lastMsg = buildMessage(name, phone, bill);
-      openDone(bill, lastMsg);
+      var t = {
+        bill: bill, status: 'new', paid: false, total: cartTotal(), at: firebase.database.ServerValue.TIMESTAMP,
+        lines: cart.map(function (l) { return { id: l.itemId, n: l.name, m: [varText(l)].concat(optText(l)).filter(Boolean).join(' · '), note: l.note || '', q: l.qty, s: l.unitPrice * l.qty }; })
+      };
+      if (dl) t.delivery = { km: dl.km, spot: dl.spot, estFee: dl.estFee, free: dl.free, freeCap: dl.freeCap };
+      return db.ref('order_track/' + tok).set(t).then(function () { return true; }, function () { return false; });
+    }).then(function (tracked) {
+      if (tracked) { store('augx-track', { tok: tok, bill: bill }); }
+      lastMsg = buildMessage(name, phone, bill, tracked ? tok : '');
+      openDone(bill, lastMsg, tracked ? tok : '');
       cart = []; saveCart(); renderMenu(); updateBar();
     }).catch(function () {
       openContact('ສົ່ງອໍເດີ້ບໍ່ສຳເລັດ ກວດອິນເຕີເນັດ ແລ້ວລອງໃໝ່');
     });
   }
 
-  function openDone(bill, msg) {
+  function openDone(bill, msg, tok) {
     var wa = 'https://wa.me/' + String(CFG.waNumber).replace(/\D/g, '') + '?text=' + encodeURIComponent(msg);
     var h = head('ອີກຂັ້ນດຽວ!', 'ກົດປຸ່ມສີຂຽວ ແລ້ວກົດ "ສົ່ງ" ໃນ WhatsApp ເພື່ອແຈ້ງຮ້ານ');
     h += '<div class="bill"><small>ເລກບິນ</small><b class="num">' + esc(bill) + '</b></div>';
-    h += '<a class="primary wa" href="' + esc(wa) + '" target="_blank" rel="noopener">ເປີດ WhatsApp ສົ່ງຫາຮ້ານ</a>';
+    h += '<a class="primary wa" id="wa-go" href="' + esc(wa) + '" target="_blank" rel="noopener">ເປີດ WhatsApp ສົ່ງຫາຮ້ານ</a>';
     h += '<pre class="msg" id="msg">' + esc(msg) + '</pre>';
     h += '<div class="shopnum"><span>ເບີຮ້ານ <b class="num">' + esc(CFG.waNumber) + '</b></span></div>';
-    h += '<div class="row2"><button class="ghost" type="button" data-act="copy">ສຳເນົາຂໍ້ຄວາມ</button><button class="ghost" type="button" data-act="close">ສັ່ງເພີ່ມ</button></div>';
+    h += '<div class="row2"><button class="ghost" type="button" data-act="copy">ສຳເນົາຂໍ້ຄວາມ</button>' +
+      (tok ? '<button class="ghost" type="button" data-act="track">ເບິ່ງສະຖານະອໍເດີ</button>' : '<button class="ghost" type="button" data-act="close">ສັ່ງເພີ່ມ</button>') + '</div>';
     openSheet(h);
+    // กลับมาจาก WhatsApp แล้วเจอหน้าติดตามเลย
+    if (tok) $('wa-go').addEventListener('click', function () { setTimeout(function () { closeSheet(); showTrack(tok); }, 400); });
   }
+
+  // ---------- หน้าติดตามออร์เดอร์ (order_track/<รหัสสุ่ม> ไม่มีชื่อ/เบอร์) ----------
+  var T = { tok: '', data: null, ref: null, lastStatus: '' };
+  var ST = {
+    new:        { icon: '🧾', h: 'ສ້າງອໍເດີ້ແລ້ວ', p: 'ກະລຸນາຊຳລະເງິນ ຮ້ານຈະສົ່ງ QR ທາງ WhatsApp', chip: 'ລໍຖ້າຮ້ານຢືນຢັນ' },
+    accepted:   { icon: '✓', h: 'ຮ້ານຮັບອໍເດີແລ້ວ', p: 'ອໍເດີຂອງທ່ານຢູ່ໃນຄິວ', chip: 'ຢູ່ໃນຄິວ' },
+    making:     { icon: '☕', h: 'ກຳລັງເຮັດ', p: 'ຮ້ານກຳລັງກຽມອໍເດີຂອງທ່ານ', chip: 'ກຳລັງເຮັດ' },
+    packed:     { icon: '📦', h: 'ເຮັດສຳເລັດແລ້ວ', p: 'ຮ້ານກຳລັງຮຽກຄົນຂັບ', chip: 'ກຳລັງຮຽກຄົນຂັບ' },
+    delivering: { icon: '🛵', h: 'ກຳລັງຈັດສົ່ງ', p: 'ອໍເດີກຳລັງເດີນທາງໄປຫາທ່ານ', chip: 'ກຳລັງຈັດສົ່ງ' },
+    ready:      { icon: '✓', h: 'ພ້ອມຮັບອາຫານແລ້ວ!', p: 'ມາຮັບໄດ້ທີ່ໜ້າຮ້ານ AUGUSTX HOME COFFEE', chip: 'ພ້ອມຮັບ' },
+    rejected:   { icon: '!', h: 'ຮ້ານຮັບອໍເດີນີ້ບໍ່ໄດ້', p: 'ຂໍອະໄພ ກະລຸນາທັກ WhatsApp ຮ້ານເພື່ອສອບຖາມ', chip: 'ຮ້ານຮັບບໍ່ໄດ້' }
+  };
+  var RANK = { new: 0, accepted: 1, making: 2, packed: 3, delivering: 4, ready: 5 };
+  function startTrackFromHash() {
+    var m = location.hash.match(/t=([A-Za-z0-9]{20})/);
+    if (m) { store('augx-track', { tok: m[1], bill: '' }); showTrack(m[1]); return; }
+    var s = store('augx-track');
+    if (s && s.tok) { subscribe(s.tok); updateChip(); }
+  }
+  function subscribe(tok) {
+    if (T.tok === tok && T.ref) return;
+    if (T.ref) T.ref.off();
+    T.tok = tok; T.data = null; T.lastStatus = '';
+    T.ref = db.ref('order_track/' + tok);
+    T.ref.on('value', function (s) {
+      var d = s.val();
+      if (!d) { T.data = { missing: true }; } else {
+        if (T.lastStatus && T.lastStatus !== d.status && d.status === 'ready') ding();
+        T.lastStatus = d.status; T.data = d;
+      }
+      if (!$('track').hidden) renderTrack();
+      updateChip();
+    }, function () { T.data = { missing: true }; if (!$('track').hidden) renderTrack(); });
+  }
+  function ago(t) {
+    var m = Math.floor((Date.now() - t) / 60000);
+    return m < 1 ? 'ຫາກໍ່ສົ່ງ' : m < 60 ? m + ' ນາທີກ່ອນ' : Math.floor(m / 60) + ' ຊົ່ວໂມງກ່ອນ';
+  }
+  function hhmm(t) { var d = new Date(t); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function dq(d) {
+    var dl = d.delivery; if (!dl) return null;
+    var fee = Number(dl.fee || dl.estFee || 0), shop = dl.free ? Math.min(fee, Number(dl.freeCap || 0)) : 0;
+    if (dl.shopPays != null) shop = Number(dl.shopPays);
+    return { fee: fee, shop: shop, cust: Math.max(0, fee - shop), actual: !!dl.fee };
+  }
+  function stepList(d) {
+    var r = RANK[d.status] || 0, dl = d.delivery, out = [];
+    out.push({ cls: 'done', dot: '✓', b: 'ສ້າງອໍເດີ້ແລ້ວ', s: d.at ? hhmm(d.at) : '' });
+    out.push(d.paid ? { cls: 'done paid', dot: '✓', b: 'ຊຳລະເງິນ', s: 'ຊຳລະແລ້ວ' } : { cls: 'unpaid', dot: '!', b: 'ຊຳລະເງິນ', s: 'ຍັງບໍ່ທັນຊຳລະ' });
+    out.push({ b: 'ກຳລັງເຮັດ', cls: r >= 3 ? 'done' : r >= 1 ? 'now' : '', s: r === 1 ? 'ຢູ່ໃນຄິວ' : 'ຮ້ານກຽມອໍເດີ' });
+    if (dl) out.push({ b: 'ກຳລັງຈັດສົ່ງ', cls: r >= 5 ? 'done' : r >= 3 ? 'now' : '', s: r === 3 ? 'ກຳລັງຮຽກຄົນຂັບ' : 'ລົງມາຮັບທີ່ ' + (dl.spot || '') });
+    out.push({ b: 'ພ້ອມຮັບອາຫານ', cls: r >= 5 ? 'done' : '', s: dl ? 'ສົ່ງເຖິງແລ້ວ' : 'ຮັບໄດ້ທີ່ໜ້າຮ້ານ' });
+    return out.map(function (x, i) { if (!x.dot) x.dot = x.cls === 'done' ? '✓' : String(i + 1); return x; });
+  }
+  function renderTrack() {
+    var d = T.data, h = '<div class="track-top"><span class="logo">AUGX.</span><button class="back" type="button" data-tr="menu">ເມນູ / ສັ່ງເພີ່ມ</button></div>';
+    if (!d) { $('track-in').innerHTML = h + '<div class="loading">ກຳລັງໂຫຼດ…</div>'; return; }
+    if (d.missing) {
+      $('track-in').innerHTML = h + '<div class="st-card"><h2>ບໍ່ພົບອໍເດີນີ້</h2><p>ລິ້ງອາດບໍ່ຖືກຕ້ອງ ຫຼື ອໍເດີຖືກລຶບແລ້ວ</p></div><button class="ghost" type="button" data-tr="clear">ປິດ</button>';
+      return;
+    }
+    var s = ST[d.status] || ST.new, q = dq(d), dl = d.delivery;
+    if (dl && d.status === 'delivering') s = { icon: s.icon, h: s.h, p: 'ຄົນຂັບກຳລັງມາ · ກຽມລົງມາຮັບທີ່ ' + dl.spot };
+    if (dl && d.status === 'ready') s = { icon: s.icon, h: 'ສົ່ງເຖິງແລ້ວ!', p: 'ລົງມາຮັບທີ່ ' + dl.spot + (q.cust ? ' · ຈ່າຍຄົນຂັບ ' + kip(q.cust) : ' · ບໍ່ຕ້ອງຈ່າຍຄົນຂັບ') };
+    h += '<div class="st-card" data-s="' + esc(d.status) + '"><div class="st-icon" aria-hidden="true">' + s.icon + '</div><h2>' + esc(s.h) + '</h2><p>' + esc(s.p) + '</p>' +
+      '<span class="st-bill num">' + esc(d.bill) + '</span>';
+    if (d.status !== 'rejected') {
+      h += '<span class="pay' + (d.paid ? ' ok' : '') + '">' + (d.paid ? 'ຊຳລະແລ້ວ' : 'ຍັງບໍ່ທັນຊຳລະ') + '</span>';
+      h += '<ol class="steps">' + stepList(d).map(function (x) {
+        return '<li class="' + x.cls + '"><span class="dot">' + x.dot + '</span><span class="t"><b>' + x.b + '</b><small>' + esc(x.s) + '</small></span></li>';
+      }).join('') + '</ol>';
+    }
+    h += '</div>';
+    if (dl && d.status !== 'rejected') {
+      h += '<div class="panel dbox"><h3><span>🛵 ຈັດສົ່ງ</span><span class="num">' + kmText(dl.km) + ' ກມ.</span></h3>' +
+        '<div class="qrow"><span>ຈຸດຮັບເຄື່ອງ</span><b>' + esc(dl.spot) + '</b></div>' +
+        '<div class="qrow"><span>' + (q.actual ? 'ຄ່າສົ່ງຕົວຈິງ' : 'ຄ່າສົ່ງປະມານ') + '</span><b class="num">' + kip(q.fee) + '</b></div>' +
+        (q.shop ? '<div class="qrow ok"><span>ຮ້ານອອກໃຫ້</span><b class="num">−' + kip(q.shop) + '</b></div>' : '') +
+        '<div class="qrow tot"><span>ຈ່າຍຄົນຂັບ' + (q.actual ? '' : 'ປະມານ') + '</span><b class="num">' + (q.cust ? kip(q.cust) : 'ບໍ່ຕ້ອງຈ່າຍ · ສົ່ງຟຣີ') + '</b></div></div>';
+    }
+    var lines = Array.isArray(d.lines) ? d.lines : Object.keys(d.lines || {}).map(function (k) { return d.lines[k]; });
+    h += '<div class="panel"><h3><span>ອໍເດີຂອງທ່ານ</span><span id="ago">' + (d.at ? ago(d.at) : '') + '</span></h3>' + lines.filter(Boolean).map(function (l) {
+      var it = MENU && MENU.byId[l.id];
+      return '<div class="tline">' + (it && hasImg(it) ? '<img alt="" src="' + esc(it.image) + '">' : '<span class="ph"></span>') +
+        '<div class="txt"><div class="en">' + esc(String(l.n || '').toUpperCase()) + '</div>' + (l.m ? '<div class="meta">' + esc(l.m) + '</div>' : '') +
+        (l.note ? '<div class="meta">ໝາຍເຫດ: ' + esc(l.note) + '</div>' : '') + '</div>' +
+        '<div class="r num">× ' + esc(l.q) + '<small>' + kip(l.s) + '</small></div></div>';
+    }).join('') + '<div class="total"><span>ລວມ</span><span class="num">' + kip(d.total) + '</span></div></div>';
+    var wa = 'https://wa.me/' + String(CFG.waNumber).replace(/\D/g, '') + '?text=' + encodeURIComponent('ສະບາຍດີ ສອບຖາມອໍເດີ ' + d.bill);
+    h += '<a class="primary wa" href="' + esc(wa) + '" target="_blank" rel="noopener">ທັກ WhatsApp ຮ້ານ</a>';
+    if (d.status === 'ready' || d.status === 'rejected') h += '<button class="ghost" type="button" data-tr="clear">ປິດອໍເດີນີ້ (ຮັບຂອງແລ້ວ)</button>';
+    $('track-in').innerHTML = h;
+  }
+  function showTrack(tok) {
+    tok = tok || (store('augx-track') || {}).tok; if (!tok) return;
+    subscribe(tok);
+    if (location.hash !== '#t=' + tok) history.replaceState(null, '', '#t=' + tok);
+    renderTrack(); $('track').hidden = false; $('track').scrollTop = 0; $('bar').hidden = true; updateChip();
+  }
+  function hideTrack() {
+    $('track').hidden = true;
+    if (location.hash) history.replaceState(null, '', location.href.replace(/#.*$/, ''));
+    updateBar();
+  }
+  function updateChip() {
+    var c = $('chip-track'), s = store('augx-track');
+    if (!s || !s.tok || !$('track').hidden || !T.data || T.data.missing) { c.hidden = true; return; }
+    c.hidden = false; c.dataset.s = T.data.paid || T.data.status !== 'new' ? T.data.status : 'new';
+    c.innerHTML = '<i></i>ອໍເດີ ' + esc(String(T.data.bill || '').split('-')[0]) + ' · ' + esc((ST[T.data.status] || ST.new).chip) + ' ›';
+    c.classList.toggle('up', cartCount() > 0);
+  }
+  function ding() {
+    try {
+      var ac = new (window.AudioContext || window.webkitAudioContext)();
+      [0, .18].forEach(function (d, i) {
+        var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = i ? 1175 : 880;
+        g.gain.setValueAtTime(.0001, ac.currentTime + d); g.gain.exponentialRampToValueAtTime(.3, ac.currentTime + d + .02); g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d + .35);
+        o.connect(g); g.connect(ac.destination); o.start(ac.currentTime + d); o.stop(ac.currentTime + d + .4);
+      });
+    } catch (e) {}
+    try { navigator.vibrate && navigator.vibrate([120, 80, 120]); } catch (e) {}
+  }
+  $('chip-track').addEventListener('click', function () { showTrack(); });
+  $('track').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.tr === 'menu') return hideTrack();
+    if (b.dataset.tr === 'clear') { if (T.ref) T.ref.off(); T = { tok: '', data: null, ref: null, lastStatus: '' }; store('augx-track', null); return hideTrack(); }
+  });
+  setInterval(function () { if (T.data && T.data.at && !$('track').hidden && $('ago')) $('ago').textContent = ago(T.data.at); }, 30000);
 
   // ---------- ปุ่มทั้งหมดในแผ่นเลื่อน ----------
   $('sheet').addEventListener('input', function (e) { if (draft && e.target.id === 'note') draft.note = e.target.value; });
@@ -418,6 +813,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       saveCart(); renderMenu(); updateBar();
       return cart.length ? openCart() : closeSheet();
     }
+    if (b.dataset.ship) { keepContact(); ship.mode = b.dataset.ship; return openContact('', true); }
+    if (b.dataset.spot) { keepContact(); ship.spot = b.dataset.spot; openContact('', true); if (ship.spot === 'other') $('spot-other').focus(); return; }
     switch (b.dataset.act) {
       case 'close': closeSheet(); break;
       case 'add': {
@@ -433,13 +830,33 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       }
       case 'cart': openCart(); break;
       case 'checkout': openContact(); break;
+      case 'track': closeSheet(); showTrack(); break;
+      case 'locate': {
+        keepContact();
+        if (!navigator.geolocation) { ship.err = 'ມືຖືນີ້ໃຊ້ຕຳແໜ່ງບໍ່ໄດ້'; return openContact('', true); }
+        b.textContent = '📍 ກຳລັງຫາຕຳແໜ່ງ…'; b.disabled = true;
+        navigator.geolocation.getCurrentPosition(function (pos) {
+          ship.ll = [pos.coords.latitude, pos.coords.longitude]; ship.km = hav([DLV.lat, DLV.lng], ship.ll); ship.err = '';
+          openContact('', true);
+        }, function () {
+          ship.err = 'ເປີດຕຳແໜ່ງບໍ່ໄດ້ · ກວດວ່າເປີດ GPS ແລະ ອະນຸຍາດໃຫ້ເວັບນີ້ໃຊ້ຕຳແໜ່ງແລ້ວ';
+          openContact('', true);
+        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+        break;
+      }
       case 'confirm': {
+        keepContact();
         var name = $('cname').value.trim().replace(/\s+/g, ' ');
         var phoneRaw = $('cphone').value.trim();
         saved = { name: name, phone: phoneRaw };
-        if (!name) return openContact('ກະລຸນາໃສ່ຊື່');
+        if (!name) return openContact('ກະລຸນາໃສ່ຊື່', true);
         var phone = normPhone(phoneRaw);
-        if (!phone) return openContact('ເບີ WhatsApp ບໍ່ຖືກຕ້ອງ ລອງໃສ່ແບບ 020 xxxx xxxx');
+        if (!phone) return openContact('ເບີ WhatsApp ບໍ່ຖືກຕ້ອງ ລອງໃສ່ແບບ 020 xxxx xxxx', true);
+        if (DLV.enabled && ship.mode === 'delivery') {
+          if (ship.km == null) return openContact('ກະລຸນາກົດ "ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍ" ເພື່ອໃຫ້ຮ້ານຮູ້ຈຸດສົ່ງ', true);
+          if (ship.km > DLV.maxKm) return openContact('ໄກເກີນ ' + DLV.maxKm + ' ກມ. ກະລຸນາເລືອກ "ຮັບທີ່ຮ້ານ"', true);
+          if (!spotLabel()) return openContact('ກະລຸນາບອກຈຸດຮັບເຄື່ອງ', true);
+        } else ship.mode = 'pickup';
         store('augx-customer', saved);
         submit(name, phone);
         break;

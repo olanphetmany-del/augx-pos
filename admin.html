@@ -398,18 +398,64 @@
                     <div><strong>เปิดรับออร์เดอร์ออนไลน์</strong><div class="hint">ปิดแล้วลูกค้าเปิดลิงก์จะเห็นข้อความ "ยังไม่เปิดรับ" แทนเมนู</div></div>
                     <label class="switch"><input type="checkbox" id="on-enabled" checked><span class="slider"></span></label>
                 </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div><strong>แสดงป้าย BETA (ทดลองใช้)</strong><div class="hint">บอกลูกค้าว่าระบบสั่งออนไลน์อยู่ในช่วงทดลอง ปิดได้เมื่อใช้งานจริงเต็มที่</div></div>
+                    <label class="switch"><input type="checkbox" id="on-beta" checked><span class="slider"></span></label>
+                </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
-                    <label><strong>เบอร์ WhatsApp ร้าน</strong><input type="text" id="on-wa" placeholder="020 7766 6667" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><div class="hint">ข้อความออร์เดอร์ของลูกค้าจะเปิดแชทไปหาเบอร์นี้ (ต้องมี WhatsApp)</div></label>
+                    <label><strong>เบอร์ WhatsApp ร้าน</strong><input type="text" id="on-wa" placeholder="020 5738 8383" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><div class="hint">ข้อความออร์เดอร์ของลูกค้าจะเปิดแชทไปหาเบอร์นี้ (ต้องมี WhatsApp)</div></label>
                     <label><strong>คำนำหน้าเลขบิล (2 ตัวอักษร)</strong><input type="text" id="on-prefix" maxlength="2" placeholder="ON" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;text-transform:uppercase;"><div class="hint">เช่น ON → ON131026001-ABC</div></label>
                 </div>
                 <label style="display:block;margin-top:12px;"><strong>บรรทัดแรกของข้อความลูกค้า</strong><input type="text" id="on-greeting" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                 <label style="display:block;margin-top:12px;"><strong>บรรทัดท้ายของข้อความลูกค้า</strong><input type="text" id="on-closing" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
-                <label style="display:block;margin-top:12px;"><strong>ข้อความตอบลูกค้า (ปุ่ม 💬 ในหน้าแคชเชียร์)</strong><textarea id="on-reply" rows="4" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;font-family:inherit;"></textarea><div class="hint">ใช้ {name} = ชื่อลูกค้า, {bill} = เลขบิล, {total} = ยอดรวมที่ระบบคิด</div></label>
+                <label style="display:block;margin-top:12px;"><strong>ข้อความตอบลูกค้า (ปุ่ม 💬 ในหน้าแคชเชียร์)</strong><textarea id="on-reply" rows="4" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;font-family:inherit;"></textarea><div class="hint">ใช้ {name} = ชื่อลูกค้า, {bill} = เลขบิล, {total} = ยอดรวมที่ระบบคิด, {link} = ลิงก์หน้าติดตามออร์เดอร์</div></label>
                 <label style="display:block;margin-top:12px;"><strong>ข้อความตอนปิดรับออนไลน์</strong><input type="text" id="on-closed" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px;">
                     <button class="btn btn-green" onclick="saveOnlineSettings()">💾 บันทึก</button>
                     <span class="hint" style="margin:0;">ลิงก์ให้ลูกค้า: <b id="on-link" style="user-select:all;"></b></span>
                     <button class="btn btn-blue btn-sm" type="button" onclick="copyOnlineLink()">คัดลอกลิงก์</button>
+                </div>
+            </div>
+            <div class="box" id="delivery-settings">
+                <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🛵 จัดส่ง (หน้าสั่งออนไลน์)</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div><strong>เปิดให้ลูกค้าเลือก "จัดส่ง"</strong><div class="hint">ร้านเรียกรถให้ ลูกค้าจ่ายค่ารถกับคนขับเอง · ต้องตั้งตำแหน่งร้านก่อนถึงจะเปิดได้</div></div>
+                    <label class="switch"><input type="checkbox" id="dl-enabled"><span class="slider"></span></label>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+                    <label><strong>ค่าส่งเริ่มต้น (₭)</strong><input type="number" id="dl-base" min="0" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                    <label><strong>บวกต่อกิโล (₭)</strong><input type="number" id="dl-perkm" min="0" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                    <label><strong>ส่งไกลสุด (กม.)</strong><input type="number" id="dl-maxkm" min="0" step="0.5" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                    <label><strong>ยอดขั้นต่ำส่งฟรี (₭)</strong><input type="number" id="dl-freemin" min="0" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                    <label><strong>ร้านออกค่ารถให้ไม่เกิน (₭)</strong><input type="number" id="dl-freecap" min="0" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                </div>
+                <div class="hint" id="dl-example" style="margin-top:8px;"></div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:12px;">
+                    <label><strong>ตำแหน่งร้าน: ละติจูด</strong><input type="text" id="dl-lat" inputmode="decimal" placeholder="17.96xxx" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                    <label><strong>ลองจิจูด</strong><input type="text" id="dl-lng" inputmode="decimal" placeholder="102.60xxx" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                </div>
+                <div class="hint">วิธีง่ายสุด: ยืนอยู่ที่ร้านแล้วกด "ใช้ตำแหน่งเครื่องนี้" หรือคัดลอกพิกัดจาก Google Maps (กดค้างที่หมุดร้าน) มาวางในช่องละติจูด เช่น 17.9690, 102.5990</div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px;">
+                    <button class="btn btn-blue btn-sm" type="button" onclick="useHereForShop()">📍 ใช้ตำแหน่งเครื่องนี้</button>
+                    <a class="btn btn-gray btn-sm" id="dl-map" target="_blank" rel="noopener" href="#" style="text-decoration:none;">เปิดดูใน Google Maps</a>
+                    <button class="btn btn-green" type="button" onclick="saveDeliverySettings()">💾 บันทึกการจัดส่ง</button>
+                </div>
+                <p class="hint" id="dl-cost" style="margin:12px 0 0;"></p>
+            </div>
+            <div class="box" id="banner-settings">
+                <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🖼️ ป้ายโฆษณา (หน้าสั่งออนไลน์)</h3>
+                <p class="hint" style="margin-top:0;">รูปแนวนอน 3:1 ระบบตัดและย่อให้เอง (รูปละประมาณ 60–90 KB) · แนะนำไม่เกิน 3–4 ป้าย เพื่อให้หน้าเว็บโหลดเร็ว · กดป้ายแล้วพาไปหมวดที่เลือก</p>
+                <div id="banner-list"></div>
+                <div style="border-top:1px dashed #cbd5e1; margin-top:12px; padding-top:12px;">
+                    <strong>เพิ่มป้ายใหม่</strong>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:8px;">
+                        <label>รูป<input type="file" id="bn-file" accept="image/*" onchange="onBannerPicked(this)" style="width:100%;margin-top:4px;"></label>
+                        <label>หัวข้อ (ไม่บังคับ)<input type="text" id="bn-title" maxlength="40" placeholder="AIR JORDAN 1 LOW" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                        <label>ข้อความรอง (ไม่บังคับ)<input type="text" id="bn-sub" maxlength="60" placeholder="ມີຂອງພ້ອມສົ່ງ" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                        <label>กดแล้วไปหมวด<select id="bn-cat" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="">— ไม่ไปไหน —</option></select></label>
+                    </div>
+                    <img id="bn-preview" style="display:none; width:100%; max-width:480px; aspect-ratio:3/1; object-fit:cover; border-radius:8px; margin-top:10px;">
+                    <div style="margin-top:10px;"><button class="btn btn-green" type="button" onclick="addBanner()">➕ เพิ่มป้าย</button></div>
                 </div>
             </div>
             <div class="box">
@@ -444,10 +490,20 @@
                 <div class="hint">ไม่ติ๊กช่องทางไหน สินค้านี้จะไม่แสดงในแท็บของช่องทางนั้นที่หน้าแคชเชียร์</div>
             </div>
             <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;"><input type="checkbox" id="modal-item-cup" style="width:auto;" checked> สินค้านี้ใช้แก้ว (ตัดสต็อกแก้วอัตโนมัติ)</label></div>
+            <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;"><input type="checkbox" id="modal-item-retail" style="width:auto;"> สินค้าขายปลีก ไม่เข้าครัว (เช่น ผงมัทฉะ อุปกรณ์ รองเท้า)</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-preorder" style="width:auto;"> สินค้าสั่งจอง (ขึ้นป้าย PRE-ORDER ในหน้าสั่งออนไลน์)</label>
+                <div class="hint">รองเท้าแต่ละไซส์ราคาไม่เท่ากัน: ใส่ไซส์เป็น "แบบสินค้า" เช่น 40 / 41 / 42 แล้วใส่ราคาของแต่ละไซส์</div></div>
+            <div class="form-group"><label>คำอธิบายสั้นๆ ในหน้าสั่งออนไลน์ (ไม่บังคับ)</label><input type="text" id="modal-item-desc" maxlength="120" placeholder="เช่น นมสด ช็อตเอสเปรสโซ่ 2 ช็อต"></div>
             <div class="form-group">
                 <label>รูปสินค้า (ไม่บังคับ)</label>
                 <input type="file" id="modal-item-image" accept="image/*" onchange="onItemImagePicked(this)">
                 <div style="margin-top:8px; display:flex; gap:10px; align-items:center;"><img id="modal-item-preview" class="thumb" style="width:60px;height:60px;display:none;"><button class="btn btn-gray btn-sm" id="modal-item-clear-img" style="display:none;" onclick="clearItemImage()">ลบรูป</button></div>
+            </div>
+            <div class="form-group">
+                <label>รูปใหญ่ในหน้าสั่งออนไลน์ (ไม่บังคับ สูงสุด 3 รูป)</label>
+                <input type="file" id="modal-item-photos" accept="image/*" multiple onchange="onItemPhotosPicked(this)">
+                <div id="modal-item-photo-list" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;"></div>
+                <div class="hint">ลูกค้าเห็นตอนกดเปิดเมนูนี้ ปัดดูได้หลายรูป ระบบย่อให้เหลือรูปละประมาณ 50 KB · ถ้ายังไม่มีรูปเล็ก ระบบใช้รูปแรกทำรูปเล็กให้</div>
             </div>
             <div style="text-align:right; margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn btn-red" onclick="closeItemModal()" style="padding:10px 15px;">ยกเลิก</button>
@@ -461,6 +517,7 @@
         let globalCategories = [], globalItems = [], globalModifiers = [], globalPartners = [];
         let reportRef = null, reportOrders = [];
         let editingItemId = null, modalImage = '', editingModId = null, variantRows = [], modRows = [];
+        let globalBanners = [], bannerImg = '', modalPhotos = [], modalPhotosDirty = false;
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -495,6 +552,27 @@
             };
             reader.readAsDataURL(file);
         }
+        // ตัดกลางรูปให้ได้สัดส่วน w:h แล้วย่อเป็น w×h (jpeg)
+        function cropResize(file, w, h, quality, cb) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const r = w / h, sr = img.width / img.height;
+                    let sw = img.width, sh = img.height, sx = 0, sy = 0;
+                    if (sr > r) { sw = img.height * r; sx = (img.width - sw) / 2; } else { sh = img.width / r; sy = (img.height - sh) / 2; }
+                    const scale = Math.min(1, w / sw);
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+                    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+                    cb(c.toDataURL('image/jpeg', quality));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
         function downloadFile(name, content, mime) {
             const blob = new Blob([content], { type: mime });
             const a = document.createElement('a');
@@ -507,7 +585,9 @@
         /* ---------- โหลดข้อมูลทั้งหมด ---------- */
         function startListeners() {
             receiptInit();
-            database.ref('settings/online').on('value', snap => fillOnlineSettings(snap.val() || {}));
+            database.ref('settings/online').on('value', snap => { const v = snap.val() || {}; fillOnlineSettings(v); fillDeliverySettings(v.delivery || {}); });
+            database.ref('banners').on('value', snap => { globalBanners = []; snap.forEach(c => { const b = c.val(); b.id = c.key; globalBanners.push(b); }); renderBanners(); });
+            loadDeliveryCost();
             database.ref('store_logo').on('value', snap => {
                 const url = snap.val();
                 const prev = document.getElementById('current-logo-preview'), txt = document.getElementById('no-logo-text');
@@ -554,6 +634,7 @@
                 globalCategories = [];
                 snap.forEach(child => { const c = child.val(); c.id = child.key; globalCategories.push(c); });
                 renderCategories();
+                renderBanners();
             });
 
             database.ref('modifiers').on('value', snap => {
@@ -660,7 +741,7 @@
         function saveFeatureSetting(key, val) { database.ref('settings/features/' + key).set(val); }
         /* ---------- ลูกค้าสั่งเองออนไลน์ ---------- */
         const ONLINE_DEF = {
-            enabled: true, waNumber: '+8562077666667', prefix: 'ON',
+            enabled: true, beta: true, waNumber: '+8562057388383', prefix: 'ON',
             greeting: 'ສະບາຍດີ ຕ້ອງການສັ່ງອໍເດີ້',
             closing: 'ລົບກວນທາງຮ້ານສະຫຼຸບຍອດ ແລະ ສົ່ງຄິວອາໃຫ້ແນ່ເດີ້ ຂໍຂອບໃຈ',
             replyText: 'ສະບາຍດີ {name}\nຮ້ານໄດ້ຮັບອໍເດີ້ {bill} ແລ້ວ\nຍອດລວມ: {total}\nກະລຸນາໂອນເງິນ ແລະ ສົ່ງສະລິບມາທາງນີ້ ຂໍຂອບໃຈ 🙏',
@@ -670,6 +751,7 @@
         function fillOnlineSettings(v) {
             const c = Object.assign({}, ONLINE_DEF, v);
             document.getElementById('on-enabled').checked = c.enabled !== false;
+            document.getElementById('on-beta').checked = c.beta !== false;
             document.getElementById('on-wa').value = c.waNumber || '';
             document.getElementById('on-prefix').value = c.prefix || 'ON';
             document.getElementById('on-greeting').value = c.greeting || '';
@@ -683,8 +765,9 @@
             const prefix = document.getElementById('on-prefix').value.trim().toUpperCase();
             if (!wa || wa.length < 10) return toast('เบอร์ WhatsApp ไม่ถูกต้อง', false);
             if (!/^[A-Z]{2}$/.test(prefix)) return toast('คำนำหน้าเลขบิลต้องเป็นตัวอักษรอังกฤษ 2 ตัว', false);
-            database.ref('settings/online').set({
+            database.ref('settings/online').update({
                 enabled: document.getElementById('on-enabled').checked,
+                beta: document.getElementById('on-beta').checked,
                 waNumber: '+' + wa, prefix: prefix,
                 greeting: document.getElementById('on-greeting').value.trim() || ONLINE_DEF.greeting,
                 closing: document.getElementById('on-closing').value.trim(),
@@ -810,7 +893,7 @@
         function onItemImagePicked(input) {
             const file = input.files[0];
             if (!file) return;
-            resizeImage(file, 280, 'image/jpeg', 0.75, d => { modalImage = d; showItemPreview(); });
+            cropResize(file, 240, 240, 0.72, d => { modalImage = d; showItemPreview(); });
         }
         function clearItemImage() { modalImage = ''; document.getElementById('modal-item-image').value = ''; showItemPreview(); }
         function openItemModalForAdd() {
@@ -821,6 +904,10 @@
             variantRows = [{ label: '', price: '' }]; renderVariantRows();
             renderItemModalChannels('');
             document.getElementById('modal-item-cup').checked = true;
+            document.getElementById('modal-item-retail').checked = false;
+            document.getElementById('modal-item-preorder').checked = false;
+            document.getElementById('modal-item-desc').value = '';
+            modalPhotos = []; modalPhotosDirty = false; renderItemPhotos();
             document.getElementById('modal-item-image').value = '';
             renderItemModalMods('');
             showItemPreview();
@@ -838,6 +925,14 @@
             renderVariantRows();
             renderItemModalChannels(it.hiddenChannels);
             document.getElementById('modal-item-cup').checked = it.usesCup !== false;
+            document.getElementById('modal-item-retail').checked = it.retail === true;
+            document.getElementById('modal-item-preorder').checked = it.preorder === true;
+            document.getElementById('modal-item-desc').value = it.description || '';
+            modalPhotos = []; modalPhotosDirty = false; renderItemPhotos();
+            if (it.photoCount) database.ref('menu_photos/' + id).once('value').then(s => {
+                if (editingItemId !== id || modalPhotosDirty) return;
+                const v = s.val() || {}; modalPhotos = arr(v.p); renderItemPhotos();
+            });
             document.getElementById('modal-item-image').value = '';
             renderItemModalMods(it.modifierIds);
             showItemPreview();
@@ -878,13 +973,151 @@
             const data = {
                 name: name, category: cat, priceOptions: priceStr, modifierIds: modIds,
                 hiddenChannels: Array.from(document.querySelectorAll('#modal-item-channels input:not(:checked)')).map(x => x.value).join(','),
-                usesCup: document.getElementById('modal-item-cup').checked,
+                usesCup: document.getElementById('modal-item-cup').checked && !document.getElementById('modal-item-retail').checked,
+                retail: document.getElementById('modal-item-retail').checked,
+                preorder: document.getElementById('modal-item-preorder').checked,
+                description: document.getElementById('modal-item-desc').value.trim(),
                 image: modalImage || 'images/bg.jpg'
             };
             const done = () => { toast('บันทึกสำเร็จ'); closeItemModal(); };
             const fail = e => toast('บันทึกไม่สำเร็จ: ' + e.message, false);
-            if (editingItemId) database.ref('menu_items/' + editingItemId).update(data).then(done).catch(fail);
-            else { data.timestamp = Date.now(); database.ref('menu_items').push(data).then(done).catch(fail); }
+            const finish = id => {
+                if (!modalPhotosDirty) return Promise.resolve();
+                const n = modalPhotos.length;
+                return Promise.all([
+                    n ? database.ref('menu_photos/' + id).set({ p: modalPhotos }) : database.ref('menu_photos/' + id).remove(),
+                    database.ref('menu_items/' + id + '/photoCount').set(n)
+                ]);
+            };
+            const go = () => {
+                if (editingItemId) { const id = editingItemId; database.ref('menu_items/' + id).update(data).then(() => finish(id)).then(done).catch(fail); }
+                else { data.timestamp = Date.now(); const ref = database.ref('menu_items').push(); ref.set(data).then(() => finish(ref.key)).then(done).catch(fail); }
+            };
+            // ไม่มีรูปเล็ก แต่มีรูปใหญ่: ใช้รูปแรกทำรูปเล็ก
+            if ((!modalImage || modalImage === 'images/bg.jpg') && modalPhotos.length) {
+                const img = new Image();
+                img.onload = () => {
+                    const c = document.createElement('canvas'), sz = Math.min(img.width, img.height);
+                    c.width = c.height = 240;
+                    c.getContext('2d').drawImage(img, (img.width - sz) / 2, (img.height - sz) / 2, sz, sz, 0, 0, 240, 240);
+                    data.image = c.toDataURL('image/jpeg', 0.72); go();
+                };
+                img.onerror = go;
+                img.src = modalPhotos[0];
+            } else go();
+        }
+
+        /* ---------- รูปใหญ่ของสินค้า (menu_photos/<id>) ---------- */
+        function renderItemPhotos() {
+            document.getElementById('modal-item-photo-list').innerHTML = modalPhotos.map((u, i) =>
+                `<div style="position:relative;"><img src="${u}" style="width:96px;height:72px;object-fit:cover;border-radius:6px;display:block;"><button class="btn btn-red btn-sm" type="button" onclick="removeItemPhoto(${i})" style="position:absolute;top:2px;right:2px;padding:2px 6px;">✕</button></div>`).join('');
+        }
+        function onItemPhotosPicked(input) {
+            const files = Array.from(input.files || []).slice(0, Math.max(0, 3 - modalPhotos.length));
+            if (!files.length) { input.value = ''; return toast('ใส่ได้สูงสุด 3 รูป', false); }
+            files.forEach(f => cropResize(f, 800, 600, 0.72, d => { if (modalPhotos.length < 3) { modalPhotos.push(d); modalPhotosDirty = true; renderItemPhotos(); } }));
+            input.value = '';
+        }
+        function removeItemPhoto(i) { modalPhotos.splice(i, 1); modalPhotosDirty = true; renderItemPhotos(); }
+
+        /* ---------- จัดส่ง ---------- */
+        const DLV_DEF = { enabled: false, base: 10000, perKm: 5000, maxKm: 5, freeMin: 180000, freeCap: 25000, lat: '', lng: '' };
+        function fillDeliverySettings(v) {
+            const c = Object.assign({}, DLV_DEF, v);
+            document.getElementById('dl-enabled').checked = c.enabled === true;
+            document.getElementById('dl-base').value = c.base;
+            document.getElementById('dl-perkm').value = c.perKm;
+            document.getElementById('dl-maxkm').value = c.maxKm;
+            document.getElementById('dl-freemin').value = c.freeMin;
+            document.getElementById('dl-freecap').value = c.freeCap;
+            document.getElementById('dl-lat').value = c.lat === '' || c.lat == null ? '' : c.lat;
+            document.getElementById('dl-lng').value = c.lng === '' || c.lng == null ? '' : c.lng;
+            dlPreview();
+        }
+        function dlPreview() {
+            const b = Number(document.getElementById('dl-base').value || 0), k = Number(document.getElementById('dl-perkm').value || 0);
+            const ex = [1, 2, 3, 4, 5].map(km => km + ' กม. ≈ ' + money(Math.ceil((b + k * km) / 1000) * 1000)).join(' · ');
+            document.getElementById('dl-example').innerText = 'ค่าส่งประมาณที่ลูกค้าเห็น: ' + ex;
+            const lat = document.getElementById('dl-lat').value.trim(), lng = document.getElementById('dl-lng').value.trim();
+            document.getElementById('dl-map').href = lat && lng ? 'https://maps.google.com/?q=' + encodeURIComponent(lat + ',' + lng) : '#';
+        }
+        ['dl-base', 'dl-perkm', 'dl-lat', 'dl-lng'].forEach(id => document.addEventListener('input', e => { if (e.target.id === id) dlPreview(); }));
+        // วางพิกัดแบบ "17.9690, 102.5990" ในช่องละติจูดช่องเดียวได้
+        document.addEventListener('paste', e => {
+            if (e.target.id !== 'dl-lat') return;
+            const t = (e.clipboardData || window.clipboardData).getData('text');
+            const m = String(t).match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+            if (m) { e.preventDefault(); document.getElementById('dl-lat').value = m[1]; document.getElementById('dl-lng').value = m[2]; dlPreview(); }
+        });
+        function useHereForShop() {
+            if (!navigator.geolocation) return toast('เครื่องนี้หาตำแหน่งไม่ได้', false);
+            toast('กำลังหาตำแหน่ง…');
+            navigator.geolocation.getCurrentPosition(p => {
+                document.getElementById('dl-lat').value = p.coords.latitude.toFixed(6);
+                document.getElementById('dl-lng').value = p.coords.longitude.toFixed(6);
+                dlPreview(); toast('ได้ตำแหน่งแล้ว (คลาดเคลื่อนประมาณ ' + Math.round(p.coords.accuracy) + ' ม.) กดบันทึกด้วย');
+            }, () => toast('หาตำแหน่งไม่ได้ ตรวจว่าเปิด GPS และอนุญาตให้เว็บใช้ตำแหน่ง', false), { enableHighAccuracy: true, timeout: 15000 });
+        }
+        function saveDeliverySettings() {
+            const n = id => Number(document.getElementById(id).value);
+            const lat = parseFloat(document.getElementById('dl-lat').value), lng = parseFloat(document.getElementById('dl-lng').value);
+            const hasLL = isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+            const en = document.getElementById('dl-enabled').checked;
+            if (en && !hasLL) return toast('ต้องใส่ตำแหน่งร้านก่อน ถึงจะเปิดจัดส่งได้', false);
+            const v = { enabled: en, base: n('dl-base') || 0, perKm: n('dl-perkm') || 0, maxKm: n('dl-maxkm') || 0, freeMin: n('dl-freemin') || 0, freeCap: n('dl-freecap') || 0, lat: hasLL ? lat : '', lng: hasLL ? lng : '' };
+            if (en && !(v.maxKm > 0)) return toast('ใส่ระยะส่งไกลสุดด้วย', false);
+            database.ref('settings/online/delivery').set(v).then(() => toast('บันทึกการจัดส่งแล้ว')).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
+        }
+        // ค่ารถที่ร้านออกให้ (ส่งฟรี) เดือนนี้
+        function loadDeliveryCost() {
+            const d = new Date(), start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+            database.ref('online_orders').orderByChild('createdAt').startAt(start).on('value', snap => {
+                let n = 0, shop = 0, cnt = 0;
+                snap.forEach(c => { const o = c.val(); if (o.delivery && o.status === 'accepted') { cnt++; if (o.delivery.shopPaid) { n++; shop += Number(o.delivery.shopPaid); } } });
+                document.getElementById('dl-cost').innerText = 'เดือนนี้: ออร์เดอร์จัดส่ง ' + cnt + ' ครั้ง · ส่งฟรี ' + n + ' ครั้ง · ร้านออกค่ารถรวม ' + money(shop);
+            });
+        }
+
+        /* ---------- ป้ายโฆษณา (banners/<id>) ---------- */
+        function renderBanners() {
+            const cats = globalCategories.map(c => c.name);
+            const sel = document.getElementById('bn-cat'), keep = sel.value;
+            sel.innerHTML = '<option value="">— ไม่ไปไหน —</option>' + cats.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+            sel.value = keep;
+            const list = globalBanners.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+            document.getElementById('banner-list').innerHTML = list.length ? list.map((b, i) =>
+                `<div style="display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #e2e8f0; flex-wrap:wrap;">
+                    <img src="${b.img}" style="width:150px; aspect-ratio:3/1; object-fit:cover; border-radius:6px; ${b.active === false ? 'opacity:.4;' : ''}">
+                    <div style="flex:1; min-width:140px;"><strong>${esc(b.title || '(ไม่มีหัวข้อ)')}</strong><div class="hint">${esc(b.sub || '')}${b.category ? ' · ไปหมวด ' + esc(b.category) : ''}</div></div>
+                    <button class="btn btn-gray btn-sm" type="button" onclick="moveBanner('${esc(b.id)}',-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="btn btn-gray btn-sm" type="button" onclick="moveBanner('${esc(b.id)}',1)" ${i === list.length - 1 ? 'disabled' : ''}>▼</button>
+                    <button class="btn btn-blue btn-sm" type="button" onclick="toggleBanner('${esc(b.id)}')">${b.active === false ? 'แสดง' : 'ซ่อน'}</button>
+                    ${delBtn('banners/' + b.id, b.title || 'ป้ายนี้')}
+                </div>`).join('') : '<p class="hint">ยังไม่มีป้าย</p>';
+        }
+        function onBannerPicked(input) {
+            const f = input.files[0]; if (!f) return;
+            cropResize(f, 1200, 400, 0.72, d => { bannerImg = d; const p = document.getElementById('bn-preview'); p.src = d; p.style.display = 'block'; });
+        }
+        function addBanner() {
+            if (!bannerImg) return toast('เลือกรูปก่อน', false);
+            const order = globalBanners.reduce((m, b) => Math.max(m, b.order || 0), 0) + 1;
+            database.ref('banners').push({
+                img: bannerImg, title: document.getElementById('bn-title').value.trim(), sub: document.getElementById('bn-sub').value.trim(),
+                category: document.getElementById('bn-cat').value, order: order, active: true
+            }).then(() => {
+                bannerImg = ''; ['bn-title', 'bn-sub', 'bn-file'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('bn-preview').style.display = 'none'; toast('เพิ่มป้ายแล้ว');
+            }).catch(e => toast('เพิ่มไม่สำเร็จ: ' + e.message, false));
+        }
+        function toggleBanner(id) { const b = globalBanners.find(x => x.id === id); if (b) database.ref('banners/' + id + '/active').set(b.active === false); }
+        function moveBanner(id, d) {
+            const list = globalBanners.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+            const i = list.findIndex(b => b.id === id), j = i + d;
+            if (i < 0 || j < 0 || j >= list.length) return;
+            const upd = {}; upd['banners/' + list[i].id + '/order'] = j + 1; upd['banners/' + list[j].id + '/order'] = i + 1;
+            list.forEach((b, k) => { if (k !== i && k !== j) upd['banners/' + b.id + '/order'] = k + 1; });
+            database.ref().update(upd);
         }
 
         /* ---------- Modifiers ---------- */

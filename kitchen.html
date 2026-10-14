@@ -294,9 +294,23 @@
             if (currentStatus === 'canceled') return;
             const next = (currentStatus === 'pending' && !isCancelTicket) ? 'cooking' : 'completed';
             database.ref('tickets/' + orderId).update({ status: next });
+            if (!isCancelTicket) syncTrack(orderId, next);
         }
         function revertStatus(orderId) {
             database.ref('tickets/' + orderId).update({ status: 'pending' });
+            syncTrack(orderId, 'pending');
+        }
+        // ออร์เดอร์ที่ลูกค้าสั่งออนไลน์: อัปเดตหน้าติดตามของลูกค้า (เริ่มทำ → กำลังทำ, เสร็จ → พร้อมรับ / รอส่ง)
+        function syncTrack(orderId, ticketStatus) {
+            const t = activeOrders.find(o => o.id === orderId);
+            if (!t || !t.trackTok) return;
+            const next = ticketStatus === 'cooking' ? 'making' : ticketStatus === 'completed' ? (t.trackDelivery ? 'packed' : 'ready') : 'accepted';
+            database.ref('order_track/' + t.trackTok + '/status').transaction(cur => {
+                if (cur === null) return next; // ยังไม่มีข้อมูลในเครื่อง: Firebase จะส่งค่าจริงมาให้คิดใหม่
+                if (cur === 'delivering' || cur === 'rejected') return;
+                if (cur === 'ready' && next !== 'ready') return;
+                return next;
+            }).catch(() => {});
         }
 
         startApp('staff', startListeners);

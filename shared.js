@@ -234,7 +234,15 @@ function nextOrderNo(dk) {
 
 /* ---------- ใบสั่งครัว ---------- */
 // kind: 'new' = ใบแรก, 'add' = สั่งเพิ่ม, 'cancel' = ยกเลิกรายการ/ยกเลิกบิล
+// สินค้าขายปลีก (ติ๊ก "ไม่เข้าครัว" ใน Admin) ไม่ต้องส่งเข้าครัว
+function isRetailItemId(id) {
+    if (!id || typeof globalItems === 'undefined' || !Array.isArray(globalItems)) return false;
+    const it = globalItems.find(function (x) { return x.id === id; });
+    return !!(it && it.retail === true);
+}
 function pushTicket(billId, bill, kind, items, round, note) {
+    items = arr(items).filter(function (c) { return !isRetailItemId(c.itemId); });
+    if (!items.length) return null;
     const ts = Date.now();
     const t = {
         billId: billId, orderNo: bill.orderNo || '', kind: kind, round: round || 1, note: note || '',
@@ -244,6 +252,7 @@ function pushTicket(billId, bill, kind, items, round, note) {
         name: billName(bill), source: bill.source || 'store', orderType: bill.orderType || '',
         status: 'pending', timestamp: ts, dayKey: dayKey(ts)
     };
+    if (bill.trackTok) { t.trackTok = bill.trackTok; t.trackDelivery = !!bill.trackDelivery; }
     const r = database.ref('tickets').push(t);
     database.ref('orders/' + billId + '/tickets/' + r.key).set(true);
     return r.key;
@@ -264,6 +273,7 @@ async function createBill(d) {
         source: d.source || 'store', orderType: d.orderType || '', rounds: 1,
         date: fmtDate(now), dayKey: dk, openedAt: now, timestamp: now
     };
+    if (d.trackTok) { bill.trackTok = d.trackTok; bill.trackDelivery = !!d.trackDelivery; }
     bill.cups = billCups(bill);
     bill.customer = billName(bill) || 'ทั่วไป';
     if (d.paidByApp) bill.paidAt = now;
