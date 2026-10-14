@@ -13,7 +13,8 @@
     var DEF_REPLY = 'ສະບາຍດີ {name}\nຮ້ານໄດ້ຮັບອໍເດີ້ {bill} ແລ້ວ\nຍອດລວມ: {total}\nກະລຸນາໂອນເງິນ ແລະ ສົ່ງສະລິບມາທາງນີ້ ຂໍຂອບໃຈ 🙏';
     var STAGE_TH = { new: 'รอร้านยืนยัน', accepted: 'อยู่ในคิว', making: 'ครัวกำลังทำ', packed: 'ทำเสร็จ รอส่ง', delivering: 'กำลังส่ง', ready: 'พร้อมรับ/ส่งถึงแล้ว', rejected: 'ไม่รับ' };
     var orders = {}, tracks = {}, trackRefs = {}, billRefs = {}, menu = null, cfg = {}, raw = { menu_items: {}, modifiers: {}, categories: {} };
-    var panelOpen = false, seen = {}, busy = {}, beepTimer = null, started = false, btn = null, overlay = null, feeDraft = {};
+    var panelOpen = false, seen = {}, busy = {}, beepTimer = null, started = false, btn = null, overlay = null, feeDraft = {}, rejecting = {};
+    var REJECT_REASONS = ['ของหมด', 'ร้านปิดแล้ว', 'อยู่นอกพื้นที่ส่ง', 'ยังไม่ได้รับเงิน', 'อื่นๆ'];
 
     function E(s) { return typeof esc === 'function' ? esc(s) : String(s == null ? '' : s); }
     function M(n) { return typeof money === 'function' ? money(n) : Number(n || 0).toLocaleString() + ' ₭'; }
@@ -62,7 +63,6 @@
                         database.ref('online_orders/' + id + '/paid').set(true);
                         setTrack(cur, { paid: true });
                     }
-                    if (st === 'void') setTrack(cur, { status: 'rejected' });
                 });
             }
         });
@@ -216,6 +216,9 @@
                 if (p.missing.length) html += '<span class="axo-sm" style="align-self:center">มีรายการที่ไม่มีในเมนูแล้ว ให้คีย์เองที่หน้าแคชเชียร์ แล้วกด "ไม่รับ"</span>';
                 else html += '<button class="axo-g" data-a="paid" data-id="' + E(o.id) + '">✅ รับเงินโอนแล้ว → เข้าครัว</button><button class="axo-b" data-a="unpaid" data-id="' + E(o.id) + '">เข้าครัว (ยังไม่จ่าย)</button>';
                 html += '<button class="axo-x" data-a="reject" data-id="' + E(o.id) + '">✕ ไม่รับ</button>';
+                if (rejecting[o.id]) html += '<div style="flex-basis:100%;margin-top:4px"><b>เหตุผลที่ไม่รับ</b> <span class="axo-sm">(ลูกค้าเห็นเป็นภาษาลาว · "อื่นๆ" ไม่แสดงเหตุผล)</span></div>' +
+                    REJECT_REASONS.map(function (r) { return '<button class="axo-x" data-a="rejectwhy" data-r="' + E(r) + '" data-id="' + E(o.id) + '">' + E(r) + '</button>'; }).join('') +
+                    '<button class="axo-b" data-a="rejectback" data-id="' + E(o.id) + '">กลับ</button>';
             } else if (live) {
                 if (!o.paid && o.billId) html += '<button class="axo-g" data-a="pay" data-id="' + E(o.id) + '">💰 รับเงินโอนแล้ว</button>';
                 if (dl) {
@@ -243,10 +246,14 @@
         var a = b.dataset.a, id = b.dataset.id, o = id && orders[id];
         if (a === 'close') return closePanel();
         if (!o || busy[id]) return;
-        if (a === 'reject') {
-            if (!confirm('ไม่รับออร์เดอร์ ' + id + ' ?')) return;
-            database.ref('online_orders/' + id).update({ status: 'rejected', handledAt: Date.now() });
-            setTrack(o, { status: 'rejected' });
+        if (a === 'reject') { rejecting[id] = true; return render(); }
+        if (a === 'rejectback') { delete rejecting[id]; return render(); }
+        if (a === 'rejectwhy') {
+            var r = b.dataset.r;
+            delete rejecting[id];
+            database.ref('online_orders/' + id).update({ status: 'rejected', rejectReason: r, handledAt: Date.now() });
+            setTrack(o, { status: 'rejected', reason: typeof laoReason === 'function' ? laoReason(r) : '' });
+            say('ไม่รับออร์เดอร์ ' + id + ' แล้ว · แจ้งลูกค้าในหน้าติดตาม');
             return;
         }
         if (a === 'paid' || a === 'unpaid') return accept(id, a === 'paid', b);

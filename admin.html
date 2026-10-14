@@ -40,6 +40,29 @@
         .card-value { font-size: 22px; font-weight: bold; color: var(--blue); }
         
         .box { background: var(--white); padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); margin-bottom: 20px; }
+        [hidden] { display: none !important; }
+        /* ตั้งค่าแบบแยกหัวข้อ: เมนูซ้าย เนื้อหาขวา (มือถือ: รายการก่อน กดแล้วเข้าไป) */
+        .set-wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+        .set-nav { background: var(--white); border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.04); overflow: hidden; position: sticky; top: 12px; }
+        .set-nav button { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #eef2f7; background: none; padding: 14px 16px; cursor: pointer; font: inherit; color: inherit; }
+        .set-nav button:last-child { border-bottom: 0; }
+        .set-nav button > span:first-child { font-size: 20px; width: 26px; text-align: center; }
+        .set-nav b { display: block; font-size: 14.5px; }
+        .set-nav small { display: block; color: #64748b; font-size: 12px; }
+        .set-nav button:hover { background: #f8fafc; }
+        .set-nav button.on { background: #eef4ff; box-shadow: inset 3px 0 0 var(--blue); }
+        .set-main > .box { display: none; margin-bottom: 0; }
+        .set-main > .box.on { display: block; }
+        .set-back { display: none; border: 0; background: none; color: var(--blue); font-weight: bold; padding: 4px 0 12px; cursor: pointer; font: inherit; font-weight: bold; }
+        .set-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid #eef2f7; margin: 18px -20px -20px; padding: 14px 20px; }
+        .set-foot .btn:disabled { opacity: .45; cursor: default; }
+        @media (max-width: 760px) {
+            .set-wrap { grid-template-columns: 1fr; }
+            .set-nav { position: static; }
+            .set-wrap.open .set-nav { display: none; }
+            .set-wrap:not(.open) .set-main { display: none; }
+            .set-back { display: inline-block; }
+        }
         
         /* Table Responsive Container */
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -385,7 +408,18 @@
         <!-- FEATURES & SETTINGS -->
         <div id="tab-settings" class="tab-content">
             <h2>⚙️ System Settings & Features</h2>
-            <div class="box">
+            <div class="set-wrap" id="set-wrap">
+            <nav class="set-nav" id="set-nav" aria-label="หัวข้อตั้งค่า">
+                <button type="button" data-sec="sec-features"><span>⚡</span><span><b>ฟีเจอร์</b><small>เปิด-ปิดฟีเจอร์ระบบ POS</small></span></button>
+                <button type="button" data-sec="online-settings"><span>🛵</span><span><b>สั่งออนไลน์</b><small>เปิดรับ เบอร์ร้าน ข้อความ</small></span></button>
+                <button type="button" data-sec="delivery-settings"><span>🚚</span><span><b>จัดส่ง</b><small>ตำแหน่งร้าน ค่าส่ง ส่งฟรี</small></span></button>
+                <button type="button" data-sec="banner-settings"><span>🖼️</span><span><b>ป้ายโฆษณา</b><small>รูปป้ายหน้าสั่งออนไลน์</small></span></button>
+                <button type="button" data-sec="sec-backup"><span>💾</span><span><b>สำรองข้อมูล</b><small>ดาวน์โหลดไฟล์สำรอง</small></span></button>
+                <button type="button" data-sec="sec-security"><span>🔒</span><span><b>ความปลอดภัย</b><small>สถานะล็อกอิน</small></span></button>
+            </nav>
+            <div class="set-main">
+            <button type="button" class="set-back" id="set-back">← หัวข้อตั้งค่า</button>
+            <div class="box" id="sec-features">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">⚡ Features (เปิด-ปิดฟีเจอร์ระบบ POS)</h3>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div><strong>Table management (ระบบจัดการโต๊ะ)</strong><div class="hint">ปิดแล้วช่องเลือกโต๊ะจะไม่แสดงในหน้าชำระเงิน</div></div>
@@ -411,10 +445,10 @@
                 <label style="display:block;margin-top:12px;"><strong>ข้อความตอบลูกค้า (ปุ่ม 💬 ในหน้าแคชเชียร์)</strong><textarea id="on-reply" rows="4" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;font-family:inherit;"></textarea><div class="hint">ใช้ {name} = ชื่อลูกค้า, {bill} = เลขบิล, {total} = ยอดรวมที่ระบบคิด, {link} = ลิงก์หน้าติดตามออร์เดอร์</div></label>
                 <label style="display:block;margin-top:12px;"><strong>ข้อความตอนปิดรับออนไลน์</strong><input type="text" id="on-closed" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px;">
-                    <button class="btn btn-green" onclick="saveOnlineSettings()">💾 บันทึก</button>
                     <span class="hint" style="margin:0;">ลิงก์ให้ลูกค้า: <b id="on-link" style="user-select:all;"></b></span>
                     <button class="btn btn-blue btn-sm" type="button" onclick="copyOnlineLink()">คัดลอกลิงก์</button>
                 </div>
+                <div class="set-foot"><span class="hint set-dirty" hidden>มีการแก้ไขที่ยังไม่บันทึก</span><button class="btn btn-gray" type="button" data-cancel="online-settings" disabled>ยกเลิก</button><button class="btn btn-green" type="button" data-save="online-settings" onclick="saveOnlineSettings()" disabled>💾 บันทึก</button></div>
             </div>
             <div class="box" id="delivery-settings">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🛵 จัดส่ง (หน้าสั่งออนไลน์)</h3>
@@ -438,35 +472,40 @@
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px;">
                     <button class="btn btn-blue btn-sm" type="button" onclick="useHereForShop()">📍 ใช้ตำแหน่งเครื่องนี้</button>
                     <a class="btn btn-gray btn-sm" id="dl-map" target="_blank" rel="noopener" href="#" style="text-decoration:none;">เปิดดูใน Google Maps</a>
-                    <button class="btn btn-green" type="button" onclick="saveDeliverySettings()">💾 บันทึกการจัดส่ง</button>
                 </div>
                 <p class="hint" id="dl-cost" style="margin:12px 0 0;"></p>
+                <div class="set-foot"><span class="hint set-dirty" hidden>มีการแก้ไขที่ยังไม่บันทึก</span><button class="btn btn-gray" type="button" data-cancel="delivery-settings" disabled>ยกเลิก</button><button class="btn btn-green" type="button" data-save="delivery-settings" onclick="saveDeliverySettings()" disabled>💾 บันทึก</button></div>
             </div>
             <div class="box" id="banner-settings">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🖼️ ป้ายโฆษณา (หน้าสั่งออนไลน์)</h3>
                 <p class="hint" style="margin-top:0;">รูปแนวนอน 3:1 ระบบตัดและย่อให้เอง (รูปละประมาณ 60–90 KB) · แนะนำไม่เกิน 3–4 ป้าย เพื่อให้หน้าเว็บโหลดเร็ว · กดป้ายแล้วพาไปหมวดที่เลือก</p>
                 <div id="banner-list"></div>
                 <div style="border-top:1px dashed #cbd5e1; margin-top:12px; padding-top:12px;">
-                    <strong>เพิ่มป้ายใหม่</strong>
+                    <strong id="bn-form-title">เพิ่มป้ายใหม่</strong>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:8px;">
                         <label>รูป<input type="file" id="bn-file" accept="image/*" onchange="onBannerPicked(this)" style="width:100%;margin-top:4px;"></label>
                         <label>หัวข้อ (ไม่บังคับ)<input type="text" id="bn-title" maxlength="40" placeholder="AIR JORDAN 1 LOW" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                         <label>ข้อความรอง (ไม่บังคับ)<input type="text" id="bn-sub" maxlength="60" placeholder="ມີຂອງພ້ອມສົ່ງ" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
-                        <label>กดแล้วไปหมวด<select id="bn-cat" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="">— ไม่ไปไหน —</option></select></label>
+                        <label>กดป้ายแล้ว<select id="bn-act" onchange="bnActUI()" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="none">ไม่ไปไหน</option><option value="cat">ไปหมวด</option><option value="item">เปิดสินค้า</option><option value="link">เปิดลิงก์ (Facebook / เว็บอื่น)</option></select></label>
+                        <label id="bn-cat-wrap" hidden>หมวด<select id="bn-cat" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="">— เลือกหมวด —</option></select></label>
+                        <label id="bn-item-wrap" hidden>สินค้า<select id="bn-item" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="">— เลือกสินค้า —</option></select></label>
+                        <label id="bn-url-wrap" hidden>ลิงก์<input type="url" id="bn-url" placeholder="https://www.facebook.com/..." style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                     </div>
                     <img id="bn-preview" style="display:none; width:100%; max-width:480px; aspect-ratio:3/1; object-fit:cover; border-radius:8px; margin-top:10px;">
-                    <div style="margin-top:10px;"><button class="btn btn-green" type="button" onclick="addBanner()">➕ เพิ่มป้าย</button></div>
+                    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn btn-green" type="button" id="bn-save" onclick="saveBanner()">➕ เพิ่มป้าย</button><button class="btn btn-gray" type="button" id="bn-cancel" onclick="resetBannerForm()" hidden>ยกเลิก</button></div>
                 </div>
             </div>
-            <div class="box">
+            <div class="box" id="sec-backup">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">💾 สำรองข้อมูล (Backup)</h3>
                 <p class="hint" style="margin-top:0;">ดาวน์โหลดข้อมูลทั้งหมด (เมนู ออร์เดอร์ ตั้งค่า) เป็นไฟล์ JSON เก็บไว้เป็นประจำ เช่น สัปดาห์ละครั้ง</p>
                 <button class="btn btn-blue" onclick="backupAll()">⬇️ ดาวน์โหลดไฟล์สำรอง</button>
             </div>
-            <div class="box">
+            <div class="box" id="sec-security">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🔒 ความปลอดภัย</h3>
                 <p id="security-status" style="margin-top:0;"></p>
                 <button class="btn btn-gray" id="logout-btn" style="display:none;" onclick="logoutApp()">ออกจากระบบ</button>
+            </div>
+            </div>
             </div>
         </div>
     </div>
@@ -585,7 +624,12 @@
         /* ---------- โหลดข้อมูลทั้งหมด ---------- */
         function startListeners() {
             receiptInit();
-            database.ref('settings/online').on('value', snap => { const v = snap.val() || {}; fillOnlineSettings(v); fillDeliverySettings(v.delivery || {}); });
+            database.ref('settings/online').on('value', snap => {
+                const v = snap.val() || {}; lastOnline = v; lastDelivery = v.delivery || {};
+                if (!setDirty['online-settings']) fillOnlineSettings(v);
+                if (!setDirty['delivery-settings']) fillDeliverySettings(lastDelivery);
+            });
+            cleanupOldTracks();
             database.ref('banners').on('value', snap => { globalBanners = []; snap.forEach(c => { const b = c.val(); b.id = c.key; globalBanners.push(b); }); renderBanners(); });
             loadDeliveryCost();
             database.ref('store_logo').on('value', snap => {
@@ -649,6 +693,7 @@
                 snap.forEach(child => { const it = child.val(); it.id = child.key; globalItems.push(it); });
                 renderItemListTable();
                 renderCategories();
+                renderBanners();
             });
 
             database.ref('inventory/cups').on('value', snap => {
@@ -773,7 +818,7 @@
                 closing: document.getElementById('on-closing').value.trim(),
                 replyText: document.getElementById('on-reply').value.trim() || ONLINE_DEF.replyText,
                 closedText: document.getElementById('on-closed').value.trim() || ONLINE_DEF.closedText
-            }).then(() => toast('บันทึกตั้งค่าออนไลน์แล้ว')).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
+            }).then(() => { markDirty('online-settings', false); toast('บันทึกตั้งค่าออนไลน์แล้ว'); }).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
         }
         function copyOnlineLink() {
             const t = onlineLink();
@@ -1007,6 +1052,62 @@
             } else go();
         }
 
+        /* ---------- ตั้งค่าแบบแยกหัวข้อ ---------- */
+        const setDirty = {};
+        let lastOnline = {}, lastDelivery = {};
+        function markDirty(sec, on) {
+            setDirty[sec] = on;
+            const box = document.getElementById(sec); if (!box) return;
+            box.querySelectorAll('[data-save],[data-cancel]').forEach(b => b.disabled = !on);
+            const d = box.querySelector('.set-dirty'); if (d) d.hidden = !on;
+        }
+        function openSetSec(sec, fromUser) {
+            const cur = document.querySelector('.set-main > .box.on');
+            if (fromUser && cur && cur.id !== sec && setDirty[cur.id]) {
+                if (!confirm('หัวข้อนี้ยังไม่ได้บันทึก ออกโดยไม่บันทึกไหม?')) return;
+                cancelSec(cur.id);
+            }
+            if (!document.getElementById(sec)) sec = 'sec-features';
+            document.querySelectorAll('.set-main > .box').forEach(b => b.classList.toggle('on', b.id === sec));
+            document.querySelectorAll('#set-nav button').forEach(b => b.classList.toggle('on', b.dataset.sec === sec));
+            if (fromUser) { document.getElementById('set-wrap').classList.add('open'); window.scrollTo(0, 0); }
+            try { localStorage.setItem('augx-admin-sec', sec); } catch (e) {}
+        }
+        function cancelSec(sec) {
+            if (sec === 'online-settings') fillOnlineSettings(lastOnline);
+            if (sec === 'delivery-settings') fillDeliverySettings(lastDelivery);
+            markDirty(sec, false);
+        }
+        document.getElementById('set-nav').addEventListener('click', e => { const b = e.target.closest('[data-sec]'); if (b) openSetSec(b.dataset.sec, true); });
+        document.getElementById('set-back').addEventListener('click', () => {
+            const cur = document.querySelector('.set-main > .box.on');
+            if (cur && setDirty[cur.id] && !confirm('หัวข้อนี้ยังไม่ได้บันทึก ออกโดยไม่บันทึกไหม?')) return;
+            if (cur && setDirty[cur.id]) cancelSec(cur.id);
+            document.getElementById('set-wrap').classList.remove('open');
+        });
+        ['online-settings', 'delivery-settings'].forEach(sec => {
+            const box = document.getElementById(sec);
+            ['input', 'change'].forEach(ev => box.addEventListener(ev, e => { if (!e.target.closest('.set-foot')) markDirty(sec, true); }));
+            box.querySelector('[data-cancel]').addEventListener('click', () => cancelSec(sec));
+        });
+        window.addEventListener('beforeunload', e => { if (Object.values(setDirty).some(Boolean)) { e.preventDefault(); e.returnValue = ''; } });
+        (function () { let s0 = null; try { s0 = localStorage.getItem('augx-admin-sec'); } catch (e) {} openSetSec(s0 || 'sec-features', false); })();
+
+        /* ---------- ลบข้อมูลหน้าติดตามที่เก่ากว่า 90 วัน (ทำวันละครั้ง ตอนเปิด Admin) ---------- */
+        function cleanupOldTracks() {
+            let last = 0; try { last = Number(localStorage.getItem('augx-track-clean') || 0); } catch (e) {}
+            if (Date.now() - last < 86400000) return;
+            const cut = Date.now() - 90 * 86400000;
+            database.ref('order_track').orderByChild('at').endAt(cut).once('value').then(snap => {
+                const upd = {}; let n = 0;
+                snap.forEach(c => { const v = c.val(); if (v && v.at && v.at <= cut) { upd['order_track/' + c.key] = null; n++; } });
+                return (n ? database.ref().update(upd) : Promise.resolve()).then(() => {
+                    try { localStorage.setItem('augx-track-clean', String(Date.now())); } catch (e) {}
+                    if (n) console.log('ลบหน้าติดตามเก่า', n, 'รายการ');
+                });
+            }).catch(() => {});
+        }
+
         /* ---------- รูปใหญ่ของสินค้า (menu_photos/<id>) ---------- */
         function renderItemPhotos() {
             document.getElementById('modal-item-photo-list').innerHTML = modalPhotos.map((u, i) =>
@@ -1066,7 +1167,7 @@
             if (en && !hasLL) return toast('ต้องใส่ตำแหน่งร้านก่อน ถึงจะเปิดจัดส่งได้', false);
             const v = { enabled: en, base: n('dl-base') || 0, perKm: n('dl-perkm') || 0, maxKm: n('dl-maxkm') || 0, freeMin: n('dl-freemin') || 0, freeCap: n('dl-freecap') || 0, lat: hasLL ? lat : '', lng: hasLL ? lng : '' };
             if (en && !(v.maxKm > 0)) return toast('ใส่ระยะส่งไกลสุดด้วย', false);
-            database.ref('settings/online/delivery').set(v).then(() => toast('บันทึกการจัดส่งแล้ว')).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
+            database.ref('settings/online/delivery').set(v).then(() => { markDirty('delivery-settings', false); toast('บันทึกการจัดส่งแล้ว'); }).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
         }
         // ค่ารถที่ร้านออกให้ (ส่งฟรี) เดือนนี้
         function loadDeliveryCost() {
@@ -1082,33 +1183,87 @@
         function renderBanners() {
             const cats = globalCategories.map(c => c.name);
             const sel = document.getElementById('bn-cat'), keep = sel.value;
-            sel.innerHTML = '<option value="">— ไม่ไปไหน —</option>' + cats.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+            sel.innerHTML = '<option value="">— เลือกหมวด —</option>' + cats.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
             sel.value = keep;
+            const isel = document.getElementById('bn-item'), ikeep = isel.value;
+            isel.innerHTML = '<option value="">— เลือกสินค้า —</option>' + globalItems.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(it => `<option value="${esc(it.id)}">${esc(it.name)}</option>`).join('');
+            isel.value = ikeep;
             const list = globalBanners.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
             document.getElementById('banner-list').innerHTML = list.length ? list.map((b, i) =>
                 `<div style="display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #e2e8f0; flex-wrap:wrap;">
                     <img src="${b.img}" style="width:150px; aspect-ratio:3/1; object-fit:cover; border-radius:6px; ${b.active === false ? 'opacity:.4;' : ''}">
-                    <div style="flex:1; min-width:140px;"><strong>${esc(b.title || '(ไม่มีหัวข้อ)')}</strong><div class="hint">${esc(b.sub || '')}${b.category ? ' · ไปหมวด ' + esc(b.category) : ''}</div></div>
+                    <div style="flex:1; min-width:140px;"><strong>${esc(b.title || '(ไม่มีหัวข้อ)')}</strong><div class="hint">${esc(b.sub || '')}${b.sub ? ' · ' : ''}${esc(bannerActText(b))}</div></div>
+                    <button class="btn btn-blue btn-sm" type="button" onclick="editBanner('${esc(b.id)}')">แก้ไข</button>
                     <button class="btn btn-gray btn-sm" type="button" onclick="moveBanner('${esc(b.id)}',-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
                     <button class="btn btn-gray btn-sm" type="button" onclick="moveBanner('${esc(b.id)}',1)" ${i === list.length - 1 ? 'disabled' : ''}>▼</button>
                     <button class="btn btn-blue btn-sm" type="button" onclick="toggleBanner('${esc(b.id)}')">${b.active === false ? 'แสดง' : 'ซ่อน'}</button>
                     ${delBtn('banners/' + b.id, b.title || 'ป้ายนี้')}
                 </div>`).join('') : '<p class="hint">ยังไม่มีป้าย</p>';
         }
+        let editingBannerId = null;
+        function bannerAct(b) { return b.action || (b.category ? 'cat' : 'none'); }
+        function bannerActText(b) {
+            const a = bannerAct(b);
+            if (a === 'cat') return 'กดแล้วไปหมวด ' + (b.category || '-');
+            if (a === 'item') { const it = globalItems.find(x => x.id === b.itemId); return 'กดแล้วเปิดสินค้า ' + (it ? it.name : '(ไม่พบสินค้า)'); }
+            if (a === 'link') return 'กดแล้วเปิดลิงก์ ' + (b.url || '');
+            return 'กดแล้วไม่ไปไหน';
+        }
+        function bnActUI() {
+            const a = document.getElementById('bn-act').value;
+            document.getElementById('bn-cat-wrap').hidden = a !== 'cat';
+            document.getElementById('bn-item-wrap').hidden = a !== 'item';
+            document.getElementById('bn-url-wrap').hidden = a !== 'link';
+        }
+        function resetBannerForm() {
+            editingBannerId = null; bannerImg = '';
+            ['bn-title', 'bn-sub', 'bn-file', 'bn-url'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('bn-act').value = 'none'; document.getElementById('bn-cat').value = ''; document.getElementById('bn-item').value = '';
+            document.getElementById('bn-preview').style.display = 'none';
+            document.getElementById('bn-form-title').innerText = 'เพิ่มป้ายใหม่';
+            document.getElementById('bn-save').innerText = '➕ เพิ่มป้าย';
+            document.getElementById('bn-cancel').hidden = true;
+            bnActUI();
+        }
+        function editBanner(id) {
+            const b = globalBanners.find(x => x.id === id); if (!b) return;
+            editingBannerId = id; bannerImg = '';
+            document.getElementById('bn-title').value = b.title || '';
+            document.getElementById('bn-sub').value = b.sub || '';
+            document.getElementById('bn-act').value = bannerAct(b);
+            document.getElementById('bn-cat').value = b.category || '';
+            document.getElementById('bn-item').value = b.itemId || '';
+            document.getElementById('bn-url').value = b.url || '';
+            document.getElementById('bn-file').value = '';
+            const p = document.getElementById('bn-preview'); p.src = b.img; p.style.display = 'block';
+            document.getElementById('bn-form-title').innerText = 'แก้ไขป้าย (ไม่เลือกรูปใหม่ = ใช้รูปเดิม)';
+            document.getElementById('bn-save').innerText = '💾 บันทึกการแก้ไข';
+            document.getElementById('bn-cancel').hidden = false;
+            bnActUI();
+            document.getElementById('bn-form-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         function onBannerPicked(input) {
             const f = input.files[0]; if (!f) return;
             cropResize(f, 1200, 400, 0.72, d => { bannerImg = d; const p = document.getElementById('bn-preview'); p.src = d; p.style.display = 'block'; });
         }
-        function addBanner() {
-            if (!bannerImg) return toast('เลือกรูปก่อน', false);
-            const order = globalBanners.reduce((m, b) => Math.max(m, b.order || 0), 0) + 1;
-            database.ref('banners').push({
-                img: bannerImg, title: document.getElementById('bn-title').value.trim(), sub: document.getElementById('bn-sub').value.trim(),
-                category: document.getElementById('bn-cat').value, order: order, active: true
-            }).then(() => {
-                bannerImg = ''; ['bn-title', 'bn-sub', 'bn-file'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('bn-preview').style.display = 'none'; toast('เพิ่มป้ายแล้ว');
-            }).catch(e => toast('เพิ่มไม่สำเร็จ: ' + e.message, false));
+        function saveBanner() {
+            const act = document.getElementById('bn-act').value;
+            const v = { title: document.getElementById('bn-title').value.trim(), sub: document.getElementById('bn-sub').value.trim(), action: act,
+                category: act === 'cat' ? document.getElementById('bn-cat').value : '', itemId: act === 'item' ? document.getElementById('bn-item').value : '',
+                url: act === 'link' ? document.getElementById('bn-url').value.trim() : '' };
+            if (act === 'cat' && !v.category) return toast('เลือกหมวดก่อน', false);
+            if (act === 'item' && !v.itemId) return toast('เลือกสินค้าก่อน', false);
+            if (act === 'link' && !/^https?:\/\/\S+\.\S+/i.test(v.url)) return toast('ลิงก์ต้องขึ้นต้นด้วย https:// เช่น https://www.facebook.com/...', false);
+            if (bannerImg) v.img = bannerImg;
+            let p;
+            if (editingBannerId) p = database.ref('banners/' + editingBannerId).update(v);
+            else {
+                if (!bannerImg) return toast('เลือกรูปก่อน', false);
+                v.order = globalBanners.reduce((m, b) => Math.max(m, b.order || 0), 0) + 1; v.active = true;
+                p = database.ref('banners').push(v);
+            }
+            const wasEdit = !!editingBannerId;
+            p.then(() => { resetBannerForm(); toast(wasEdit ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มป้ายแล้ว'); }).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
         }
         function toggleBanner(id) { const b = globalBanners.find(x => x.id === id); if (b) database.ref('banners/' + id + '/active').set(b.active === false); }
         function moveBanner(id, d) {

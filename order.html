@@ -230,6 +230,28 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .dbox .qrow { padding-top: 10px; }
 .beta { display: inline-block; vertical-align: 5px; margin-left: 6px; font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #7a4b00; background: #ffd66b; border-radius: 4px; padding: 1px 7px; }
 [hidden] { display: none !important; }
+.item.re { cursor: default; }
+.mini-btn { flex: none; border: 1px solid var(--brand); color: var(--brand); background: var(--surface); border-radius: 999px; padding: 8px 12px; font-weight: 700; font-size: 13.5px; }
+.reason { margin-top: 8px; font-weight: 700; color: var(--bad); }
+/* ---------- แผนที่ปักหมุด ---------- */
+.mapwrap { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; flex-direction: column; }
+.mapbox { position: relative; flex: 1; min-height: 0; }
+#map { position: absolute; inset: 0; background: #dfe5ec; }
+.pin { position: absolute; left: 50%; top: 50%; z-index: 500; width: 36px; height: 48px; margin: -48px 0 0 -18px; pointer-events: none; transition: transform .15s; }
+.pin.up { transform: translateY(-8px); }
+.pin svg { width: 36px; height: 48px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+.pin-dot { position: absolute; left: 50%; top: 50%; z-index: 499; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 99px; background: rgba(0,0,0,.35); pointer-events: none; }
+.maptop { position: absolute; z-index: 600; top: calc(10px + env(safe-area-inset-top, 0px)); left: 10px; right: 10px; display: flex; justify-content: space-between; gap: 8px; pointer-events: none; }
+.maptop > * { pointer-events: auto; }
+.mbtn { border: 0; border-radius: 999px; background: var(--surface); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.25); padding: 10px 14px; font-weight: 700; font-size: 14px; }
+.mbtn.round { width: 44px; height: 44px; padding: 0; font-size: 20px; }
+.mapside { position: absolute; z-index: 600; right: 10px; bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.mappanel { background: var(--surface); padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 -6px 20px rgba(0,0,0,.15); }
+.mappanel .hint { margin: 0; }
+.mapmsg { font-size: 14px; }
+.mapmsg.bad { color: var(--bad); }
+.leaflet-container { font: inherit; }
+
 .item .ph { width: 56px; height: 56px; border-radius: 10px; flex: none; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 20px; }
 .hero .loadpic { aspect-ratio: 4 / 3; width: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
 .badge.pre { background: var(--brand); color: var(--brand-ink); }
@@ -251,6 +273,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   <div class="loading" id="loading">ກຳລັງໂຫຼດເມນູ…</div>
   <div class="closed" id="closed" hidden><h2 id="closed-title">ຂໍອະໄພ</h2><p id="closed-text"></p></div>
   <div class="banner" id="banner" hidden aria-label="ໂປຣໂມຊັ່ນ"><div class="slides" id="slides"></div><div class="dots" id="dots"></div></div>
+  <div id="reorder" hidden></div>
   <nav class="tabs" id="tabs" aria-label="ໝວດເມນູ" hidden></nav>
   <div id="menu"></div>
 </main>
@@ -291,7 +314,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   var SPOTS = { gate: 'ປະຕູໃຫຍ່ / ທາງເຂົ້າ', guard: 'ປ້ອມຍາມ', other: 'ອື່ນໆ' };
 
   var MENU = null, cart = [], draft = null, lastMsg = '', saved = { name: '', phone: '' };
-  var ship = { mode: 'pickup', ll: null, km: null, spot: 'gate', spotText: '', err: '' };
+  var ship = { mode: 'pickup', ll: null, km: null, spot: 'gate', spotText: '', place: '', err: '' };
+  // จำจุดส่งล่าสุดไว้ในมือถือลูกค้า สั่งครั้งหน้าไม่ต้องปักใหม่
+  (function () { var o = null; try { o = JSON.parse(localStorage.getItem('augx-ship')); } catch (e) {} if (o && o.ll) { ship.ll = o.ll; ship.place = o.place || ''; ship.spot = o.spot || 'gate'; ship.spotText = o.spotText || ''; } })();
   var photoCache = {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -322,7 +347,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     saved = store('augx-customer') || saved;
     $('tabs').hidden = false;
     renderBanners(v[4] || {});
-    renderMenu(); updateBar();
+    renderMenu(); updateBar(); renderReorder();
     startTrackFromHash();
   });
   function closed(title, text) {
@@ -348,13 +373,54 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     sl.addEventListener('scroll', function () { clearTimeout(sl._t); sl._t = setTimeout(showDot, 80); });
     sl.addEventListener('click', function (e) {
       var b = e.target.closest('.slide'); if (!b) return;
-      var cat = SLIDES[+b.dataset.i].category, ci = MENU.categories.indexOf(cat);
-      if (ci >= 0) { var t = document.querySelector('.tab[data-cat="' + ci + '"]'); if (t) t.click(); }
+      var x = SLIDES[+b.dataset.i], act = x.action || (x.category ? 'cat' : 'none');
+      if (act === 'link' && /^https?:\/\//i.test(x.url || '')) { window.open(x.url, '_blank', 'noopener'); return; }
+      if (act === 'item' && x.itemId && MENU.byId[x.itemId]) { openItem(MENU.byId[x.itemId]); return; }
+      if (act === 'cat') {
+        var ci = MENU.categories.indexOf(x.category);
+        if (ci >= 0) { var t = document.querySelector('.tab[data-cat="' + ci + '"]'); if (t) t.click(); }
+      }
     });
     if (SLIDES.length > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(function () {
       if (document.hidden || !$('sheet').hidden) return;
       sl.scrollTo({ left: ((cur + 1) % SLIDES.length) * sl.clientWidth, behavior: 'smooth' });
     }, 5000);
+  }
+
+  // ---------- สั่งซ้ำ (จำ 3 ออร์เดอร์ล่าสุดไว้ในมือถือลูกค้า) ----------
+  function history() { var h = store('augx-history'); return Array.isArray(h) ? h : []; }
+  function saveHistory(bill) {
+    var h = history().filter(function (x) { return x.bill !== bill; });
+    h.unshift({ bill: bill, at: Date.now(), total: cartTotal(), lines: cart.map(function (l) { return { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty }; }) });
+    store('augx-history', h.slice(0, 3));
+  }
+  function reorder(i) {
+    var o = history()[i]; if (!o) return;
+    var miss = 0;
+    o.lines.forEach(function (l) {
+      if (!MENU.byId[l.itemId]) { miss++; return; }
+      var nl = { itemId: l.itemId, name: MENU.byId[l.itemId].name, variant: l.variant || '', options: l.options || [], note: l.note || '', qty: l.qty };
+      var p = AugustxMenu.unitPrice(MENU, nl); if (p == null) { miss++; return; }
+      nl.unitPrice = p;
+      var key = function (x) { return JSON.stringify([x.itemId, x.variant, (x.options || []).map(function (q) { return q.group + ':' + q.name; }).sort(), x.note]); };
+      var same = cart.filter(function (x) { return key(x) === key(nl); })[0];
+      if (same) same.qty = Math.min(50, same.qty + nl.qty); else cart.push(nl);
+    });
+    saveCart(); renderMenu(); updateBar();
+    if (miss) toast('ບາງລາຍການບໍ່ມີໃນເມນູແລ້ວ');
+    if (cart.length) openCart();
+  }
+  function renderReorder() {
+    var h = history(), box = $('reorder');
+    if (!box) return;
+    if (!h.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '<h2 class="section-h">ສັ່ງຄືເກົ່າ <small>ອໍເດີຫຼ້າສຸດຂອງທ່ານ</small></h2><div class="list">' + h.map(function (o, i) {
+      var names = o.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ');
+      var d = new Date(o.at);
+      return '<div class="item re"><span class="txt"><span class="en" style="font-size:15px">' + esc(names) + '</span><br><span class="lo">' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' · ' + kip(o.total) + '</span></span>' +
+        '<button class="mini-btn" type="button" data-re="' + i + '">ສັ່ງຄືເກົ່າ</button></div>';
+    }).join('') + '</div>';
   }
 
   // ---------- เมนู ----------
@@ -387,6 +453,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - 64, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   });
   $('menu').addEventListener('click', function (e) { var b = e.target.closest('.item'); if (b) openItem(MENU.byId[b.dataset.id]); });
+  $('reorder').addEventListener('click', function (e) { var b = e.target.closest('[data-re]'); if (b) reorder(+b.dataset.re); });
 
   // ---------- แผ่นเลื่อน ----------
   function openSheet(html) { $('sheet-in').innerHTML = html; $('sheet').hidden = false; $('scrim').hidden = false; $('sheet').scrollTop = 0; document.body.style.overflow = 'hidden'; }
@@ -517,6 +584,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   }
   function kmText(km) { return (Math.round(km * 10) / 10).toFixed(1); }
   function spotLabel() { return ship.spot === 'other' ? ship.spotText.trim().slice(0, 40) : SPOTS[ship.spot]; }
+  function shipKm() { if (ship.ll && DLV.lat != null) ship.km = hav([DLV.lat, DLV.lng], ship.ll); return ship.km; }
   function freeBar(sub) {
     if (sub >= DLV.freeMin) return '<div class="free ok">✓ ຈັດສົ່ງຟຣີ · ຮ້ານອອກຄ່າສົ່ງໃຫ້ສູງສຸດ ' + kip(DLV.freeCap) + '</div>';
     return '<div class="free"><div class="fbar"><i style="width:' + Math.round(sub / DLV.freeMin * 100) + '%"></i></div>' +
@@ -526,6 +594,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     if ($('cname')) saved.name = $('cname').value;
     if ($('cphone')) saved.phone = $('cphone').value;
     if ($('spot-other')) ship.spotText = $('spot-other').value;
+    if ($('place')) ship.place = $('place').value;
   }
   function quoteBox() {
     if (ship.km == null) return '';
@@ -550,10 +619,12 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         '<button class="opt" type="button" data-ship="delivery" aria-pressed="' + (ship.mode === 'delivery') + '"><b>🛵 ຈັດສົ່ງ</b><span>ບໍ່ເກີນ ' + DLV.maxKm + ' ກມ.</span></button></div></div>';
     }
     if (DLV.enabled && ship.mode === 'delivery') {
-      h += '<button class="ghost" type="button" data-act="locate">📍 ' + (ship.ll ? 'ອັບເດດຕຳແໜ່ງຂອງຂ້ອຍ' : 'ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍ') + '</button>';
+      shipKm();
+      h += '<button class="' + (ship.ll ? 'ghost' : 'primary') + '" type="button" data-act="map">🗺️ ' + (ship.ll ? 'ປ່ຽນຈຸດສົ່ງໃນແຜນທີ່' : 'ເລືອກຈຸດສົ່ງໃນແຜນທີ່') + '</button>';
       if (ship.err) h += '<div class="err-inline">' + esc(ship.err) + '</div>';
       h += quoteBox();
       if (ship.km != null && ship.km <= DLV.maxKm) {
+        h += '<label class="f" for="place">ຊື່ສະຖານທີ່ <span class="hint">ເຊັ່ນ ທະນາຄານ Indochina ໃກ້ Vientiane Center</span><input class="in" id="place" maxlength="60" value="' + esc(ship.place) + '"></label>';
         h += '<div class="group"><h3>ຈຸດຮັບເຄື່ອງ <small>ເລືອກ 1</small></h3><div class="seg">' + Object.keys(SPOTS).map(function (k) {
           return '<button class="opt" type="button" data-spot="' + k + '" aria-pressed="' + (ship.spot === k) + '"><b>' + SPOTS[k] + '</b></button>';
         }).join('') + '</div>';
@@ -605,8 +676,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       var q = quote(ship.km, cartTotal());
       out.push('🛵 ຈັດສົ່ງ · ' + kmText(ship.km) + ' ກມ.');
       out.push(q.cust === 0 ? 'ຄ່າສົ່ງ: ສົ່ງຟຣີ (ຮ້ານອອກໃຫ້)' : q.shop ? 'ຄ່າສົ່ງ: ຮ້ານອອກ ' + kip(q.shop) + ' · ລູກຄ້າຈ່າຍສ່ວນເກີນປະມານ ' + kip(q.cust) + ' ກັບຄົນຂັບ' : 'ຄ່າສົ່ງປະມານ ' + kip(q.fee) + ' (ຈ່າຍກັບຄົນຂັບ)');
-      out.push('📍 ແຜນທີ່: https://maps.google.com/?q=' + ship.ll[0].toFixed(5) + ',' + ship.ll[1].toFixed(5));
+      out.push('📍 ສະຖານທີ່: ' + ship.place.trim());
       out.push('ຈຸດຮັບເຄື່ອງ: ' + spotLabel());
+      out.push('🗺️ ແຜນທີ່: https://maps.google.com/?q=' + ship.ll[0].toFixed(5) + ',' + ship.ll[1].toFixed(5));
     } else out.push('🏠 ຮັບທີ່ຮ້ານ');
     out.push('', CFG.closing);
     if (tok) out.push('', '🔎 ຕິດຕາມອໍເດີ: ' + trackUrl(tok));
@@ -623,7 +695,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var dl = null;
     if (ship.mode === 'delivery') {
       var q = quote(ship.km, cartTotal());
-      dl = { km: Math.round(ship.km * 100) / 100, lat: Math.round(ship.ll[0] * 1e5) / 1e5, lng: Math.round(ship.ll[1] * 1e5) / 1e5, spot: spotLabel(), estFee: q.fee, free: cartTotal() >= DLV.freeMin, freeCap: DLV.freeCap };
+      dl = { km: Math.round(ship.km * 100) / 100, lat: Math.round(ship.ll[0] * 1e5) / 1e5, lng: Math.round(ship.ll[1] * 1e5) / 1e5, place: ship.place.trim(), spot: ship.place.trim() + ' · ' + spotLabel(), estFee: q.fee, free: cartTotal() >= DLV.freeMin, freeCap: DLV.freeCap };
+      try { localStorage.setItem('augx-ship', JSON.stringify({ ll: ship.ll, place: ship.place.trim(), spot: ship.spot, spotText: ship.spotText })); } catch (e) {}
     }
     var bill;
     return nextBillNo().then(function (b) {
@@ -640,9 +713,10 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       return db.ref('order_track/' + tok).set(t).then(function () { return true; }, function () { return false; });
     }).then(function (tracked) {
       if (tracked) { store('augx-track', { tok: tok, bill: bill }); }
+      saveHistory(bill);
       lastMsg = buildMessage(name, phone, bill, tracked ? tok : '');
       openDone(bill, lastMsg, tracked ? tok : '');
-      cart = []; saveCart(); renderMenu(); updateBar();
+      cart = []; saveCart(); renderMenu(); updateBar(); renderReorder();
     }).catch(function () {
       openContact('ສົ່ງອໍເດີ້ບໍ່ສຳເລັດ ກວດອິນເຕີເນັດ ແລ້ວລອງໃໝ່');
     });
@@ -688,7 +762,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     T.ref.on('value', function (s) {
       var d = s.val();
       if (!d) { T.data = { missing: true }; } else {
-        if (T.lastStatus && T.lastStatus !== d.status && d.status === 'ready') ding();
+        if (T.lastStatus && T.lastStatus !== d.status && (d.status === 'ready' || d.status === 'rejected')) ding();
         T.lastStatus = d.status; T.data = d;
       }
       if (!$('track').hidden) renderTrack();
@@ -722,10 +796,21 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       $('track-in').innerHTML = h + '<div class="st-card"><h2>ບໍ່ພົບອໍເດີນີ້</h2><p>ລິ້ງອາດບໍ່ຖືກຕ້ອງ ຫຼື ອໍເດີຖືກລຶບແລ້ວ</p></div><button class="ghost" type="button" data-tr="clear">ປິດ</button>';
       return;
     }
+    // เกิน 24 ชั่วโมง: แสดงแค่สรุปสั้นๆ ไม่แสดงรายการและจุดส่ง
+    if (d.at && Date.now() - d.at > 24 * 3600000) {
+      var dd = new Date(d.at), ds = ('0' + dd.getDate()).slice(-2) + '/' + ('0' + (dd.getMonth() + 1)).slice(-2) + '/' + dd.getFullYear();
+      var hi = history().findIndex(function (x) { return x.bill === d.bill; });
+      $('track-in').innerHTML = h + '<div class="st-card" data-s="' + (d.status === 'rejected' ? 'rejected' : 'ready') + '"><div class="st-icon" aria-hidden="true">' + (d.status === 'rejected' ? '!' : '✓') + '</div>' +
+        '<h2>ອໍເດີ ' + esc(String(d.bill || '').split('-')[0]) + (d.status === 'rejected' ? ' ຖືກຍົກເລີກ' : ' ສຳເລັດແລ້ວ') + '</h2><p>' + ds + '</p><p>ຂອບໃຈທີ່ອຸດໜູນ AUGUSTX 🙏</p></div>' +
+        (hi >= 0 ? '<button class="primary" type="button" data-tr="again" data-i="' + hi + '">ສັ່ງອີກຄັ້ງ</button>' : '<button class="primary" type="button" data-tr="menu">ສັ່ງອີກຄັ້ງ</button>') +
+        '<button class="ghost" type="button" data-tr="clear">ປິດ</button>';
+      return;
+    }
     var s = ST[d.status] || ST.new, q = dq(d), dl = d.delivery;
     if (dl && d.status === 'delivering') s = { icon: s.icon, h: s.h, p: 'ຄົນຂັບກຳລັງມາ · ກຽມລົງມາຮັບທີ່ ' + dl.spot };
     if (dl && d.status === 'ready') s = { icon: s.icon, h: 'ສົ່ງເຖິງແລ້ວ!', p: 'ລົງມາຮັບທີ່ ' + dl.spot + (q.cust ? ' · ຈ່າຍຄົນຂັບ ' + kip(q.cust) : ' · ບໍ່ຕ້ອງຈ່າຍຄົນຂັບ') };
     h += '<div class="st-card" data-s="' + esc(d.status) + '"><div class="st-icon" aria-hidden="true">' + s.icon + '</div><h2>' + esc(s.h) + '</h2><p>' + esc(s.p) + '</p>' +
+      (d.status === 'rejected' && d.reason ? '<div class="reason">ເຫດຜົນ: ' + esc(d.reason) + '</div>' : '') +
       '<span class="st-bill num">' + esc(d.bill) + '</span>';
     if (d.status !== 'rejected') {
       h += '<span class="pay' + (d.paid ? ' ok' : '') + '">' + (d.paid ? 'ຊຳລະແລ້ວ' : 'ຍັງບໍ່ທັນຊຳລະ') + '</span>';
@@ -787,9 +872,96 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   $('track').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     if (b.dataset.tr === 'menu') return hideTrack();
+    if (b.dataset.tr === 'again') { hideTrack(); return reorder(+b.dataset.i); }
     if (b.dataset.tr === 'clear') { if (T.ref) T.ref.off(); T = { tok: '', data: null, ref: null, lastStatus: '' }; store('augx-track', null); return hideTrack(); }
   });
   setInterval(function () { if (T.data && T.data.at && !$('track').hidden && $('ago')) $('ago').textContent = ago(T.data.at); }, 30000);
+
+  // ---------- แผนที่ปักหมุด (OpenStreetMap ฟรี · โหลดเฉพาะตอนลูกค้ากดเลือกจุดส่ง) ----------
+  var MAPLIB = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
+  var mapObj = null, mapLayers = null, mapSat = false, mapLoading = null;
+  function loadLeaflet() {
+    if (window.L) return Promise.resolve();
+    if (mapLoading) return mapLoading;
+    mapLoading = new Promise(function (res, rej) {
+      var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = MAPLIB + 'leaflet.css'; document.head.appendChild(css);
+      var js = document.createElement('script'); js.src = MAPLIB + 'leaflet.js'; js.onload = res; js.onerror = function () { mapLoading = null; rej(); };
+      document.head.appendChild(js);
+    });
+    return mapLoading;
+  }
+  var PIN = '<svg viewBox="0 0 36 48" aria-hidden="true"><path d="M18 0C8 0 0 8 0 18c0 13 18 30 18 30s18-17 18-30C36 8 28 0 18 0z" fill="#dc2626"/><circle cx="18" cy="18" r="7" fill="#fff"/></svg>';
+  function openMap() {
+    var w = $('mapwrap');
+    if (!w) {
+      w = document.createElement('div'); w.id = 'mapwrap'; w.className = 'mapwrap';
+      w.innerHTML = '<div class="mapbox"><div id="map"></div><div class="pin-dot"></div><div class="pin" id="pin">' + PIN + '</div>' +
+        '<div class="maptop"><button class="mbtn round" type="button" id="map-x" aria-label="ປິດ">×</button><button class="mbtn" type="button" id="map-layer">🛰️ ດາວທຽມ</button></div>' +
+        '<div class="mapside"><button class="mbtn round" type="button" id="map-me" aria-label="ຕຳແໜ່ງຂອງຂ້ອຍ">◎</button></div></div>' +
+        '<div class="mappanel"><p class="hint">ເລື່ອນແຜນທີ່ໃຫ້ໝຸດສີແດງຢູ່ຈຸດທີ່ຈະຮັບເຄື່ອງ ເຊັ່ນ ປະຕູໃຫຍ່ ຫຼື ປ້ອມຍາມ</p>' +
+        '<div class="mapmsg num" id="map-msg">ກຳລັງໂຫຼດແຜນທີ່…</div>' +
+        '<button class="primary" type="button" id="map-ok" disabled>ຢືນຢັນຈຸດນີ້</button></div>';
+      document.body.appendChild(w);
+      $('map-x').onclick = closeMap;
+      $('map-layer').onclick = function () { mapSat = !mapSat; setLayer(); };
+      $('map-me').onclick = function () { locateMe(true); };
+      $('map-ok').onclick = function () {
+        var c = mapObj.getCenter(); ship.ll = [c.lat, c.lng]; ship.km = hav([DLV.lat, DLV.lng], ship.ll); ship.err = '';
+        closeMap(); openContact('', true);
+      };
+    }
+    w.hidden = false;
+    loadLeaflet().then(function () {
+      if (!mapObj) {
+        mapObj = L.map('map', { zoomControl: false, attributionControl: true }).setView(ship.ll || [DLV.lat, DLV.lng], 17);
+        mapLayers = {
+          street: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }),
+          sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '© Esri' })
+        };
+        L.circleMarker([DLV.lat, DLV.lng], { radius: 7, color: '#fff', weight: 2, fillColor: '#0b4db3', fillOpacity: 1 }).addTo(mapObj).bindTooltip('AUGX', { permanent: true, direction: 'top', offset: [0, -6] });
+        L.circle([DLV.lat, DLV.lng], { radius: DLV.maxKm * 1000, color: '#0b4db3', weight: 1, fillOpacity: .04, interactive: false }).addTo(mapObj);
+        setLayer();
+        mapObj.on('movestart', function () { $('pin').classList.add('up'); });
+        mapObj.on('moveend', function () { $('pin').classList.remove('up'); mapInfo(); });
+        mapObj.on('move', mapInfo);
+        if (!ship.ll) locateMe(false);
+      } else {
+        mapObj.invalidateSize();
+        if (ship.ll) mapObj.setView(ship.ll, Math.max(mapObj.getZoom(), 16));
+      }
+      setTimeout(function () { mapObj.invalidateSize(); mapInfo(); }, 60);
+    }, function () {
+      $('map-msg').textContent = 'ໂຫຼດແຜນທີ່ບໍ່ໄດ້ ກວດອິນເຕີເນັດ ແລ້ວລອງໃໝ່'; $('map-msg').className = 'mapmsg bad';
+    });
+  }
+  function setLayer() {
+    if (!mapObj) return;
+    mapObj.removeLayer(mapLayers.street); mapObj.removeLayer(mapLayers.sat);
+    (mapSat ? mapLayers.sat : mapLayers.street).addTo(mapObj);
+    $('map-layer').textContent = mapSat ? '🗺️ ແຜນທີ່' : '🛰️ ດາວທຽມ';
+  }
+  function locateMe(force) {
+    if (!navigator.geolocation) return;
+    $('map-msg').textContent = 'ກຳລັງຫາຕຳແໜ່ງຂອງທ່ານ…';
+    navigator.geolocation.getCurrentPosition(function (p) {
+      mapObj.setView([p.coords.latitude, p.coords.longitude], 18); mapInfo();
+    }, function () {
+      if (force) { $('map-msg').textContent = 'ເປີດ GPS ບໍ່ໄດ້ · ເລື່ອນແຜນທີ່ເອງໄດ້'; $('map-msg').className = 'mapmsg bad'; } else mapInfo();
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+  function mapInfo() {
+    if (!mapObj) return;
+    var c = mapObj.getCenter(), km = hav([DLV.lat, DLV.lng], [c.lat, c.lng]), msg = $('map-msg'), ok = $('map-ok');
+    if (km > DLV.maxKm) {
+      msg.className = 'mapmsg bad'; msg.textContent = 'ໄລຍະທາງ ' + kmText(km) + ' ກມ. — ເກີນ ' + DLV.maxKm + ' ກມ. ຮ້ານສົ່ງບໍ່ໄດ້'; ok.disabled = true;
+    } else {
+      var q = quote(km, cartTotal());
+      msg.className = 'mapmsg'; msg.innerHTML = 'ໄລຍະທາງ <b>' + kmText(km) + ' ກມ.</b> · ຄ່າສົ່ງປະມານ <b>' + kip(q.fee) + '</b>' + (q.shop ? ' · <b style="color:var(--ok)">' + (q.cust ? 'ຮ້ານອອກໃຫ້ ' + kip(q.shop) : 'ສົ່ງຟຣີ') + '</b>' : '');
+      ok.disabled = false;
+    }
+  }
+  function closeMap() { if ($('mapwrap')) $('mapwrap').hidden = true; }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('mapwrap') && !$('mapwrap').hidden) closeMap(); });
 
   // ---------- ปุ่มทั้งหมดในแผ่นเลื่อน ----------
   $('sheet').addEventListener('input', function (e) { if (draft && e.target.id === 'note') draft.note = e.target.value; });
@@ -831,19 +1003,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       case 'cart': openCart(); break;
       case 'checkout': openContact(); break;
       case 'track': closeSheet(); showTrack(); break;
-      case 'locate': {
-        keepContact();
-        if (!navigator.geolocation) { ship.err = 'ມືຖືນີ້ໃຊ້ຕຳແໜ່ງບໍ່ໄດ້'; return openContact('', true); }
-        b.textContent = '📍 ກຳລັງຫາຕຳແໜ່ງ…'; b.disabled = true;
-        navigator.geolocation.getCurrentPosition(function (pos) {
-          ship.ll = [pos.coords.latitude, pos.coords.longitude]; ship.km = hav([DLV.lat, DLV.lng], ship.ll); ship.err = '';
-          openContact('', true);
-        }, function () {
-          ship.err = 'ເປີດຕຳແໜ່ງບໍ່ໄດ້ · ກວດວ່າເປີດ GPS ແລະ ອະນຸຍາດໃຫ້ເວັບນີ້ໃຊ້ຕຳແໜ່ງແລ້ວ';
-          openContact('', true);
-        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
-        break;
-      }
+      case 'map': keepContact(); openMap(); break;
       case 'confirm': {
         keepContact();
         var name = $('cname').value.trim().replace(/\s+/g, ' ');
@@ -853,8 +1013,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         var phone = normPhone(phoneRaw);
         if (!phone) return openContact('ເບີ WhatsApp ບໍ່ຖືກຕ້ອງ ລອງໃສ່ແບບ 020 xxxx xxxx', true);
         if (DLV.enabled && ship.mode === 'delivery') {
-          if (ship.km == null) return openContact('ກະລຸນາກົດ "ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍ" ເພື່ອໃຫ້ຮ້ານຮູ້ຈຸດສົ່ງ', true);
+          if (ship.km == null) return openContact('ກະລຸນາກົດ "ເລືອກຈຸດສົ່ງໃນແຜນທີ່" ເພື່ອໃຫ້ຮ້ານຮູ້ຈຸດສົ່ງ', true);
           if (ship.km > DLV.maxKm) return openContact('ໄກເກີນ ' + DLV.maxKm + ' ກມ. ກະລຸນາເລືອກ "ຮັບທີ່ຮ້ານ"', true);
+          if (!ship.place.trim()) return openContact('ກະລຸນາໃສ່ຊື່ສະຖານທີ່ ເພື່ອໃຫ້ຄົນຂັບຊອກງ່າຍ', true);
           if (!spotLabel()) return openContact('ກະລຸນາບອກຈຸດຮັບເຄື່ອງ', true);
         } else ship.mode = 'pickup';
         store('augx-customer', saved);

@@ -367,6 +367,12 @@ function payBill(id, p) {
 
 /* ---------- ยกเลิกบิล ---------- */
 // opts: { reason, by:'cashier'|'admin', refund:{status:'refunded'|'pending', method:'cash'|'transfer'|''} }
+// เหตุผลที่แสดงให้ลูกค้าเห็น (ภาษาลาว) · เหตุผลที่ไม่ควรโชว์ลูกค้า = ไม่แสดง
+const LAO_REASON = {
+    'ลูกค้ายกเลิก': 'ລູກຄ້າຂໍຍົກເລີກ', 'คีย์ผิด': '', 'ออร์เดอร์ซ้ำ': 'ອໍເດີຊ້ຳ', 'ของหมด': 'ສິນຄ້າໝົດ', 'ลูกค้าไม่พอใจ': '', 'อื่นๆ': '',
+    'ร้านปิดแล้ว': 'ຮ້ານປິດແລ້ວ', 'อยู่นอกพื้นที่ส่ง': 'ຢູ່ນອກເຂດຈັດສົ່ງ', 'ยังไม่ได้รับเงิน': 'ຍັງບໍ່ໄດ້ຮັບການຊຳລະ'
+};
+function laoReason(r) { r = String(r || '').trim(); return Object.prototype.hasOwnProperty.call(LAO_REASON, r) ? LAO_REASON[r] : ''; }
 function voidBill(id, bill, opts) {
     const wasOpen = isOpenBill(bill);
     const base = 'orders/' + id + '/', upd = {};
@@ -379,6 +385,8 @@ function voidBill(id, bill, opts) {
         upd[base + 'refund'] = { status: opts.refund.status, method: opts.refund.method || '', amount: Number(bill.total || 0), at: Date.now() };
     }
     return database.ref().update(upd).then(function () {
+        // ออร์เดอร์ที่ลูกค้าสั่งออนไลน์: แจ้งหน้าติดตามของลูกค้าว่ายกเลิก พร้อมเหตุผล (ภาษาลาว)
+        if (bill.trackTok) database.ref('order_track/' + bill.trackTok).update({ status: 'rejected', reason: laoReason(opts.reason) }).catch(function () {});
         adjustCups(billCups(bill));
         if (wasOpen) {
             Object.keys(bill.tickets || {}).forEach(function (k) {
