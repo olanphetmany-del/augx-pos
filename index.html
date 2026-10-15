@@ -195,6 +195,9 @@
         #cart-ctl .seg{margin-bottom:6px}#cart-ctl input,#cart-ctl select{width:100%;margin-top:6px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
         .ctl-btns .big:disabled{opacity:.45;cursor:not-allowed}.ctl-hint{font-size:12px;color:#b45309;margin-top:6px}.ctl-l{font-size:13px;color:#475569;display:block}
         #cart-ctl .linkbtn{display:block;margin:2px 0;color:var(--blue)}#cart-ctl .seg button{padding:14px 8px}
+        .approx{font-size:11px;color:#94a3b8;font-weight:normal}
+        .po-tag{display:inline-block;margin-left:4px;background:#1a365d;color:#fff;border-radius:4px;padding:0 5px;font-size:10px;vertical-align:1px}
+        .held-btn{flex-shrink:0;width:100%;padding:10px;border:2px dashed #f59e0b;background:#fffbeb;color:#92400e;border-radius:10px;font-weight:bold;cursor:pointer;font-family:inherit;font-size:13px}
     </style>
     <link rel="manifest" href="cashier.webmanifest">
     <meta name="theme-color" content="#0b4db3">
@@ -289,6 +292,7 @@
         /* ================= โหลดข้อมูลจาก Firebase ================= */
         function startListeners() {
             receiptInit();
+            fxInit(() => { renderMenuGrid(); renderCart(); if (W && W.step === 4 && !W.paying) renderStep4(); });
             database.ref('tables').on('value', snap => { tableNames = []; snap.forEach(c => { const t = c.val(); if (t && t.name) tableNames.push(t.name); }); });
             database.ref('customers').on('value', snap => { globalCustomers = []; snap.forEach(c => { const x = c.val(); x.id = c.key; globalCustomers.push(x); }); });
             database.ref('delivery_partners').on('value', snap => {
@@ -353,9 +357,11 @@
             const base = currentCategory === 'ALL' ? globalItems : globalItems.filter(i => i.category === currentCategory);
             let html = '';
             base.filter(itemVisible).forEach(item => {
-                const prices = item.prices.map(p => p.price), min = prices.length ? Math.min.apply(null, prices) : 0;
-                const label = prices.length > 1 ? 'เริ่ม ' + money(min) : money(min);
-                html += `<div class="menu-card" data-id="${esc(item.id)}" onclick="onItemClick(this.dataset.id)"><img src="${esc(item.image || 'images/bg.jpg')}"><div><div class="menu-name">${esc(item.name)}</div><div class="menu-price">${label}</div></div></div>`;
+                const prices = item.prices.map(p => p.price), min = prices.length ? Math.min.apply(null, prices) : 0, cur = itemCur(item);
+                let label = (prices.length > 1 ? 'เริ่ม ' : '') + mc(min, cur);
+                if (cur === 'THB' && FX.rate) label += `<div class="approx">${approxLak(min)}</div>`;
+                const tag = item.preorder ? '<span class="po-tag">📦 PRE-ORDER</span>' : '';
+                html += `<div class="menu-card" data-id="${esc(item.id)}" onclick="onItemClick(this.dataset.id)"><img src="${esc(item.image || 'images/bg.jpg')}"><div><div class="menu-name">${esc(item.name)}${tag}</div><div class="menu-price">${label}</div></div></div>`;
             });
             document.getElementById('menu-grid-container').innerHTML = html || '<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:40px;">ไม่มีสินค้า</div>';
         }
@@ -367,6 +373,7 @@
         function onItemClick(id) {
             const item = globalItems.find(i => i.id === id);
             if (!item) return;
+            if (item.preorder && window.AXPO && !addToBillId) return AXPO.openCreate({ itemId: item.id });
             const groups = getItemGroups(item);
             if (item.prices.length <= 1 && groups.length === 0) { const p = item.prices[0] || { label: '', price: 0 }; addLine(item, p.label, p.price, [], ''); return; }
             opt = { item: item, variantIdx: 0, sel: {}, note: '' };
@@ -384,19 +391,19 @@
             let html = `<button class="close-modal-x" onclick="closeOptionModal()">✕</button><div class="opt-title">${esc(item.name)}</div>`;
             if (item.prices.length > 1) {
                 html += '<div class="opt-group"><div class="opt-gname">ขนาด / ประเภท</div><div class="chips">';
-                item.prices.forEach((p, i) => { html += `<button class="chip ${opt.variantIdx === i ? 'on' : ''}" onclick="pickVariant(${i})">${esc(p.label || '-')} · ${money(p.price)}</button>`; });
+                item.prices.forEach((p, i) => { html += `<button class="chip ${opt.variantIdx === i ? 'on' : ''}" onclick="pickVariant(${i})">${esc(p.label || '-')} · ${mc(p.price, itemCur(item))}</button>`; });
                 html += '</div></div>';
             }
             groups.forEach(g => {
                 html += `<div class="opt-group"><div class="opt-gname">${esc(g.name)}${g.multi ? ' (เลือกได้หลายอย่าง)' : ''}</div><div class="chips">`;
                 g.options.forEach((o, i) => {
                     const on = (opt.sel[g.id] || []).includes(i);
-                    html += `<button class="chip ${on ? 'on' : ''}" onclick="pickMod('${esc(g.id)}', ${i})">${esc(o.name)}${o.price ? ' +' + money(o.price) : ''}</button>`;
+                    html += `<button class="chip ${on ? 'on' : ''}" onclick="pickMod('${esc(g.id)}', ${i})">${esc(o.name)}${o.price ? ' +' + mc(o.price, itemCur(item)) : ''}</button>`;
                 });
                 html += '</div></div>';
             });
             html += `<div class="opt-group"><div class="opt-gname">หมายเหตุ</div><input type="text" id="opt-note" value="${esc(opt.note)}" placeholder="เช่น ไม่ใส่น้ำแข็ง" oninput="opt.note = this.value" style="width:100%; padding:10px 8px; border:1px solid var(--border); border-radius:4px; font-size:16px;"></div>`;
-            html += `<button class="btn btn-green" style="width:100%;" onclick="confirmOption()">เพิ่มลงตะกร้า (${money(optionPrice())})</button>`;
+            html += `<button class="btn btn-green" style="width:100%;" onclick="confirmOption()">เพิ่มลงตะกร้า (${mc(optionPrice(), itemCur(item))})</button>`;
             document.getElementById('option-modal-box').innerHTML = html;
         }
         function pickVariant(i) { opt.variantIdx = i; renderOptionModal(); }
@@ -416,10 +423,52 @@
 
         /* ================= ตะกร้า ================= */
         function lineKey(itemId, variant, mods, note) { return [itemId, variant, mods.map(m => m.group + ':' + m.option).sort().join('+'), note].join('|'); }
+        /* ---- เงินบาท: 1 บิล = 1 สกุลเงิน ---- */
+        let heldCart = null;   // ตะกร้าที่พักไว้ (ตอนแยกบิลคนละสกุลเงิน)
+        function itemCur(item) { return item && item.currency === 'THB' ? 'THB' : 'LAK'; }
+        function cartCur() { return cart.length ? (cart[0].cur || 'LAK') : 'LAK'; }
+        function mc(n, cur) { return moneyC(n, cur); }
+        function curName(c) { return c === 'THB' ? 'เงินบาท (฿)' : 'เงินกีบ (₭)'; }
         function addLine(item, variant, price, mods, note) {
+            const cur = itemCur(item);
+            if (addToBillId) {
+                const b = bills[addToBillId];
+                if (b && billCur(b) !== cur) return toast('บิล #' + b.orderNo + ' เป็น' + curName(billCur(b)) + ' เพิ่มสินค้า' + curName(cur) + ' ไม่ได้ ให้เปิดบิลใหม่', false);
+            } else if (cart.length && cartCur() !== cur) return askSplit(item, variant, price, mods, note);
             const key = lineKey(item.id, variant, mods, note), ex = cart.find(c => c.key === key);
             if (ex) ex.quantity++;
-            else cart.push({ key: key, itemId: item.id, name: item.name, variant: variant || '', price: price, quantity: 1, modifiers: mods, note: note || '', cup: item.usesCup !== false });
+            else {
+                const ln = { key: key, itemId: item.id, name: item.name, variant: variant || '', price: price, quantity: 1, modifiers: mods, note: note || '', cup: item.usesCup !== false && !item.retail, cur: cur };
+                if (item.retail) ln.retail = true;
+                cart.push(ln);
+            }
+            renderCart();
+        }
+        // สินค้าคนละสกุลเงินกับตะกร้า → ถามแยกบิล (พักตะกร้าเดิมไว้ก่อน)
+        function askSplit(item, variant, price, mods, note) {
+            const cur = itemCur(item), now = cartCur();
+            const priceTxt = mc(price, cur) + (cur === 'THB' && FX.rate ? ' (' + approxLak(price) + ')' : '');
+            const canHold = !heldCart || !heldCart.length || (heldCart[0].cur || 'LAK') === cur;
+            const ov = sxModal(`<div class="sx-title">แยกเป็นบิลใหม่?</div>
+                <div class="sx-hint" style="font-size:14px;color:#334155">ตะกร้าตอนนี้เป็น<b>${curName(now)}</b> · ยอด ${mc(cartSubtotal(), now)}<br>
+                <b>${esc(item.name)}</b> ราคาเป็น<b>${curName(cur)}</b> ${esc(priceTxt)}</div>
+                <div class="sx-warn" style="background:#fffbeb;color:#92400e;border-color:#fde68a">1 บิลใช้ได้สกุลเงินเดียว</div>
+                ${canHold ? '' : '<div class="sx-warn">มีตะกร้าที่พักไว้อยู่แล้ว ให้ส่งบิลนี้ให้เสร็จก่อน</div>'}
+                <div class="sx-row"><button class="sx-btn sx-gray" id="sp-no">ยกเลิก</button>${canHold ? '<button class="sx-btn sx-blue" id="sp-yes">พักตะกร้าเดิม → เปิดบิลใหม่</button>' : ''}</div>`);
+            ov.querySelector('#sp-no').onclick = () => ov.remove();
+            const y = ov.querySelector('#sp-yes');
+            if (y) y.onclick = () => {
+                ov.remove();
+                const back = heldCart && heldCart.length ? heldCart : [];
+                heldCart = cart; cart = back;
+                addLine(item, variant, price, mods, note);
+                toast('พักตะกร้า' + curName(now) + 'ไว้แล้ว · กด "↩ ตะกร้าที่พักไว้" เพื่อกลับไป');
+            };
+        }
+        function swapHeld() {
+            if (!heldCart || !heldCart.length) return;
+            if (addToBillId) cancelAddMode();
+            const t = cart; cart = heldCart; heldCart = t.length ? t : null;
             renderCart();
         }
         function updateQty(i, d) { cart[i].quantity += d; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
@@ -428,27 +477,30 @@
             if (n === null) return;
             cart[i].note = n.trim(); cart[i].key = lineKey(cart[i].itemId, cart[i].variant, cart[i].modifiers, cart[i].note); renderCart();
         }
-        function clearCart() { if (cart.length && !confirm('ล้างตะกร้าทั้งหมด?')) return; cart = []; renderCart(); }
+        function clearCart() { if (cart.length && !confirm('ล้างตะกร้าทั้งหมด?')) return; cart = heldCart && heldCart.length ? heldCart : []; heldCart = null; renderCart(); }
         function cartSubtotal() { return cart.reduce((s, c) => s + Number(c.price || 0) * c.quantity, 0); }
         function cartCups() { return cart.reduce((s, c) => s + (c.cup === false ? 0 : c.quantity), 0); }
-        function cartLines() { return cart.map(c => ({ itemId: c.itemId, name: c.name, variant: c.variant, price: c.price, quantity: c.quantity, modifiers: c.modifiers, note: c.note, cup: c.cup })); }
+        function cartLines() { return cart.map(c => ({ itemId: c.itemId, name: c.name, variant: c.variant, price: c.price, quantity: c.quantity, modifiers: c.modifiers, note: c.note, cup: c.cup, retail: !!c.retail })); }
         function toggleCart(open) { document.getElementById('cart-section').classList.toggle('open', !!open); }
         function renderCart() {
             const box = document.getElementById('cart-items-container');
             let qty = 0, html = '';
+            const cur = cartCur();
             cart.forEach((c, i) => {
                 qty += c.quantity;
                 const det = lineDetails(c);
                 html += `<div class="cart-item-card">
-                    <div class="cart-item-top"><div class="cart-item-info"><div class="cart-item-name">${esc(c.name)}</div>${det ? `<div class="cart-item-details">${esc(det)}</div>` : ''}${c.note ? `<div class="cart-item-note">หมายเหตุ: ${esc(c.note)}</div>` : ''}</div><div>${money(c.price)}</div></div>
-                    <div class="cart-item-actions"><span>รวม: ${money(Number(c.price || 0) * c.quantity)}</span>
+                    <div class="cart-item-top"><div class="cart-item-info"><div class="cart-item-name">${esc(c.name)}</div>${det ? `<div class="cart-item-details">${esc(det)}</div>` : ''}${c.note ? `<div class="cart-item-note">หมายเหตุ: ${esc(c.note)}</div>` : ''}</div><div>${mc(c.price, cur)}</div></div>
+                    <div class="cart-item-actions"><span>รวม: ${mc(Number(c.price || 0) * c.quantity, cur)}</span>
                     <div class="qty-wrap"><button class="note-btn" onclick="editNote(${i})">📝</button><button class="qty-btn" onclick="updateQty(${i}, -1)">-</button><b>${c.quantity}</b><button class="qty-btn" onclick="updateQty(${i}, 1)">+</button></div></div></div>`;
             });
+            if (heldCart && heldCart.length) html = `<button class="held-btn" onclick="swapHeld()">↩ ตะกร้าที่พักไว้ (${heldCart.reduce((s, c) => s + c.quantity, 0)} ชิ้น · ${mc(heldCart.reduce((s, c) => s + c.price * c.quantity, 0), heldCart[0].cur || 'LAK')})</button>` + html;
             box.innerHTML = html || '<div style="text-align:center; color:#94a3b8; margin-top:40px;">ยังไม่มีสินค้าในตะกร้า</div>';
             document.getElementById('cart-item-count').innerText = qty + ' รายการ';
-            document.getElementById('cart-total-price').innerText = money(cartSubtotal());
-            document.getElementById('cart-bar-text').innerText = '🛒 ตะกร้า (' + qty + ')';
-            document.getElementById('cart-bar-total').innerText = money(cartSubtotal());
+            const tot = mc(cartSubtotal(), cur), ap = cur === 'THB' && cart.length ? approxLak(cartSubtotal()) : '';
+            document.getElementById('cart-total-price').innerHTML = esc(tot) + (ap ? `<div class="approx" style="text-align:right">${esc(ap)}</div>` : '');
+            document.getElementById('cart-bar-text').innerText = '🛒 ตะกร้า (' + qty + ')' + (heldCart && heldCart.length ? ' · พักไว้ 1' : '');
+            document.getElementById('cart-bar-total').innerText = tot;
             renderCartCtl();
         }
 
@@ -530,16 +582,21 @@
         function stepTitle() {
             return { 1: 'ทวนรายการ', 2: W && W.delivery ? 'ข้อมูลออร์เดอร์ Delivery' : 'ยืนยันรายการ', 3: W && W.mode === 'add' ? 'ส่งเพิ่มเข้าครัว' : 'ส่งเข้าครัว', 4: 'ชำระเงิน', 5: 'ใบเสร็จ' }[W.step];
         }
-        function linesHtml(lines) {
+        function linesHtml(lines, cur) {
+            cur = cur || cartCur();
             return lines.map(c => {
                 const det = lineDetails(c);
-                return `<div class="ln"><div><div class="nm">${esc(c.name)} × ${c.quantity}</div>${det ? `<div class="sub">${esc(det)}</div>` : ''}${c.note ? `<div class="nt">* ${esc(c.note)}</div>` : ''}</div><div>${money(Number(c.price || 0) * Number(c.quantity || 0))}</div></div>`;
+                return `<div class="ln"><div><div class="nm">${esc(c.name)} × ${c.quantity}</div>${det ? `<div class="sub">${esc(det)}</div>` : ''}${c.note ? `<div class="nt">* ${esc(c.note)}</div>` : ''}</div><div>${mc(Number(c.price || 0) * Number(c.quantity || 0), cur)}</div></div>`;
             }).join('');
+        }
+        function cartTotHtml(label) {
+            const cur = cartCur(), ap = cur === 'THB' ? approxLak(cartSubtotal()) : '';
+            return `<div class="tot"><small>${label}</small><span>${mc(cartSubtotal(), cur)}</span></div>` + (ap ? `<div class="approx" style="text-align:right">${ap}</div>` : '');
         }
 
         function renderSheet() {
             const back = document.getElementById('sh-back');
-            const total = W.step >= 4 ? money(currentBill().total) : money(cartSubtotal());
+            const total = W.step >= 4 ? billAmt(currentBill()) : mc(cartSubtotal(), cartCur());
             document.getElementById('sh-title').innerText = stepTitle();
             const maxStep = W.mode === 'pay' ? '' : (W.delivery ? '/3' : (W.mode === 'add' ? '' : '/5'));
             document.getElementById('sh-steps').innerText = W.mode === 'new' ? 'ขั้น ' + W.step + maxStep : '';
@@ -549,7 +606,7 @@
             if (W.step >= 2 && W.step <= 4) {
                 sum.classList.add('show');
                 const ls = W.step >= 4 ? arr(currentBill().items) : cart;
-                sum.innerHTML = '<h3 style="margin:0 0 8px;color:var(--blue)">รายการ</h3>' + linesHtml(ls) + `<div class="tot"><small>ยอดรวม</small><span>${total}</span></div>`;
+                sum.innerHTML = '<h3 style="margin:0 0 8px;color:var(--blue)">รายการ</h3>' + linesHtml(ls, W.step >= 4 ? billCur(currentBill()) : cartCur()) + `<div class="tot"><small>ยอดรวม</small><span>${total}</span></div>`;
             } else sum.classList.remove('show');
             ({ 1: renderStep1, 2: renderStep2, 3: renderStep3, 4: renderStep4, 5: renderStep5 })[W.step]();
         }
@@ -557,7 +614,7 @@
         function setMain(html) { const m = document.getElementById('sh-main'); m.innerHTML = html; m.parentElement.scrollTop = 0; }
 
         function renderStep1() {
-            setMain('<h3>อ่านรายการให้ลูกค้าฟัง และแจ้งยอด</h3>' + linesHtml(cart) + `<div class="tot"><small>ยอดรวม</small><span>${money(cartSubtotal())}</span></div>`);
+            setMain('<h3>อ่านรายการให้ลูกค้าฟัง และแจ้งยอด</h3>' + linesHtml(cart) + cartTotHtml('ยอดรวม'));
             setFoot('<button class="big green" onclick="W.step=2;renderSheet()">ถัดไป →</button>');
         }
 
@@ -617,7 +674,7 @@
             const info = W.mode === 'add'
                 ? `เพิ่มในบิล #${esc((bills[W.billId] || {}).orderNo || '')}`
                 : (W.delivery ? esc(W.source) + (W.appNo ? ' · ' + esc(W.appNo) : '') : esc(W.orderType) + (W.table ? ' · โต๊ะ ' + esc(W.table) : '') + (W.name ? ' · ' + esc(W.name) : ''));
-            setMain(`<h3>${info}</h3>${linesHtml(lines)}<div class="tot"><small>${W.mode === 'add' ? 'ยอดที่เพิ่ม' : 'ยอดรวม'}</small><span>${money(cartSubtotal())}</span></div>
+            setMain(`<h3>${info}</h3>${linesHtml(lines)}${cartTotHtml(W.mode === 'add' ? 'ยอดที่เพิ่ม' : 'ยอดรวม')}
                 <div class="hintbox">ทั้งสองปุ่มลงออร์เดอร์และส่งให้ครัวเหมือนกัน ต่างกันที่ปริ้นสติกเกอร์ (1 แก้ว 1 ใบ${cups ? ' = ' + cups + ' ใบ' : ''})</div>`);
             setFoot(`<button class="big green" id="send-a" onclick="doSend(false)">👨‍🍳 ส่งเข้าครัว</button><button class="big orange" id="send-b" ${cups ? '' : 'disabled'} onclick="doSend(true)">👨‍🍳🏷️ ส่งเข้าครัว + พิมพ์สติกเกอร์${cups ? ' (' + cups + ' ใบ)' : ''}</button>`);
         }
@@ -631,22 +688,22 @@
                     const res = await addItemsToBill(W.billId, cartLines());
                     if (sticker) printStickers(res.bill, res.added);
                     const id = W.billId;
-                    cart = []; cancelAddMode(); renderCart(); closeSheet();
+                    cart = heldCart && heldCart.length ? heldCart : []; heldCart = null; cancelAddMode(); renderCart(); closeSheet();
                     toast('ส่งเพิ่มเข้าครัวแล้ว (บิล #' + res.bill.orderNo + ')');
                     openPanel('detail', id, 'open');
                     return;
                 }
                 const r = await createBill({
                     items: cartLines(), source: W.source, orderType: W.orderType, customerId: W.customerId, customerName: W.name.trim(), customerPhone: W.phone.trim(), customerEmail: W.email,
-                    table: W.table, appOrderNo: W.appNo.trim(), paidByApp: W.delivery
+                    table: W.table, appOrderNo: W.appNo.trim(), paidByApp: W.delivery, currency: cartCur()
                 });
                 saveNewCustomer();
                 if (sticker) printStickers(r.bill, r.bill.items);
-                cart = []; resetC(); renderCart();
+                cart = heldCart && heldCart.length ? heldCart : []; heldCart = null; resetC(); renderCart();
                 bills[r.id] = r.bill;
                 if (W.delivery) { toast('ส่งออร์เดอร์ #' + r.bill.orderNo + ' เข้าครัวแล้ว (แอปจ่าย)'); closeSheet(); return; }
                 W.billId = r.id; W.bill = r.bill; W.step = 4; W.sending = false;
-                W.discType = 'amount'; W.discVal = ''; W.method = 'cash'; W.received = '';
+                W.discType = 'amount'; W.discVal = ''; W.method = 'cash'; W.received = ''; W.payCur = 'THB'; W.rate = '';
                 document.getElementById('sheet').style.display = 'flex';
                 renderSheet();
             } catch (e) {
@@ -663,16 +720,20 @@
         /* ---- ขั้นที่ 4: ชำระเงิน ---- */
         function currentBill() { return bills[W.billId] || W.bill || {}; }
         function payCalc() {
-            const b = currentBill(), sub = itemsSubtotal(b.items);
+            const b = currentBill(), sub = itemsSubtotal(b.items), thb = billCur(b) === 'THB';
             const val = Math.max(0, parseFloat(W.discVal) || 0);
             let disc = W.discType === 'percent' ? sub * Math.min(val, 100) / 100 : val;
             disc = Math.round(Math.min(disc, sub));
             const net = sub - disc;
-            const rec = W.received === '' ? net : (parseFloat(W.received) || 0);
-            return { sub: sub, disc: disc, net: net, rec: rec, change: Math.max(0, rec - net) };
+            // บิลบาท: due = ยอดที่ต้องรับจริงในสกุลที่ลูกค้าเลือกจ่าย
+            const rate = thb ? (parseFloat(W.rate) || 0) : 0, payCur = thb ? (W.payCur || 'THB') : 'LAK';
+            const due = thb && payCur === 'LAK' ? toLak(net, rate) : net;
+            const rec = W.received === '' ? due : (parseFloat(W.received) || 0);
+            return { sub: sub, disc: disc, net: net, due: due, rec: rec, change: Math.max(0, rec - due), thb: thb, rate: rate, payCur: payCur, lak: thb ? toLak(net, rate) : net };
         }
         function renderStep4() {
             const b = currentBill();
+            if (billCur(b) === 'THB') return renderStep4Thb(b);
             setMain(`<h3>บิล #${esc(b.orderNo || '')} ${billName(b) ? '· ' + esc(billName(b)) : ''}</h3>
                 <div class="tot"><small>ยอดสุทธิ</small><span id="p-net">0 ₭</span></div>
                 <div id="p-disc-line" class="hintbox"></div>
@@ -688,6 +749,31 @@
             setFoot('<button class="big gray sm" onclick="closeSheet()">จ่ายทีหลัง</button><button class="big green" id="p-ok" onclick="doPay()">✓ ยืนยันรับเงิน</button>');
             updatePayNumbers();
         }
+        // ชำระบิลเงินบาท: เลือกจ่ายเป็น ฿ หรือ ₭ (แก้เรทจริงของวันนี้ได้)
+        function renderStep4Thb(b) {
+            if (W.rate === '' || W.rate == null) W.rate = String(FX.rate || b.rate || '');
+            const stale = fxStale();
+            setMain(`<h3>บิล #${esc(b.orderNo || '')} ${billName(b) ? '· ' + esc(billName(b)) : ''} <span class="pill open">฿ บิลเงินบาท</span></h3>
+                <div class="tot"><small>ยอดสุทธิ</small><span id="p-net">฿0</span></div>
+                <div id="p-disc-line" class="hintbox"></div>
+                <label>ส่วนลด (ไม่บังคับ)</label>
+                <div style="display:flex;gap:8px"><select id="p-dtype" style="flex:1" onchange="W.discType=this.value;updatePayNumbers()"><option value="amount" ${W.discType === 'amount' ? 'selected' : ''}>จำนวนเงิน (฿)</option><option value="percent" ${W.discType === 'percent' ? 'selected' : ''}>เปอร์เซ็นต์ (%)</option></select>
+                <input id="p-dval" type="number" inputmode="decimal" min="0" style="flex:1" value="${esc(W.discVal)}" placeholder="0" oninput="W.discVal=this.value;updatePayNumbers()"></div>
+                <label>เรทวันนี้ (กีบ ต่อ 1 บาท)</label>
+                <div style="display:flex;gap:8px;align-items:center"><span style="white-space:nowrap;font-weight:bold">1 ฿ =</span><input id="p-rate" type="number" inputmode="numeric" min="0" value="${esc(W.rate)}" placeholder="เช่น 650" oninput="W.rate=this.value;updatePayNumbers()"><span style="font-weight:bold">₭</span></div>
+                <div class="hintbox">${FX.rate ? 'เรทที่ตั้งใน Admin: ' + Number(FX.rate).toLocaleString() + ' (' + (FX.rateAt ? fmtDateTime(FX.rateAt) : '-') + ')' : 'ยังไม่ได้ตั้งเรทใน Admin'}${stale ? ' <b style="color:#b91c1c">· เรทเก่ากว่า 1 วัน เช็คก่อนรับเงิน</b>' : ''}</div>
+                <label>ลูกค้าจ่ายเป็น</label>
+                <div class="seg"><button id="pc-thb" onclick="setPayCur('THB')"></button><button id="pc-lak" onclick="setPayCur('LAK')"></button></div>
+                <label>วิธีชำระเงิน</label>
+                <div class="seg"><button id="m-cash" class="${W.method === 'cash' ? 'on' : ''}" onclick="setMethod('cash')">💵 เงินสด</button><button id="m-tr" class="${W.method === 'transfer' ? 'on' : ''}" onclick="setMethod('transfer')">📱 โอน QR</button></div>
+                <div id="cash-wrap"><label id="p-rec-l">รับเงินมา (เว้นว่าง = พอดี)</label>
+                <div style="display:flex;gap:8px"><input id="p-rec" type="number" inputmode="numeric" min="0" value="${esc(W.received)}" placeholder="พอดี" oninput="W.received=this.value;updatePayNumbers()"><button class="rmbtn" style="background:#e2e8f0;color:#334155" onclick="W.received='';document.getElementById('p-rec').value='';updatePayNumbers()">พอดี</button></div>
+                <div class="tot"><small>เงินทอน</small><span id="p-chg" style="color:var(--green)">0</span></div></div>
+                <button class="linkbtn" onclick="voidFromSheet()">✕ ยกเลิกบิลนี้</button>`);
+            setFoot('<button class="big gray sm" onclick="closeSheet()">จ่ายทีหลัง</button><button class="big green" id="p-ok" onclick="doPay()">✓ ยืนยันรับเงิน</button>');
+            updatePayNumbers();
+        }
+        function setPayCur(c) { W.payCur = c; W.received = ''; const r = document.getElementById('p-rec'); if (r) r.value = ''; updatePayNumbers(); }
         function setMethod(m) {
             W.method = m;
             document.getElementById('m-cash').className = m === 'cash' ? 'on' : '';
@@ -696,15 +782,22 @@
         }
         function updatePayNumbers() {
             if (!W || W.step !== 4 || !document.getElementById('p-net')) return;
-            const c = payCalc();
-            document.getElementById('p-net').innerText = money(c.net);
-            document.getElementById('p-disc-line').innerText = c.disc > 0 ? 'รวม ' + money(c.sub) + '  ส่วนลด -' + money(c.disc) : '';
+            const c = payCalc(), bc = c.thb ? 'THB' : 'LAK', pc = c.payCur;
+            document.getElementById('p-net').innerText = mc(c.net, bc);
+            document.getElementById('p-disc-line').innerText = c.disc > 0 ? 'รวม ' + mc(c.sub, bc) + '  ส่วนลด -' + mc(c.disc, bc) : '';
+            if (c.thb) {
+                const a = document.getElementById('pc-thb'), l = document.getElementById('pc-lak');
+                a.className = pc === 'THB' ? 'on' : ''; l.className = pc === 'LAK' ? 'on' : '';
+                a.innerText = 'จ่ายเป็น ' + baht(c.net);
+                l.innerText = c.rate > 0 ? 'จ่ายเป็น ' + money(toLak(c.net, c.rate)) : 'จ่ายเป็นกีบ (ใส่เรทก่อน)';
+                document.getElementById('p-rec-l').innerText = 'รับเงินมา (' + (pc === 'THB' ? '฿ บาท' : '₭ กีบ') + ' · เว้นว่าง = พอดี)';
+            }
             document.getElementById('cash-wrap').style.display = W.method === 'cash' ? 'block' : 'none';
-            document.getElementById('p-chg').innerText = money(c.change);
-            const short = W.method === 'cash' && c.rec < c.net;
+            document.getElementById('p-chg').innerText = mc(c.change, pc);
+            const short = W.method === 'cash' && c.rec < c.due, noRate = c.thb && pc === 'LAK' && !(c.rate > 0);
             const ok = document.getElementById('p-ok');
-            ok.disabled = short;
-            ok.innerText = short ? 'รับเงินมาน้อยกว่ายอด' : '✓ ยืนยันรับเงิน ' + money(c.net);
+            ok.disabled = short || noRate;
+            ok.innerText = noRate ? 'ใส่เรทก่อน' : short ? 'รับเงินมาน้อยกว่ายอด' : '✓ ยืนยันรับเงิน ' + mc(c.due, pc);
         }
         function voidFromSheet() {
             const b = currentBill();
@@ -715,7 +808,7 @@
             W.paying = true;
             const ok = document.getElementById('p-ok'); ok.disabled = true;
             try {
-                const bill = await payBill(W.billId, { discountType: W.discType, discountValue: W.discVal, method: W.method, cashReceived: W.received });
+                const bill = await payBill(W.billId, { discountType: W.discType, discountValue: W.discVal, method: W.method, cashReceived: W.received, payCurrency: W.payCur, rate: parseFloat(W.rate) || 0 });
                 bills[W.billId] = bill; W.bill = bill; W.paying = false; W.step = 5;
                 renderSheet();
             } catch (e) { W.paying = false; ok.disabled = false; toast(e.message, false); }
@@ -725,7 +818,7 @@
         function renderStep5() {
             const b = currentBill();
             setMain(`<div class="okbox"><div class="tick">✓</div><div style="font-weight:bold;color:var(--green)">ชำระเงินเรียบร้อย · บิล #${esc(b.orderNo || '')}</div>
-                <div class="amt">${money(b.total)}</div>${b.paymentMethod === 'cash' ? `<div class="chg">เงินทอน ${money(b.change)}</div>` : '<div class="chg">โอนเงิน QR</div>'}</div>
+                <div class="amt">${billCur(b) === 'THB' ? mc(b.payAmount, b.payCurrency) : money(b.total)}</div>${b.paymentMethod === 'cash' ? `<div class="chg">เงินทอน ${billCur(b) === 'THB' ? mc(b.change, b.payCurrency) : money(b.change)}</div>` : '<div class="chg">โอนเงิน QR</div>'}</div>
                 <h3 style="text-align:center">ลูกค้าต้องการบิลไหม?</h3><div class="hintbox" style="text-align:center">ต้องการ 2 ใบ ให้กด "พิมพ์บิล" อีกครั้ง</div>`);
             setFoot(`<button class="big blue sm" onclick="printReceipt(currentBill(), false, W.billId)">🖨️ พิมพ์บิล</button><button class="big blue sm" onclick="openShareModal(currentBill())">📤 WhatsApp / อีเมล</button><button class="big green" onclick="closeSheet()">ไม่เอาบิล (เสร็จ)</button>`);
         }
@@ -799,7 +892,7 @@
                     <div class="top"><span class="no">#${esc(b.orderNo || '-')}</span>${statusPill(b)}${late ? '<span class="pill late">ค้างข้ามวัน</span>' : ''}</div>
                     <div class="nm">${esc(billName(b) || 'ลูกค้าทั่วไป')} <span class="sm">· ${esc(b.orderType || b.source || '')}</span></div>
                     <div class="sm">${esc(sum)}</div>
-                    <div class="top"><span class="sm">${isOpenBill(b) ? 'เปิดมา ' + ago(b.openedAt || b.timestamp) : timeHHMM(b.paidAt || b.timestamp)}</span><span class="amt">${money(b.total)}</span></div></div>`;
+                    <div class="top"><span class="sm">${isOpenBill(b) ? 'เปิดมา ' + ago(b.openedAt || b.timestamp) : timeHHMM(b.paidAt || b.timestamp)}</span><span class="amt">${billAmt(b)}</span></div></div>`;
             }).join('') + '</div>';
         }
         function renderBillDetail(main, foot) {
@@ -812,10 +905,13 @@
             items.forEach((c, i) => {
                 const det = lineDetails(c);
                 html += `<div class="ln"><div><div class="nm">${esc(c.name)} × ${c.quantity}${c.round > 1 ? ' <span class="pill open">เพิ่มรอบ ' + c.round + '</span>' : ''}</div>${det ? `<div class="sub">${esc(det)}</div>` : ''}${c.note ? `<div class="nt">* ${esc(c.note)}</div>` : ''}</div>
-                    <div style="display:flex;gap:8px;align-items:center"><span>${money(Number(c.price || 0) * Number(c.quantity || 0))}</span>${open ? `<button class="rmbtn" ${items.length <= 1 ? 'disabled title="รายการสุดท้ายลบไม่ได้ ใช้ยกเลิกบิล"' : ''} data-lid="${esc(c.lid || 'idx:' + i)}" onclick="removeLine(this.dataset.lid)">ลบ</button>` : ''}</div></div>`;
+                    <div style="display:flex;gap:8px;align-items:center"><span>${mc(Number(c.price || 0) * Number(c.quantity || 0), billCur(b))}</span>${open ? `<button class="rmbtn" ${items.length <= 1 ? 'disabled title="รายการสุดท้ายลบไม่ได้ ใช้ยกเลิกบิล"' : ''} data-lid="${esc(c.lid || 'idx:' + i)}" onclick="removeLine(this.dataset.lid)">ลบ</button>` : ''}</div></div>`;
             });
-            if (Number(b.discount) > 0) html += `<div class="ln"><span>ส่วนลด</span><span>-${money(b.discount)}</span></div>`;
-            html += `<div class="tot"><small>ยอดรวม</small><span>${money(b.total)}</span></div>`;
+            if (billCur(b) === 'THB') { if (Number(b.discountThb) > 0) html += `<div class="ln"><span>ส่วนลด</span><span>-${baht(b.discountThb)}</span></div>`; }
+            else if (Number(b.discount) > 0) html += `<div class="ln"><span>ส่วนลด</span><span>-${money(b.discount)}</span></div>`;
+            html += `<div class="tot"><small>ยอดรวม</small><span>${billAmt(b)}</span></div>`;
+            if (billCur(b) === 'THB' && b.status === 'paid') html += `<div class="hintbox">จ่ายเป็น${b.payCurrency === 'LAK' ? 'กีบ ' + money(b.payAmount) + ' · เรท 1฿ = ' + Number(b.rate || 0).toLocaleString() + '₭' : 'บาท'}</div>`;
+            if (b.source === 'preorder') html += `<div class="hintbox">📦 บิลพรีออเดอร์ ${esc((b.po || {}).no || '')} · จัดการ/คืนเงินที่หน้า 📦 พรีออเดอร์</div>`;
             if (!open && b.status !== 'void') html += `<div class="hintbox">ชำระ: ${b.paymentMethod === 'cash' ? 'เงินสด' : b.paymentMethod === 'transfer' ? 'โอน QR' : b.paymentMethod === 'delivery' ? 'แอป Delivery' : '-'}${b.printCount ? ' · พิมพ์แล้ว ' + b.printCount + ' ครั้ง' : ''}<br>ยกเลิกบิลที่ชำระแล้ว ทำได้ที่ Admin เท่านั้น (เพราะอาจต้องคืนเงิน)</div>`;
             main.innerHTML = html;
             const id = b.id || P.billId;
@@ -835,7 +931,7 @@
         function reprintFromPanel() { printReceipt(panelBill(), true, P.billId); }
         function payFromPanel() {
             const id = P.billId; closePanel();
-            W = { mode: 'pay', step: 4, billId: id, bill: bills[id], sending: false, discType: 'amount', discVal: '', method: 'cash', received: '' };
+            W = { mode: 'pay', step: 4, billId: id, bill: bills[id], sending: false, discType: 'amount', discVal: '', method: 'cash', received: '', payCur: 'THB', rate: '' };
             renderSheet();
             document.getElementById('sheet').style.display = 'flex';
         }
@@ -846,6 +942,7 @@
         startApp('staff', startListeners);
     </script>
     <script src="online-cashier.js"></script>
+    <script src="preorder.js"></script>
 <script>
 /* เต็มจอ: เปิดจากไอคอนหน้าจอหลัก = เต็มจออัตโนมัติ / เปิดจากเบราว์เซอร์ = แตะจอครั้งแรกแล้วขอเต็มจอ */
 (function(){var app=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches;

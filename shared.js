@@ -33,6 +33,51 @@ function esc(s) {
     });
 }
 function money(n) { return Number(n || 0).toLocaleString() + ' ₭'; }
+
+/* ---------- เงินบาท (฿) ----------
+   - สินค้าตั้งราคาเป็นบาทได้ (menu_items/<id>/currency = 'THB')
+   - 1 บิล = 1 สกุลเงิน · บิลบาทเก็บ total เป็น "กีบ" (แปลงด้วยเรทตอนรับเงิน) เพื่อให้รายงานรวมยอดได้เหมือนเดิม
+     ยอดบาทจริงอยู่ที่ totalThb / subtotalThb / discountThb · เรทที่ใช้อยู่ที่ rate
+   - เรทแสดงผล (ตั้งใน Admin) อยู่ที่ settings/currency {enabled, rate, rateAt} */
+const FX = { on: false, rate: 0, rateAt: 0, started: false, loaded: false, cbs: [] };
+// เรียกได้หลายที่ (หน้าเว็บ + preorder.js) · ทุก callback จะถูกเรียกเมื่อเรทเปลี่ยน
+function fxInit(cb) {
+    if (cb) { FX.cbs.push(cb); if (FX.loaded) cb(); }
+    if (FX.started) return;
+    FX.started = true;
+    database.ref('settings/currency').on('value', function (s) {
+        const v = s.val() || {};
+        FX.on = v.enabled === true; FX.rate = Number(v.rate) || 0; FX.rateAt = Number(v.rateAt) || 0; FX.loaded = true;
+        FX.cbs.forEach(function (f) { try { f(); } catch (e) { console.error(e); } });
+    });
+}
+function baht(n) { return '฿' + Number(n || 0).toLocaleString(); }
+function moneyC(n, cur) { return cur === 'THB' ? baht(n) : money(n); }
+// บาท -> กีบ (ปัดเป็นหลัก 500 สำหรับรับเงินจริง · 1,000 สำหรับยอดโดยประมาณ)
+function toLak(thb, rate, step) { step = step || 500; return Math.round(Number(thb || 0) * Number(rate || 0) / step) * step; }
+function approxLak(thb, rate) { rate = rate || FX.rate; return rate > 0 ? '≈ ' + money(toLak(thb, rate, 1000)) : ''; }
+function fxStale() { return !FX.rateAt || Date.now() - FX.rateAt > 26 * 3600000; }
+function billCur(o) { return o && o.currency === 'THB' ? 'THB' : 'LAK'; }
+// ยอดที่โชว์ของบิล (บิลบาทโชว์ ฿)
+function billAmt(o) { return billCur(o) === 'THB' ? baht(o.totalThb != null ? o.totalThb : itemsSubtotal(o.items)) : money(o.total); }
+// คำนวณยอดของบิลใหม่ (ใช้หลังเพิ่ม/ลบรายการ)
+function recalcBill(o) {
+    const sub = itemsSubtotal(o.items);
+    if (o.currency === 'THB') {
+        const rate = Number(o.rate || FX.rate || 0);
+        o.subtotalThb = sub; o.totalThb = Math.max(0, sub - Number(o.discountThb || 0));
+        o.subtotal = toLak(sub, rate); o.total = toLak(o.totalThb, rate); o.discount = Math.max(0, o.subtotal - o.total);
+    } else {
+        o.subtotal = sub; o.total = Math.max(0, sub - Number(o.discount || 0));
+    }
+    return o;
+}
+// ยอดเป็นกีบของ 1 รายการในบิล (ใช้ในรายงานสินค้าขายดี)
+function lineLak(o, c) {
+    const v = Number(c.price || 0) * Number(c.quantity || 0);
+    if (billCur(o) !== 'THB') return v;
+    return Number(o.totalThb) > 0 ? Math.round(v * Number(o.total || 0) / Number(o.totalThb)) : toLak(v, o.rate || FX.rate, 1);
+}
 function pad2(n) { return String(n).padStart(2, '0'); }
 function dayKey(ts) {
     const d = new Date(ts || Date.now());
@@ -263,7 +308,9 @@ async function createBill(d) {
     const now = Date.now(), dk = dayKey(now);
     const orderNo = await nextOrderNo(dk);
     const items = d.items.map(function (c) {
-        return { lid: newLid(), itemId: c.itemId || '', name: c.name, variant: c.variant || '', price: Number(c.price || 0), quantity: c.quantity, modifiers: c.modifiers || [], note: c.note || '', cup: c.cup !== false, round: 1 };
+        const x = { lid: newLid(), itemId: c.itemId || '', name: c.name, variant: c.variant || '', price: Number(c.price || 0), quantity: c.quantity, modifiers: c.modifiers || [], note: c.note || '', cup: c.cup !== false, round: 1 };
+        if (c.retail || isRetailItemId(c.itemId)) x.retail = true;
+        return x;
     });
     const sub = itemsSubtotal(items);
     const bill = {
@@ -274,6 +321,7 @@ async function createBill(d) {
         date: fmtDate(now), dayKey: dk, openedAt: now, timestamp: now
     };
     if (d.trackTok) { bill.trackTok = d.trackTok; bill.trackDelivery = !!d.trackDelivery; }
+    if (d.currency === 'THB') { bill.currency = 'THB'; bill.rate = FX.rate || 0; recalcBill(bill); }
     bill.cups = billCups(bill);
     bill.customer = billName(bill) || 'ทั่วไป';
     if (d.paidByApp) bill.paidAt = now;
@@ -292,11 +340,12 @@ function addItemsToBill(id, newItems) {
         if (!isOpenBill(o)) return;
         round = (o.rounds || 1) + 1;
         added = arr(newItems).map(function (c) {
-            return { lid: newLid(), itemId: c.itemId || '', name: c.name, variant: c.variant || '', price: Number(c.price || 0), quantity: c.quantity, modifiers: c.modifiers || [], note: c.note || '', cup: c.cup !== false, round: round };
+            const x = { lid: newLid(), itemId: c.itemId || '', name: c.name, variant: c.variant || '', price: Number(c.price || 0), quantity: c.quantity, modifiers: c.modifiers || [], note: c.note || '', cup: c.cup !== false, round: round };
+            if (c.retail || isRetailItemId(c.itemId)) x.retail = true;
+            return x;
         });
         o.items = arr(o.items).concat(added);
-        o.subtotal = itemsSubtotal(o.items);
-        o.total = Math.max(0, o.subtotal - Number(o.discount || 0));
+        recalcBill(o);
         o.rounds = round;
         o.status = 'open'; o.paid = false;
         o.cups = billCups(o);
@@ -323,8 +372,7 @@ function removeBillLine(id, lid) {
         if (i < 0 || i >= items.length || items.length <= 1) return;
         removed = items.splice(i, 1)[0];
         o.items = items;
-        o.subtotal = itemsSubtotal(items);
-        o.total = Math.max(0, o.subtotal - Number(o.discount || 0));
+        recalcBill(o);
         o.removedItems = arr(o.removedItems).concat([{ name: removed.name, quantity: removed.quantity, price: removed.price, at: Date.now() }]);
         o.cups = billCups(o);
         return o;
@@ -339,10 +387,13 @@ function removeBillLine(id, lid) {
 
 /* ---------- ชำระเงิน (ปิดบิล) ---------- */
 // p: { discountType:'amount'|'percent', discountValue, method:'cash'|'transfer', cashReceived:'' หรือตัวเลข }
+// บิลบาท: p.payCurrency 'THB'|'LAK' (จ่ายเป็นบาท หรือ กีบ) · p.rate = เรทจริงตอนรับเงิน (กีบต่อ 1 บาท)
+//   cashReceived เป็นสกุลที่ลูกค้าจ่าย · บันทึก total เป็นกีบตามเรทนี้ (ให้รายงานรวมได้)
 function payBill(id, p) {
     return database.ref('orders/' + id).transaction(function (o) {
         if (o === null) return o;
         if (!isOpenBill(o)) return;
+        if (o.currency === 'THB') return payThb(o, p);
         const sub = itemsSubtotal(o.items);
         const val = Math.max(0, Number(p.discountValue) || 0);
         let disc = p.discountType === 'percent' ? sub * Math.min(val, 100) / 100 : val;
@@ -363,6 +414,30 @@ function payBill(id, p) {
         if (!res.committed || !bill || bill.status !== 'paid') throw new Error('ชำระไม่สำเร็จ: บิลถูกปิดหรือยกเลิกไปแล้ว หรือรับเงินไม่พอ');
         return bill;
     });
+}
+
+function payThb(o, p) {
+    const sub = itemsSubtotal(o.items);
+    const val = Math.max(0, Number(p.discountValue) || 0);
+    let disc = p.discountType === 'percent' ? sub * Math.min(val, 100) / 100 : val;
+    disc = Math.round(Math.min(disc, sub));
+    const totalThb = sub - disc;
+    const rate = Number(p.rate) > 0 ? Number(p.rate) : Number(o.rate || FX.rate || 0);
+    const payCur = p.payCurrency === 'LAK' ? 'LAK' : 'THB';
+    if (payCur === 'LAK' && !(rate > 0)) return;
+    const due = payCur === 'LAK' ? toLak(totalThb, rate) : totalThb;
+    const cash = p.method === 'cash';
+    const rec = cash ? ((p.cashReceived === '' || p.cashReceived == null) ? due : Number(p.cashReceived)) : 0;
+    if (cash && rec < due) return;
+    const now = Date.now();
+    o.rate = rate; o.subtotalThb = sub; o.discountThb = disc; o.discountType = p.discountType || 'amount'; o.discountValue = val; o.totalThb = totalThb;
+    o.subtotal = toLak(sub, rate); o.total = payCur === 'LAK' ? due : toLak(totalThb, rate); o.discount = Math.max(0, o.subtotal - o.total);
+    o.payCurrency = payCur; o.payAmount = due;
+    o.status = 'paid'; o.paid = true; o.paymentMethod = p.method;
+    o.cashReceived = cash ? rec : 0; o.change = cash ? Math.max(0, rec - due) : 0;
+    o.openedAt = o.openedAt || o.timestamp || now;
+    o.paidAt = now; o.timestamp = now; o.dayKey = dayKey(now); o.date = fmtDate(now);
+    return o;
 }
 
 /* ---------- ยกเลิกบิล ---------- */
@@ -492,11 +567,23 @@ function receiptInit() {
     database.ref('store_logo').on('value', function (s) { RCPT.logo = s.val() || ''; });
 }
 
+// หัวใบเสร็จ: กาแฟ = ค่าที่ตั้งใน Admin · สินค้า/พรีออเดอร์ = SHOP & PRE-ORDER · ปนกัน = HOME COFFEE · SHOP
+function receiptSub(o) {
+    const items = arr(o.items);
+    if (o.source === 'preorder') return 'SHOP & PRE-ORDER';
+    const shop = items.filter(function (c) { return c.retail || isRetailItemId(c.itemId); }).length;
+    if (items.length && shop === items.length) return 'SHOP & PRE-ORDER';
+    if (shop > 0) return 'HOME COFFEE · SHOP';
+    return RCPT.s.shopSub || '';
+}
 function receiptModel(o, copy) {
-    const S = RCPT.s, m = [], items = arr(o.items);
+    if (o.source === 'preorder' && o.po && typeof poReceiptModel === 'function') return poReceiptModel(o, copy);
+    const S = RCPT.s, m = [], items = arr(o.items), cur = billCur(o);
+    const amt = function (n) { return cur === 'THB' ? baht(n) : Number(n || 0).toLocaleString(); };
     if (RCPT.logo) m.push({ t: 'logo' });
     m.push({ t: 'c', x: S.shopName, b: 1, z: 18 });
-    if (S.shopSub) m.push({ t: 'c', x: S.shopSub });
+    const sub0 = receiptSub(o);
+    if (sub0) m.push({ t: 'c', x: sub0 });
     if (S.address) m.push({ t: 'c', x: S.address });
     if (S.phone) m.push({ t: 'c', x: 'โทร ' + S.phone });
     if (copy) { m.push({ t: 'c', x: '*** สำเนา (COPY) ***', b: 1, z: 15 }); m.push({ t: 'c', x: 'พิมพ์เมื่อ ' + fmtDateTime(Date.now()) }); }
@@ -509,12 +596,28 @@ function receiptModel(o, copy) {
     if (o.customerName) m.push({ t: 'r', l: 'ลูกค้า', r: o.customerName });
     m.push({ t: 'hr' });
     items.forEach(function (c) {
-        m.push({ t: 'r', l: c.name + ' x' + c.quantity, r: (Number(c.price || 0) * Number(c.quantity || 0)).toLocaleString() });
+        m.push({ t: 'r', l: c.name + ' x' + c.quantity, r: amt(Number(c.price || 0) * Number(c.quantity || 0)) });
         const d = lineDetails(c);
         if (d) m.push({ t: 'i', x: d });
         if (c.note) m.push({ t: 'i', x: '* ' + c.note });
     });
     m.push({ t: 'hr' });
+    if (cur === 'THB') {
+        const subT = o.subtotalThb != null ? o.subtotalThb : itemsSubtotal(items), totT = o.totalThb != null ? o.totalThb : subT;
+        m.push({ t: 'r', l: 'รวม', r: baht(subT) });
+        if (Number(o.discountThb) > 0) m.push({ t: 'r', l: 'ส่วนลด', r: '-' + baht(o.discountThb) });
+        m.push({ t: 'r', l: 'ยอดสุทธิ', r: baht(totT), b: 1, z: 16 });
+        const pc = o.payCurrency === 'LAK' ? 'LAK' : 'THB', pm = function (n) { return moneyC(n, pc); };
+        if (o.status === 'paid' && pc === 'LAK') { m.push({ t: 'r', l: 'ชำระเป็นกีบ', r: money(o.payAmount), b: 1 }); m.push({ t: 'r', l: 'เรท', r: '1 ฿ = ' + Number(o.rate || 0).toLocaleString() + ' ₭', s: 1 }); }
+        else if (o.status !== 'paid' && (o.rate || FX.rate)) m.push({ t: 'r', l: '', r: approxLak(totT, o.rate || FX.rate), s: 1 });
+        if (o.paymentMethod === 'cash') {
+            m.push({ t: 'r', l: 'เงินสด', r: pm(o.cashReceived) });
+            m.push({ t: 'r', l: 'เงินทอน', r: pm(o.change) });
+        } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ชำระโดย', r: 'โอนเงิน QR' });
+        m.push({ t: 'hr' });
+        m.push({ t: 'c', x: S.footer || '' });
+        return m;
+    }
     const sub = o.subtotal != null ? o.subtotal : itemsSubtotal(items);
     m.push({ t: 'r', l: 'รวม', r: Number(sub).toLocaleString() });
     if (Number(o.discount) > 0) m.push({ t: 'r', l: 'ส่วนลด', r: '-' + Number(o.discount).toLocaleString() });
@@ -531,16 +634,136 @@ function receiptModel(o, copy) {
 
 function receiptText(o) {
     const S = RCPT.s;
+    if (o.source === 'preorder' && o.po && typeof poReceiptText === 'function') return poReceiptText(o);
+    const thb = billCur(o) === 'THB';
     let t = S.shopName + '\n' + 'บิล #' + (o.orderNo || '-') + '  ' + fmtDateTime(o.paidAt || o.timestamp) + '\n----------------\n';
     arr(o.items).forEach(function (c) {
-        const d = lineDetails(c);
-        t += c.name + (d ? ' (' + d + ')' : '') + ' x' + c.quantity + '  ' + (Number(c.price || 0) * Number(c.quantity || 0)).toLocaleString() + '\n';
+        const d = lineDetails(c), v = Number(c.price || 0) * Number(c.quantity || 0);
+        t += c.name + (d ? ' (' + d + ')' : '') + ' x' + c.quantity + '  ' + (thb ? baht(v) : v.toLocaleString()) + '\n';
     });
     t += '----------------\n';
+    if (thb) {
+        if (Number(o.discountThb) > 0) t += 'ส่วนลด -' + baht(o.discountThb) + '\n';
+        t += 'ยอดสุทธิ ' + baht(o.totalThb) + (o.payCurrency === 'LAK' ? '\nชำระเป็นกีบ ' + money(o.payAmount) + ' (1฿ = ' + o.rate + '₭)' : '') + '\n';
+        if (S.footer) t += '\n' + S.footer;
+        return t;
+    }
     if (Number(o.discount) > 0) t += 'ส่วนลด -' + Number(o.discount).toLocaleString() + '\n';
     t += 'ยอดสุทธิ ' + Number(o.total || 0).toLocaleString() + ' ₭\n';
     if (S.footer) t += '\n' + S.footer;
     return t;
+}
+
+/* ---------- ใบพรีออเดอร์ (ภาษาลาว) ----------
+   บิลพรีออเดอร์เก็บข้อมูลไว้ใน bill.po ครบ จึงพิมพ์ซ้ำได้จากทุกหน้า (แคชเชียร์ / Admin)
+   po.kind: 'deposit' มัดจำ · 'full' จ่ายเต็มตอนสั่ง · 'final' จ่ายส่วนที่เหลือ · 'pickup' ใบรับของ (ไม่มีเงิน) */
+const PO_TXT = {
+    noCancelDep: '⚠️ ມັດຈຳແລ້ວ ບໍ່ສາມາດຍົກເລີກ ແລະ ບໍ່ຄືນເງິນມັດຈຳ',
+    noCancelFull: '⚠️ ສັ່ງຈອງແລ້ວ ບໍ່ສາມາດຍົກເລີກ ແລະ ບໍ່ຄືນເງິນ',
+    authHead: 'ເກີບຂອງແທ້ 100%',
+    c1: 'ທຸກຄູ່ມີລະຫັດລຸ້ນ ໃຫ້ທ່ານກວດເອງໄດ້',
+    c2: 'ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ ພາຍໃນ 30 ວັນ',
+    c3: 'ເຄື່ອງຮອດພາຍໃນ 7–14 ວັນເຮັດການ · ຖ້າຮ້ານສົ່ງເຄື່ອງບໍ່ໄດ້ ຄືນເງິນເຕັມຈຳນວນ',
+    c4: 'ກໍລະນີເຄື່ອງສົ່ງມາແລ້ວ ແຕ່ມີບັນຫາຂົນສົ່ງ ລໍຖ້າເພີ່ມບໍ່ເກີນ 7 ວັນ · ຖ້າບໍ່ຮອດ ຄືນເງິນເຕັມຈຳນວນ',
+    condHead: 'ເງື່ອນໄຂການສັ່ງຈອງ'
+};
+function poConds(auth) {
+    const out = [];
+    if (auth) { out.push(PO_TXT.c1, PO_TXT.c2); }
+    out.push(PO_TXT.c3, PO_TXT.c4);
+    return out.map(function (t, i) { return (i + 1) + '. ' + t; });
+}
+function poVar(v) { v = String(v || '').trim(); return !v ? '' : /^[0-9]+(\.[0-9]+)?$/.test(v) ? 'ໄຊສ໌ ' + v : v; }
+function poItemSub(p) { return [poVar(p.variant), p.styleCode ? 'ລະຫັດລຸ້ນ ' + p.styleCode : '', Number(p.qty) > 1 ? p.qty + ' ຄູ່' : ''].filter(Boolean).join(' · '); }
+function poDM(ts) { const d = new Date(ts); return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1); }
+function poEta(p) { return p.etaFrom && p.etaTo ? poDM(p.etaFrom) + ' – ' + poDM(p.etaTo) : ''; }
+function poMethod(o) { return (o.paymentMethod === 'cash' ? 'ເງິນສົດ' : 'ໂອນ') + (o.currency === 'THB' ? (o.payCurrency === 'LAK' ? ' · ເປັນກີບ' : ' · ເປັນບາດ') : ''); }
+function poReceiptModel(o, copy) {
+    const S = RCPT.s, p = o.po, m = [], cur = p.cur === 'THB' ? 'THB' : 'LAK', M = function (n) { return moneyC(n, cur); };
+    const thb = cur === 'THB', rate = Number(o.rate || FX.rate || 0);
+    if (RCPT.logo) m.push({ t: 'logo' });
+    m.push({ t: 'c', x: S.shopName, b: 1, z: 18 });
+    m.push({ t: 'c', x: 'SHOP & PRE-ORDER', b: 1 });
+    const contact = [S.address, S.phone ? 'WhatsApp ' + S.phone : ''].filter(Boolean).join(' · ');
+    if (contact) m.push({ t: 'cs', x: contact });
+    if (copy) m.push({ t: 'c', x: '*** ສຳເນົາ (COPY) ***', b: 1 });
+    if (o.status === 'void') m.push({ t: 'c', x: '*** ຍົກເລີກ (VOID) ***', b: 1, z: 16 });
+    m.push({ t: 'hr2' });
+    m.push({ t: 'c', x: p.kind === 'deposit' ? 'ໃບຮັບເງິນມັດຈຳ' : p.kind === 'pickup' ? 'ໃບຮັບເຄື່ອງ' : 'ໃບຮັບເງິນ', b: 1, z: 16 });
+    m.push({ t: 'tag', x: 'PRE-ORDER' });
+    m.push({ t: 'hr' });
+    m.push({ t: 'r', l: 'ເລກທີ', r: p.no || '' });
+    m.push({ t: 'r', l: p.pickedAt ? 'ວັນທີຮັບເຄື່ອງ' : 'ວັນທີ', r: fmtDateTime(p.pickedAt || o.paidAt || o.timestamp) });
+    if (o.customerName) m.push({ t: 'r', l: 'ລູກຄ້າ', r: o.customerName });
+    if (o.customerPhone && p.kind !== 'final' && p.kind !== 'pickup') m.push({ t: 'r', l: 'ເບີ', r: o.customerPhone });
+    m.push({ t: 'hr' });
+    m.push({ t: 'p', x: String(p.name || '').toUpperCase(), b: 1 });
+    const sub = poItemSub(p);
+    if (sub) m.push({ t: 'p', x: sub });
+    m.push({ t: 'hr' });
+    m.push({ t: 'r', l: 'ລາຄາເຕັມ', r: M(p.total) });
+    if (p.kind === 'pickup') {
+        m.push({ t: 'r', l: 'ຊຳລະແລ້ວ', r: M(p.paidBefore) });
+    } else {
+        if (p.kind === 'final' && Number(p.paidBefore) > 0) m.push({ t: 'r', l: 'ມັດຈຳ' + (p.depositAt ? ' (' + poDM(p.depositAt) + ')' : ''), r: '−' + M(p.paidBefore) });
+        const lbl = p.kind === 'deposit' ? 'ມັດຈຳແລ້ວ' + (p.pct ? ' (' + p.pct + '%)' : '') : p.kind === 'final' ? 'ຊຳລະວັນນີ້' : 'ຊຳລະແລ້ວ (ເຕັມ)';
+        m.push({ t: 'r', l: lbl, r: M(p.paidNow), inv: 1 });
+        if (thb && o.payCurrency === 'LAK') {
+            m.push({ t: 'r', l: 'ຊຳລະ: ' + poMethod(o), r: money(o.payAmount), s: 1 });
+            m.push({ t: 'r', l: 'ເຣດ', r: '1 ฿ = ' + Number(o.rate || 0).toLocaleString() + ' ₭', s: 1 });
+        } else m.push({ t: 'r', l: 'ຊຳລະ: ' + poMethod(o), r: thb ? baht(o.payAmount != null ? o.payAmount : p.paidNow) : money(o.total), s: 1 });
+        if (o.paymentMethod === 'cash' && Number(o.cashReceived) > 0) {
+            const pc = thb ? (o.payCurrency === 'LAK' ? 'LAK' : 'THB') : 'LAK';
+            m.push({ t: 'r', l: 'ຮັບເງິນ / ທອນ', r: Number(o.cashReceived).toLocaleString() + ' / ' + moneyC(o.change, pc), s: 1 });
+        }
+    }
+    const remain = Math.max(0, Number(p.remaining || 0));
+    if (remain > 0) {
+        m.push({ t: 'r', l: 'ຍອດຄົງເຫຼືອ', r: M(remain), b: 1, z: 15 });
+        if (thb && rate) m.push({ t: 'r', l: 'ຈ່າຍຕອນຮັບເຄື່ອງ', r: approxLak(remain, rate), s: 1 });
+    } else m.push({ t: 'stamp', x: 'ຊຳລະຄົບ ✓' });
+    if (p.pickedAt) {
+        if (p.authentic) m.push({ t: 'box', lines: [{ x: '✓ ຮັບປະກັນຂອງແທ້ 100%', b: 1 }, { x: 'ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ' }, { x: 'ແຈ້ງໄດ້ຮອດ ' + fmtDate(p.claimUntil) + ' · ນຳເກີບ ແລະ ໃບນີ້ມາກວດ' }] });
+        if (p.authentic) m.push({ t: 'cs', x: 'ກະລຸນາເກັບໃບນີ້ໄວ້ ສຳລັບການຮັບປະກັນ' });
+    } else {
+        m.push({ t: 'hr' });
+        if (poEta(p)) m.push({ t: 'r', l: 'ຄາດວ່າເຄື່ອງຮອດ', r: poEta(p) });
+        m.push({ t: 'cs', x: '7–14 ວັນເຮັດການ · ຮ້ານຈະແຈ້ງທາງ WhatsApp ເມື່ອເຄື່ອງຮອດ' });
+        if (p.kind !== 'final') m.push({ t: 'box', lines: [{ x: p.kind === 'deposit' ? PO_TXT.noCancelDep : PO_TXT.noCancelFull, b: 1 }] });
+        m.push({ t: 'p', x: p.authentic ? PO_TXT.authHead : PO_TXT.condHead, b: 1 });
+        poConds(p.authentic).forEach(function (t) { m.push({ t: 'p', x: t }); });
+        if (p.track) { m.push({ t: 'hr' }); m.push({ t: 'cs', x: 'ສະແກນເບິ່ງສະຖານະເຄື່ອງ' }); m.push({ t: 'qr', x: p.track }); }
+        m.push({ t: 'cs', x: 'ກະລຸນາເກັບໃບນີ້ໄວ້ ເພື່ອຮັບເຄື່ອງ' });
+    }
+    m.push({ t: 'c', x: 'ຂອບໃຈທີ່ອຸດໜູນ 🙏' });
+    return m;
+}
+// ข้อความ WhatsApp ของใบพรีออเดอร์ (ภาษาลาว)
+function poReceiptText(o) {
+    const p = o.po, cur = p.cur === 'THB' ? 'THB' : 'LAK', M = function (n) { return moneyC(n, cur); }, rate = Number(o.rate || FX.rate || 0);
+    const remain = Math.max(0, Number(p.remaining || 0)), out = [];
+    out.push('ສະບາຍດີ ' + (o.customerName || '') + ' 🙏');
+    if (p.kind === 'deposit') out.push('ຮ້ານໄດ້ຮັບເງິນມັດຈຳແລ້ວ', 'ໃບຮັບມັດຈຳ ' + p.no);
+    else if (p.kind === 'pickup') out.push('ຂອບໃຈທີ່ມາຮັບເຄື່ອງ', 'ໃບຮັບເຄື່ອງ ' + p.no);
+    else out.push('ຮ້ານໄດ້ຮັບເງິນແລ້ວ', 'ໃບຮັບເງິນ ' + p.no);
+    out.push(String(p.name || '').toUpperCase());
+    const sub = poItemSub(p); if (sub) out.push(sub);
+    out.push('ລາຄາເຕັມ: ' + M(p.total));
+    if (p.kind === 'deposit') out.push('ມັດຈຳແລ້ວ: ' + M(p.paidNow) + ' (' + (o.paymentMethod === 'cash' ? 'ເງິນສົດ' : 'ໂອນ') + ')');
+    else if (p.kind === 'final') { if (Number(p.paidBefore) > 0) out.push('ມັດຈຳ: ' + M(p.paidBefore)); out.push('ຊຳລະວັນນີ້: ' + M(p.paidNow)); }
+    else if (p.kind === 'full') out.push('ຊຳລະແລ້ວ (ເຕັມ): ' + M(p.paidNow));
+    if (remain > 0) out.push('ຄົງເຫຼືອ: ' + M(remain) + (cur === 'THB' && rate ? ' (' + approxLak(remain, rate) + ')' : ''));
+    else out.push('ຊຳລະຄົບ ✓');
+    if (p.pickedAt) {
+        if (p.authentic) out.push('', '✓ ຮັບປະກັນຂອງແທ້ 100% · ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ', 'ແຈ້ງໄດ້ຮອດ ' + fmtDate(p.claimUntil));
+    } else {
+        if (poEta(p)) out.push('ຄາດວ່າເຄື່ອງຮອດ: ' + poEta(p));
+        if (p.kind !== 'final') out.push(p.kind === 'deposit' ? PO_TXT.noCancelDep : PO_TXT.noCancelFull);
+        out.push((p.authentic ? '✓ ' + PO_TXT.authHead : PO_TXT.condHead));
+        poConds(p.authentic).forEach(function (t) { out.push(t); });
+        if (p.track) out.push('🔎 ຕິດຕາມສະຖານະເຄື່ອງ:', p.track);
+    }
+    return out.join('\n');
 }
 
 /* ---------- พิมพ์ใบเสร็จ ---------- */
@@ -552,7 +775,10 @@ function ensurePrintArea() {
     st.textContent = '#print-area{display:none}@media print{html,body{height:auto!important;overflow:visible!important;background:#fff!important}' +
         'body>*:not(#print-area){display:none!important}#print-area{display:block;margin:0 auto;color:#000;line-height:1.4;font-size:12px}' +
         '.r-c{text-align:center}.r-hr{border-top:1px dashed #000;margin:6px 0}.r-r{display:flex;justify-content:space-between;gap:6px}' +
-        '.r-b{font-weight:bold}.r-i{padding-left:8px;font-size:11px}#print-area img{max-width:100%;max-height:70px}}';
+        '.r-b{font-weight:bold}.r-i{padding-left:8px;font-size:11px}#print-area img{max-width:100%;max-height:70px}' +
+        '.r-hr2{border-top:2px solid #000;margin:6px 0}.r-s{font-size:10.5px}.r-inv{background:#000;color:#fff;padding:3px 4px;font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+        '.r-tag{display:inline-block;border:1.5px solid #000;padding:0 6px;font-weight:bold;letter-spacing:1px;margin-top:2px}.r-stamp{border:2px solid #000;text-align:center;font-weight:bold;font-size:16px;padding:2px 0;margin:6px 0}' +
+        '.r-box{border:1.5px solid #000;padding:4px 6px;margin:6px 0;font-size:11px}.r-p{font-size:11px;margin:2px 0}#print-area img.r-qr{width:30mm;height:30mm;max-height:none;image-rendering:pixelated}}';
     document.head.appendChild(st);
     const ps = document.createElement('style'); ps.id = 'print-page-style'; document.head.appendChild(ps);
     return a;
@@ -568,13 +794,31 @@ function printReceipt(o, copy, id) {
         else if (e.t === 'hr') h += '<div class="r-hr"></div>';
         else if (e.t === 'c') h += '<div class="r-c' + (e.b ? ' r-b' : '') + '"' + z + '>' + esc(e.x) + '</div>';
         else if (e.t === 'i') h += '<div class="r-i">' + esc(e.x) + '</div>';
-        else if (e.t === 'r') h += '<div class="r-r' + (e.b ? ' r-b' : '') + '"' + z + '><span>' + esc(e.l) + '</span><span>' + esc(e.r) + '</span></div>';
+        else if (e.t === 'r') h += '<div class="r-r' + (e.b ? ' r-b' : '') + (e.inv ? ' r-inv' : '') + (e.s ? ' r-s' : '') + '"' + z + '><span>' + esc(e.l) + '</span><span>' + esc(e.r) + '</span></div>';
+        else if (e.t === 'hr2') h += '<div class="r-hr2"></div>';
+        else if (e.t === 'cs') h += '<div class="r-c r-s' + (e.b ? ' r-b' : '') + '">' + esc(e.x) + '</div>';
+        else if (e.t === 'tag') h += '<div class="r-c"><span class="r-tag">' + esc(e.x) + '</span></div>';
+        else if (e.t === 'stamp') h += '<div class="r-stamp">' + esc(e.x) + '</div>';
+        else if (e.t === 'box') h += '<div class="r-box">' + e.lines.map(function (L) { return '<div class="' + (L.b ? 'r-b' : '') + '">' + esc(L.x) + '</div>'; }).join('') + '</div>';
+        else if (e.t === 'p') h += '<div class="r-p' + (e.b ? ' r-b' : '') + '">' + esc(e.x) + '</div>';
+        else if (e.t === 'qr') h += '<div class="r-c"><img class="r-qr" src="' + qrDataUrl(e.x) + '"></div>';
     });
     area.style.width = narrow ? '48mm' : '72mm';
     area.innerHTML = h;
     document.getElementById('print-page-style').textContent = '@page{size:' + (narrow ? '58mm' : '80mm') + ' auto;margin:2mm}';
     if (id) database.ref('orders/' + id + '/printCount').transaction(function (n) { return (n || 0) + 1; });
     setTimeout(function () { window.print(); }, 150);
+}
+
+// QR เป็นรูป (ใช้ในใบพรีออเดอร์ให้ลูกค้าสแกนดูสถานะ)
+function qrDataUrl(url) {
+    try {
+        const q = stkQr(url), n = q.getModuleCount(), cell = 4, cv = document.createElement('canvas');
+        cv.width = cv.height = (n + 4) * cell;
+        const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.fillStyle = '#000';
+        for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) c.fillRect((k + 2) * cell, (r + 2) * cell, cell, cell);
+        return cv.toDataURL('image/png');
+    } catch (e) { return ''; }
 }
 
 /* ---------- ใบเสร็จเป็นรูป -> PDF ---------- */
@@ -608,27 +852,58 @@ async function receiptCanvas(o, copy) {
             } else if (e.t === 'hr') {
                 if (draw) { ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(PAD, y + 4); ctx.lineTo(W - PAD, y + 4); ctx.stroke(); ctx.setLineDash([]); }
                 y += 10;
-            } else if (e.t === 'c' || e.t === 'i') {
-                const z = e.z || (e.t === 'i' ? 12 : 14), f = font(e.b, z), lh = Math.round(z * 1.45), ind = e.t === 'i' ? 10 : 0;
+            } else if (e.t === 'hr2') {
+                if (draw) { ctx.fillStyle = '#000'; ctx.fillRect(PAD, y + 3, cw, 2); }
+                y += 10;
+            } else if (e.t === 'c' || e.t === 'i' || e.t === 'cs' || e.t === 'p') {
+                const z = e.z || (e.t === 'i' || e.t === 'p' ? 12 : e.t === 'cs' ? 11.5 : 14), f = font(e.b, z), lh = Math.round(z * 1.45), ind = e.t === 'i' ? 10 : 0;
+                const center = e.t === 'c' || e.t === 'cs';
                 wrap(e.x, cw - ind, f).forEach(function (L) {
                     if (draw) {
                         ctx.font = f; ctx.fillStyle = '#000';
-                        if (e.t === 'c') { ctx.textAlign = 'center'; ctx.fillText(L, W / 2, y + z); } else { ctx.textAlign = 'left'; ctx.fillText(L, PAD + ind, y + z); }
+                        if (center) { ctx.textAlign = 'center'; ctx.fillText(L, W / 2, y + z); } else { ctx.textAlign = 'left'; ctx.fillText(L, PAD + ind, y + z); }
                     }
                     y += lh;
                 });
+            } else if (e.t === 'tag' || e.t === 'stamp') {
+                const z = e.t === 'stamp' ? 18 : 13, f = font(1, z);
+                ctx.font = f; const tw = ctx.measureText(e.x).width, bw = e.t === 'stamp' ? cw : tw + 14, bh = Math.round(z * 1.6);
+                if (draw) {
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = e.t === 'stamp' ? 2 : 1.5; ctx.strokeRect((W - bw) / 2, y + 2, bw, bh);
+                    ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.fillText(e.x, W / 2, y + 2 + bh / 2 + z * 0.36);
+                }
+                y += bh + 8;
+            } else if (e.t === 'box') {
+                const z = 12, lh = Math.round(z * 1.45), all = [];
+                e.lines.forEach(function (L) { wrap(L.x, cw - 14, font(L.b, z)).forEach(function (t) { all.push({ x: t, b: L.b }); }); });
+                const bh = all.length * lh + 10;
+                if (draw) {
+                    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.strokeRect(PAD, y + 2, cw, bh);
+                    all.forEach(function (L, i) { ctx.font = font(L.b, z); ctx.fillStyle = '#000'; ctx.textAlign = 'left'; ctx.fillText(L.x, PAD + 7, y + 7 + i * lh + z); });
+                }
+                y += bh + 8;
+            } else if (e.t === 'qr') {
+                const q = stkQr(e.x), n = q.getModuleCount(), cell = Math.max(2, Math.floor(150 / (n + 2))), sz = cell * n;
+                if (draw) {
+                    ctx.fillStyle = '#000';
+                    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect((W - sz) / 2 + c * cell, y + 4 + r * cell, cell, cell);
+                }
+                y += sz + 10;
             } else if (e.t === 'r') {
-                const z = e.z || 14, f = font(e.b, z), lh = Math.round(z * 1.45);
+                const z = e.z || (e.s ? 12 : 14), f = font(e.b || e.inv, z), lh = Math.round(z * 1.45);
                 ctx.font = f; const rw = ctx.measureText(e.r || '').width;
                 const lines = wrap(e.l, Math.max(60, cw - rw - 8), f);
+                if (e.inv && draw) { ctx.fillStyle = '#000'; ctx.fillRect(PAD - 4, y, cw + 8, lines.length * lh + 6); }
+                if (e.inv) y += 3;
                 lines.forEach(function (L, idx) {
                     if (draw) {
-                        ctx.font = f; ctx.fillStyle = '#000';
+                        ctx.font = f; ctx.fillStyle = e.inv ? '#fff' : '#000';
                         ctx.textAlign = 'left'; ctx.fillText(L, PAD, y + z);
                         if (idx === lines.length - 1) { ctx.textAlign = 'right'; ctx.fillText(e.r || '', W - PAD, y + z); }
                     }
                     y += lh;
                 });
+                if (e.inv) y += 5;
             }
         });
         return y + PAD;

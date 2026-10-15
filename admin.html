@@ -140,6 +140,7 @@
         <div class="sidebar-footer">
             <a href="index.html" class="back-btn" style="background:var(--green);">🛒 ไปหน้า Cashier</a>
             <a href="kitchen.html" class="back-btn" style="background:var(--orange);">👨‍🍳 ไปหน้าจอครัว</a>
+            <div id="axp-slot" style="margin-top:8px;"></div>
         </div>
     </div>
 
@@ -414,6 +415,8 @@
                 <button type="button" data-sec="online-settings"><span>🛵</span><span><b>สั่งออนไลน์</b><small>เปิดรับ เบอร์ร้าน ข้อความ</small></span></button>
                 <button type="button" data-sec="delivery-settings"><span>🚚</span><span><b>จัดส่ง</b><small>ตำแหน่งร้าน ค่าส่ง ส่งฟรี</small></span></button>
                 <button type="button" data-sec="banner-settings"><span>🖼️</span><span><b>ป้ายโฆษณา</b><small>รูปป้ายหน้าสั่งออนไลน์</small></span></button>
+                <button type="button" data-sec="currency-settings"><span>💱</span><span><b>เงินบาท</b><small>เปิดใช้ เรทแลกเปลี่ยนวันนี้</small></span></button>
+                <button type="button" data-sec="preorder-settings"><span>📦</span><span><b>พรีออเดอร์</b><small>วันหยุด นับวันของถึง</small></span></button>
                 <button type="button" data-sec="sec-backup"><span>💾</span><span><b>สำรองข้อมูล</b><small>ดาวน์โหลดไฟล์สำรอง</small></span></button>
                 <button type="button" data-sec="sec-security"><span>🔒</span><span><b>ความปลอดภัย</b><small>สถานะล็อกอิน</small></span></button>
             </nav>
@@ -495,6 +498,30 @@
                     <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn btn-green" type="button" id="bn-save" onclick="saveBanner()">➕ เพิ่มป้าย</button><button class="btn btn-gray" type="button" id="bn-cancel" onclick="resetBannerForm()" hidden>ยกเลิก</button></div>
                 </div>
             </div>
+            <div class="box" id="currency-settings">
+                <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">💱 เงินบาท (฿)</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div><strong>เปิดใช้สินค้าราคาเงินบาท</strong><div class="hint">เปิดแล้ว ในหน้าแก้ไขสินค้าจะเลือกได้ว่าราคาเป็น ₭ หรือ ฿ · สินค้าราคาบาทจะโชว์ ฿ พร้อมยอดกีบโดยประมาณตัวเล็กๆ</div></div>
+                    <label class="switch"><input type="checkbox" id="cur-enabled"><span class="slider"></span></label>
+                </div>
+                <label><strong>เรทแสดงผล: 1 บาท = ? กีบ</strong><input type="number" id="cur-rate" min="0" placeholder="เช่น 650" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                <div class="hint">ตั้งเรทสูงไว้ก่อนได้ (ใช้โชว์ยอดกีบโดยประมาณ) · ตอนรับเงินจริง แคชเชียร์แก้เรทของวันนั้นได้ และบิลจะจำเรทที่ใช้จริง</div>
+                <p class="hint" id="cur-status" style="margin:10px 0 0;"></p>
+                <button class="btn btn-blue btn-sm" type="button" onclick="confirmRateToday()" style="margin-top:8px;">✓ ใช้เรทเดิมสำหรับวันนี้</button>
+                <div class="set-foot"><span class="hint set-dirty" hidden>มีการแก้ไขที่ยังไม่บันทึก</span><button class="btn btn-gray" type="button" data-cancel="currency-settings" disabled>ยกเลิก</button><button class="btn btn-green" type="button" data-save="currency-settings" onclick="saveCurrencySettings()" disabled>💾 บันทึก</button></div>
+            </div>
+            <div class="box" id="preorder-settings">
+                <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">📦 พรีออเดอร์</h3>
+                <p class="hint" style="margin-top:0;">ระบบนับ "ของถึงภายใน 7–14 วันทำการ" ให้เอง โดยไม่นับวันหยุดด้านล่าง · ถ้าเกิน 14 วันทำการยังไม่ได้สั่งของ หรือสั่งแล้วแต่รอขนส่งเกิน 7 วัน ระบบจะขึ้นเตือน 🔴 ให้คืนเงินเต็ม</p>
+                <strong>วันหยุดประจำสัปดาห์ของร้านต้นทาง</strong>
+                <div class="chk-list" id="po-off" style="margin:6px 0 12px;"></div>
+                <label><strong>วันหยุดพิเศษ (1 บรรทัด 1 วัน · ปี-เดือน-วัน หรือ วัน/เดือน/ปี · พิมพ์ชื่อวันหยุดต่อท้ายได้)</strong>
+                    <textarea id="po-holidays" rows="8" placeholder="2026-12-02 วันชาติลาว" style="margin-top:4px;font-family:inherit;"></textarea></label>
+                <button class="btn btn-gray btn-sm" type="button" onclick="addLaoHolidays()">＋ ใส่วันหยุดราชการลาว (วันที่ตายตัว)</button>
+                <div class="hint">วันหยุดตามจันทรคติ (เช่น บุญออกพรรษา) หรือวันหยุดของประเทศร้านต้นทาง ให้เพิ่มเอง</div>
+                <div style="margin-top:12px;"><button class="btn btn-blue" type="button" onclick="window.AXPO && AXPO.open()">📦 เปิดหน้าพรีออเดอร์ (คืนเงิน / ลูกค้าไม่มารับ)</button></div>
+                <div class="set-foot"><span class="hint set-dirty" hidden>มีการแก้ไขที่ยังไม่บันทึก</span><button class="btn btn-gray" type="button" data-cancel="preorder-settings" disabled>ยกเลิก</button><button class="btn btn-green" type="button" data-save="preorder-settings" onclick="savePreorderSettings()" disabled>💾 บันทึก</button></div>
+            </div>
             <div class="box" id="sec-backup">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">💾 สำรองข้อมูล (Backup)</h3>
                 <p class="hint" style="margin-top:0;">ดาวน์โหลดข้อมูลทั้งหมด (เมนู ออร์เดอร์ ตั้งค่า) เป็นไฟล์ JSON เก็บไว้เป็นประจำ เช่น สัปดาห์ละครั้ง</p>
@@ -530,7 +557,9 @@
             </div>
             <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;"><input type="checkbox" id="modal-item-cup" style="width:auto;" checked> สินค้านี้ใช้แก้ว (ตัดสต็อกแก้วอัตโนมัติ)</label></div>
             <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;"><input type="checkbox" id="modal-item-retail" style="width:auto;"> สินค้าขายปลีก ไม่เข้าครัว (เช่น ผงมัทฉะ อุปกรณ์ รองเท้า)</label>
-                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-preorder" style="width:auto;"> สินค้าสั่งจอง (ขึ้นป้าย PRE-ORDER ในหน้าสั่งออนไลน์)</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-preorder" style="width:auto;"> สินค้าสั่งจอง (ขึ้นป้าย PRE-ORDER · แคชเชียร์กดแล้วเปิดใบมัดจำ)</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-auth" style="width:auto;"> รับประกันของแท้ (รองเท้า) · ใบมัดจำและหน้าออนไลน์โชว์ "ເກີບຂອງແທ້ 100%" เคลมได้ 30 วัน</label>
+                <div id="modal-item-cur-wrap" style="margin-top:8px;"><label>สกุลเงินของราคา</label><select id="modal-item-cur"><option value="LAK">₭ กีบ</option><option value="THB">฿ บาท</option></select></div>
                 <div class="hint">รองเท้าแต่ละไซส์ราคาไม่เท่ากัน: ใส่ไซส์เป็น "แบบสินค้า" เช่น 40 / 41 / 42 แล้วใส่ราคาของแต่ละไซส์</div></div>
             <div class="form-group"><label>คำอธิบายสั้นๆ ในหน้าสั่งออนไลน์ (ไม่บังคับ)</label><input type="text" id="modal-item-desc" maxlength="120" placeholder="เช่น นมสด ช็อตเอสเปรสโซ่ 2 ช็อต"></div>
             <div class="form-group">
@@ -552,6 +581,7 @@
     </div>
 
     <script src="shared.js"></script>
+    <script src="preorder.js"></script>
     <script>
         let globalCategories = [], globalItems = [], globalModifiers = [], globalPartners = [];
         let reportRef = null, reportOrders = [];
@@ -630,6 +660,8 @@
                 if (!setDirty['delivery-settings']) fillDeliverySettings(lastDelivery);
             });
             cleanupOldTracks();
+            fxInit(() => { if (!setDirty['currency-settings']) fillCurrencySettings(); if (reportOrders.length) renderReport(); });
+            database.ref('settings/preorder').on('value', snap => { lastPo = snap.val() || {}; if (!setDirty['preorder-settings']) fillPreorderSettings(lastPo); });
             database.ref('banners').on('value', snap => { globalBanners = []; snap.forEach(c => { const b = c.val(); b.id = c.key; globalBanners.push(b); }); renderBanners(); });
             loadDeliveryCost();
             database.ref('store_logo').on('value', snap => {
@@ -915,7 +947,8 @@
             let html = '';
             list.forEach((item, i) => {
                 const prices = parsePrices(item.priceOptions);
-                const priceTxt = prices.length ? prices.map(p => (p.label ? esc(p.label) + ' ' : '') + Number(p.price).toLocaleString()).join(' / ') + ' ₭' : '-';
+                const thb = item.currency === 'THB';
+                const priceTxt = prices.length ? prices.map(p => (p.label ? esc(p.label) + ' ' : '') + (thb ? '฿' : '') + Number(p.price).toLocaleString()).join(' / ') + (thb ? '' : ' ₭') : '-';
                 const hiddenNames = channelNames(item.hiddenChannels);
                 const chanTxt = hiddenNames ? 'ซ่อนใน: ' + esc(hiddenNames) : 'ทุกช่องทาง';
                 const mods = String(item.modifierIds || '').split(',').filter(Boolean).map(id => globalModifiers.find(m => m.id === id)).filter(Boolean).map(m => esc(m.name)).join(', ') || '-';
@@ -951,6 +984,9 @@
             document.getElementById('modal-item-cup').checked = true;
             document.getElementById('modal-item-retail').checked = false;
             document.getElementById('modal-item-preorder').checked = false;
+            document.getElementById('modal-item-auth').checked = false;
+            document.getElementById('modal-item-cur').value = 'LAK';
+            document.getElementById('modal-item-cur-wrap').hidden = !FX.on;
             document.getElementById('modal-item-desc').value = '';
             modalPhotos = []; modalPhotosDirty = false; renderItemPhotos();
             document.getElementById('modal-item-image').value = '';
@@ -972,6 +1008,9 @@
             document.getElementById('modal-item-cup').checked = it.usesCup !== false;
             document.getElementById('modal-item-retail').checked = it.retail === true;
             document.getElementById('modal-item-preorder').checked = it.preorder === true;
+            document.getElementById('modal-item-auth').checked = it.authentic === true;
+            document.getElementById('modal-item-cur').value = it.currency === 'THB' ? 'THB' : 'LAK';
+            document.getElementById('modal-item-cur-wrap').hidden = !FX.on && it.currency !== 'THB';
             document.getElementById('modal-item-desc').value = it.description || '';
             modalPhotos = []; modalPhotosDirty = false; renderItemPhotos();
             if (it.photoCount) database.ref('menu_photos/' + id).once('value').then(s => {
@@ -1021,6 +1060,8 @@
                 usesCup: document.getElementById('modal-item-cup').checked && !document.getElementById('modal-item-retail').checked,
                 retail: document.getElementById('modal-item-retail').checked,
                 preorder: document.getElementById('modal-item-preorder').checked,
+                authentic: document.getElementById('modal-item-auth').checked,
+                currency: document.getElementById('modal-item-cur').value === 'THB' ? 'THB' : 'LAK',
                 description: document.getElementById('modal-item-desc').value.trim(),
                 image: modalImage || 'images/bg.jpg'
             };
@@ -1076,6 +1117,8 @@
         function cancelSec(sec) {
             if (sec === 'online-settings') fillOnlineSettings(lastOnline);
             if (sec === 'delivery-settings') fillDeliverySettings(lastDelivery);
+            if (sec === 'currency-settings') fillCurrencySettings();
+            if (sec === 'preorder-settings') fillPreorderSettings(lastPo);
             markDirty(sec, false);
         }
         document.getElementById('set-nav').addEventListener('click', e => { const b = e.target.closest('[data-sec]'); if (b) openSetSec(b.dataset.sec, true); });
@@ -1085,13 +1128,58 @@
             if (cur && setDirty[cur.id]) cancelSec(cur.id);
             document.getElementById('set-wrap').classList.remove('open');
         });
-        ['online-settings', 'delivery-settings'].forEach(sec => {
+        ['online-settings', 'delivery-settings', 'currency-settings', 'preorder-settings'].forEach(sec => {
             const box = document.getElementById(sec);
             ['input', 'change'].forEach(ev => box.addEventListener(ev, e => { if (!e.target.closest('.set-foot')) markDirty(sec, true); }));
             box.querySelector('[data-cancel]').addEventListener('click', () => cancelSec(sec));
         });
         window.addEventListener('beforeunload', e => { if (Object.values(setDirty).some(Boolean)) { e.preventDefault(); e.returnValue = ''; } });
         (function () { let s0 = null; try { s0 = localStorage.getItem('augx-admin-sec'); } catch (e) {} openSetSec(s0 || 'sec-features', false); })();
+
+        /* ---------- เงินบาท ---------- */
+        function fillCurrencySettings() {
+            document.getElementById('cur-enabled').checked = FX.on;
+            document.getElementById('cur-rate').value = FX.rate || '';
+            const st = document.getElementById('cur-status');
+            st.innerHTML = FX.rate ? 'เรทปัจจุบัน 1 ฿ = <b>' + Number(FX.rate).toLocaleString() + ' ₭</b> · ตั้งเมื่อ ' + (FX.rateAt ? fmtDateTime(FX.rateAt) : '-') +
+                (fxStale() ? ' · <b style="color:#b91c1c">เก่ากว่า 1 วัน (แคชเชียร์จะเห็นเตือน)</b>' : ' ✓') + '<br>ตัวอย่าง ฿2,900 ≈ ' + money(toLak(2900, FX.rate, 1000)) : 'ยังไม่ได้ตั้งเรท';
+        }
+        function saveCurrencySettings() {
+            const rate = parseFloat(document.getElementById('cur-rate').value) || 0, en = document.getElementById('cur-enabled').checked;
+            if (en && !(rate > 0)) return toast('ใส่เรทก่อนเปิดใช้', false);
+            database.ref('settings/currency').set({ enabled: en, rate: rate, rateAt: rate !== FX.rate || !FX.rateAt ? Date.now() : FX.rateAt })
+                .then(() => { markDirty('currency-settings', false); toast('บันทึกแล้ว'); }).catch(e => toast('ไม่สำเร็จ: ' + e.message, false));
+        }
+        function confirmRateToday() {
+            if (!(FX.rate > 0)) return toast('ยังไม่มีเรท ใส่เรทแล้วกดบันทึก', false);
+            database.ref('settings/currency/rateAt').set(Date.now()).then(() => toast('ยืนยันเรท ' + FX.rate + ' สำหรับวันนี้แล้ว'));
+        }
+        /* ---------- พรีออเดอร์: วันหยุด ---------- */
+        let lastPo = {};
+        const DOW = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+        function fillPreorderSettings(v) {
+            const off = String(v.offDays == null ? '0' : v.offDays).split(',').filter(x => x !== '');
+            document.getElementById('po-off').innerHTML = DOW.map((d, i) => `<label><input type="checkbox" value="${i}" ${off.includes(String(i)) ? 'checked' : ''}> ${d}</label>`).join('');
+            document.getElementById('po-holidays').value = v.holidays || '';
+        }
+        function savePreorderSettings() {
+            const off = Array.from(document.querySelectorAll('#po-off input:checked')).map(x => x.value).join(',');
+            if (off.split(',').filter(Boolean).length >= 7) return toast('ต้องมีวันทำการอย่างน้อย 1 วัน', false);
+            database.ref('settings/preorder').set({ offDays: off, holidays: document.getElementById('po-holidays').value.trim() })
+                .then(() => { markDirty('preorder-settings', false); toast('บันทึกแล้ว'); }).catch(e => toast('ไม่สำเร็จ: ' + e.message, false));
+        }
+        function addLaoHolidays() {
+            const y = new Date().getFullYear(), list = [];
+            [y, y + 1].forEach(Y => {
+                [['01-01', 'วันขึ้นปีใหม่สากล'], ['03-08', 'วันสตรีสากล'], ['04-14', 'ปีใหม่ลาว'], ['04-15', 'ปีใหม่ลาว'], ['04-16', 'ปีใหม่ลาว'], ['05-01', 'วันแรงงานสากล'], ['12-02', 'วันชาติลาว']]
+                    .forEach(h => { const d = Y + '-' + h[0]; if (new Date(d + 'T23:59:59').getTime() >= Date.now()) list.push(d + ' ' + h[1]); });
+            });
+            const ta = document.getElementById('po-holidays'), have = ta.value;
+            const add = list.filter(l => have.indexOf(l.slice(0, 10)) < 0);
+            ta.value = (have.trim() ? have.trim() + '\n' : '') + add.join('\n');
+            markDirty('preorder-settings', true);
+            toast('เพิ่ม ' + add.length + ' วัน · ตรวจแล้วกดบันทึก');
+        }
 
         /* ---------- ลบข้อมูลหน้าติดตามที่เก่ากว่า 90 วัน (ทำวันละครั้ง ตอนเปิด Admin) ---------- */
         function cleanupOldTracks() {
@@ -1365,8 +1453,15 @@
                 snap.forEach(child => { const o = child.val(); o.id = child.key; reportOrders.push(o); });
                 renderReport();
             });
+            // คืนเงินพรีออเดอร์ในช่วงนี้ (นับตามวันที่คืน)
+            database.ref('preorders').once('value').then(s => {
+                poRefund = { n: 0, lak: 0, list: [] };
+                s.forEach(c => { const p = c.val(); if (p && p.refund && p.refund.at >= start && p.refund.at <= end) { poRefund.n++; poRefund.lak += Number(p.refund.lak || 0); poRefund.list.push(p); } });
+                renderReport();
+            }).catch(() => {});
         }
-        function isStoreSource(o) { return !o.source || o.source === 'store' || o.source === 'online'; }
+        let poRefund = { n: 0, lak: 0, list: [] };
+        function isStoreSource(o) { return !o.source || o.source === 'store' || o.source === 'online' || o.source === 'preorder'; }
 
         function renderReport() {
             const valid = reportOrders.filter(o => o.status !== 'void' && !isOpenBill(o));
@@ -1375,17 +1470,22 @@
             let refunded = 0, refundPending = 0;
             reportOrders.forEach(o => { if (o.status === 'void' && o.voidedWasPaid && o.refund) { if (o.refund.status === 'refunded') refunded += Number(o.refund.amount || 0); else refundPending += Number(o.refund.amount || 0); } });
             let total = 0, store = 0, delivery = 0, cash = 0, transfer = 0, unpaid = 0, discount = 0, commission = 0;
+            let thbCash = 0, thbTransfer = 0, thbBills = 0, thbLak = 0, poSum = 0, poBills = 0;
             const byPartner = {}, itemMap = {};
             valid.forEach(o => {
                 const amt = Number(o.total || 0);
                 total += amt; discount += Number(o.discount || 0);
                 if (isStoreSource(o)) store += amt;
                 else { delivery += amt; const p = byPartner[o.source] || (byPartner[o.source] = { bills: 0, sales: 0 }); p.bills++; p.sales += amt; }
-                if (o.paymentMethod === 'cash') cash += amt;
+                // ลิ้นชักเงินสด: นับเฉพาะเงินกีบ · รับเป็นเงินบาทแยกการ์ด
+                const paidThb = billCur(o) === 'THB' && o.payCurrency === 'THB';
+                if (paidThb) { thbBills++; thbLak += amt; if (o.paymentMethod === 'cash') thbCash += Number(o.payAmount || 0); else thbTransfer += Number(o.payAmount || 0); }
+                else if (o.paymentMethod === 'cash') cash += amt;
                 else if (o.paymentMethod === 'transfer') transfer += amt;
+                if (o.source === 'preorder') { poSum += amt; poBills++; }
                 arr(o.items).forEach(it => {
                     const m = itemMap[it.name] || (itemMap[it.name] = { qty: 0, rev: 0 });
-                    m.qty += Number(it.quantity || 0); m.rev += Number(it.price || 0) * Number(it.quantity || 0);
+                    m.qty += Number(it.quantity || 0); m.rev += lineLak(o, it);
                 });
             });
 
@@ -1408,6 +1508,9 @@
                 ['ຍອດຂາຍ Delivery', money(delivery), 'green'],
                 ['เงินสด (ชำระแล้ว)', money(cash), 'green'],
                 ['โอนเงิน (ชำระแล้ว)', money(transfer), 'green'],
+                ...(thbBills ? [['รับเป็นเงินบาท (' + thbBills + ' บิล · คิดเป็น ' + money(thbLak) + ')', baht(thbCash + thbTransfer) + '<div style="font-size:12px;color:#64748b;font-weight:normal">เงินสด ' + baht(thbCash) + ' · โอน ' + baht(thbTransfer) + '</div>', 'green']] : []),
+                ...(poBills || poRefund.n ? [['📦 พรีออเดอร์ (มัดจำ + ชำระ ' + poBills + ' ครั้ง · รวมในยอดขายแล้ว)', money(poSum), 'orange']] : []),
+                ...(poRefund.n ? [['📦 คืนเงินพรีออเดอร์ (' + poRefund.n + ' รายการ · ยังไม่หักจากยอดขาย)', '−' + money(poRefund.lak), 'red']] : []),
                 ['บิลที่ยังเปิดอยู่ (' + openList.length + ' บิล ยังไม่นับเป็นยอดขาย)', money(unpaid), unpaid > 0 ? 'red' : 'gray'],
                 ['ต้องคืนเงินลูกค้า (ยังไม่คืน)', money(refundPending), refundPending > 0 ? 'red' : 'gray'],
                 ['คืนเงินแล้ว (ยกเลิกหลังจ่าย)', money(refunded), 'gray'],
@@ -1415,7 +1518,8 @@
                 ['เฉลี่ยต่อบิล', money(bills ? Math.round(total / bills) : 0), 'orange'],
                 ['ส่วนลดรวม', money(discount), 'gray'],
                 ['ค่าคอม Delivery รวม', money(commission), 'gray'],
-                ['ยอดสุทธิหลังหักคอม', money(total - commission), '']
+                ['ยอดสุทธิหลังหักคอม', money(total - commission), ''],
+                ...(poRefund.n ? [['ยอดสุทธิหลังหักคอม และคืนเงินพรีออเดอร์', money(total - commission - poRefund.lak), '']] : [])
             ];
             document.getElementById('report-cards').innerHTML = cards.map(c => `<div class="card ${c[2]}"><div class="card-title">${c[0]}</div><div class="card-value">${c[1]}</div></div>`).join('');
 
@@ -1457,24 +1561,29 @@
                     acts.push(`<button class="btn btn-gray btn-sm" data-id="${esc(o.id)}" onclick="shareOrder(this.dataset.id)">📤 ส่ง</button>`);
                 }
                 if (st !== 'void') acts.push(`<button class="btn btn-red btn-sm" data-id="${esc(o.id)}" onclick="voidOrder(this.dataset.id)">ยกเลิกบิล</button>`);
-                html += `<tr style="${st === 'void' ? 'opacity:.6;' : ''}"><td>${o.orderNo ? '#' + esc(o.orderNo) : '-'}${o.printCount ? ' <span class="badge gray">พิมพ์ ' + o.printCount + '</span>' : ''}</td><td>${o.timestamp ? esc(dayKey(o.timestamp)) + ' ' + timeHHMM(o.timestamp) : esc(o.date || '')}</td><td>${esc(o.source || 'store')}${o.appOrderNo ? '<br><small>' + esc(o.appOrderNo) + '</small>' : ''}</td><td>${esc(o.orderType || '-')}</td><td>${esc(o.table || o.customerName || '-')}</td><td class="wrap">${esc(orderSummary(o))}</td><td>${money(o.total)}</td><td>${payBadge(o)}</td><td class="wrap">${statusCell(o)}</td><td><div class="actions-cell">${acts.join('')}</div></td></tr>`;
+                html += `<tr style="${st === 'void' ? 'opacity:.6;' : ''}"><td>${o.orderNo ? '#' + esc(o.orderNo) : '-'}${o.source === 'preorder' ? ' <span class="badge gray">📦</span>' : ''}${o.printCount ? ' <span class="badge gray">พิมพ์ ' + o.printCount + '</span>' : ''}</td><td>${o.timestamp ? esc(dayKey(o.timestamp)) + ' ' + timeHHMM(o.timestamp) : esc(o.date || '')}</td><td>${esc(o.source || 'store')}${o.appOrderNo ? '<br><small>' + esc(o.appOrderNo) + '</small>' : ''}</td><td>${esc(o.orderType || '-')}</td><td>${esc(o.table || o.customerName || '-')}</td><td class="wrap">${esc(orderSummary(o))}</td><td>${money(o.total)}${billCur(o) === 'THB' ? '<br><small>' + esc(baht(o.totalThb)) + (o.payCurrency === 'LAK' ? ' · จ่ายกีบ' : o.status === 'paid' ? ' · จ่ายบาท' : '') + '</small>' : ''}</td><td>${payBadge(o)}</td><td class="wrap">${statusCell(o)}</td><td><div class="actions-cell">${acts.join('')}</div></td></tr>`;
             });
             document.getElementById('report-orders').innerHTML = html || emptyRow(10, 'ไม่มีออร์เดอร์ในช่วงนี้');
         }
         function findReportOrder(id) { return reportOrders.find(x => x.id === id); }
-        function voidOrder(id) { const o = findReportOrder(id); if (o) openVoidDialog(id, o, 'admin'); }
+        function voidOrder(id) {
+            const o = findReportOrder(id); if (!o) return;
+            if (o.source === 'preorder') return toast('บิลพรีออเดอร์ ยกเลิกที่นี่ไม่ได้ · ใช้ปุ่ม "คืนเงินเต็ม" ในหน้า 📦 พรีออเดอร์', false);
+            openVoidDialog(id, o, 'admin');
+        }
         function reprintOrder(id) { const o = findReportOrder(id); if (o) printReceipt(o, true, id); }
         function shareOrder(id) { const o = findReportOrder(id); if (o) openShareModal(o); }
         function csvCell(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
         function exportOrdersCSV() {
             if (!reportOrders.length) return toast('ไม่มีข้อมูลในช่วงที่เลือก', false);
-            const head = ['เลขที่บิล', 'วันที่', 'เวลา', 'ช่องทาง', 'ประเภท', 'โต๊ะ', 'ลูกค้า', 'รายการ', 'ยอดรวม', 'ส่วนลด', 'ยอดสุทธิ', 'ชำระแล้ว', 'วิธีชำระ', 'สถานะ', 'เลขออร์เดอร์แอป', 'เหตุผลยกเลิก', 'คืนเงิน'];
+            const head = ['เลขที่บิล', 'วันที่', 'เวลา', 'ช่องทาง', 'ประเภท', 'โต๊ะ', 'ลูกค้า', 'รายการ', 'ยอดรวม', 'ส่วนลด', 'ยอดสุทธิ', 'ชำระแล้ว', 'วิธีชำระ', 'สถานะ', 'เลขออร์เดอร์แอป', 'เหตุผลยกเลิก', 'คืนเงิน', 'สกุลเงินบิล', 'ยอดบาท', 'จ่ายเป็น', 'เรท'];
             const rows = reportOrders.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).map(o => [
                 o.orderNo || '', o.timestamp ? dayKey(o.timestamp) : (o.date || ''), o.timestamp ? timeHHMM(o.timestamp) : '',
                 o.source || 'store', o.orderType || '', o.table || '', o.customerName || '', orderSummary(o),
                 o.subtotal != null ? o.subtotal : o.total, o.discount || 0, o.total || 0,
                 isOpenBill(o) ? 'ไม่' : (o.status === 'void' ? '-' : 'ใช่'), o.paymentMethod || '', o.status || 'pending',
-                o.appOrderNo || '', o.voidReason || '', o.refund ? (o.refund.status === 'refunded' ? 'คืนแล้ว' : 'ยังไม่คืน') : ''
+                o.appOrderNo || '', o.voidReason || '', o.refund ? (o.refund.status === 'refunded' ? 'คืนแล้ว' : 'ยังไม่คืน') : '',
+                billCur(o), billCur(o) === 'THB' ? (o.totalThb || 0) : '', billCur(o) === 'THB' ? (o.payCurrency || '') : '', billCur(o) === 'THB' ? (o.rate || '') : ''
             ]);
             const csv = '\ufeff' + [head].concat(rows).map(r => r.map(csvCell).join(',')).join('\r\n');
             downloadFile('orders-' + document.getElementById('rep-from').value + '_to_' + document.getElementById('rep-to').value + '.csv', csv, 'text/csv;charset=utf-8');

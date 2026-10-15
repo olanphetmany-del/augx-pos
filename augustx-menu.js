@@ -115,6 +115,8 @@
       available: isAvailable(raw),
       retail: raw.retail === true,        // ขายปลีก ไม่เข้าครัว
       preorder: raw.preorder === true,    // สินค้าสั่งจอง
+      currency: raw.currency === 'THB' ? 'THB' : 'LAK', // ราคาตั้งเป็นบาท หรือ กีบ
+      authentic: raw.authentic === true,  // รับประกันของแท้ (โชว์กล่อง "ເປັນຫຍັງໝັ້ນໃຈໄດ້")
       photos: Number(raw.photoCount || 0), // จำนวนรูปใหญ่ใน menu_photos/<id>
       usesCup: raw.usesCup !== false,
       // ช่องทางที่ซ่อนเมนูนี้ เช่น "store,<partnerId>"

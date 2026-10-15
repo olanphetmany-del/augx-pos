@@ -164,8 +164,14 @@
     function priced(o) {
         var r = menu ? AugustxMenu.priceRound(menu, arrOf(o.items)) : { lines: arrOf(o.items), total: Number(o.total || 0), problems: [] };
         r.missing = r.problems.filter(function (p) { return /ไม่พบ/.test(p.reason); });
+        // สกุลเงินของออร์เดอร์ (สินค้าราคาบาท = บิลบาท) + แยกสินค้าพรีออเดอร์ออกไปเปิดใบมัดจำ
+        r.cur = o.cur === 'THB' || r.lines.some(function (l) { var it = menu && menu.byId[l.itemId]; return it && it.currency === 'THB'; }) ? 'THB' : 'LAK';
+        r.po = r.lines.filter(function (l) { var it = menu && menu.byId[l.itemId]; return it && it.preorder; });
+        r.normal = r.lines.filter(function (l) { return r.po.indexOf(l) < 0; });
+        r.normalTotal = r.normal.reduce(function (s, l) { return s + l.unitPrice * l.qty; }, 0);
         return r;
     }
+    function MC(n, c) { return typeof moneyC === 'function' ? moneyC(n, c) : M(n); }
     function arrOf(x) { return Array.isArray(x) ? x.filter(Boolean) : (x && typeof x === 'object' ? Object.values(x) : []); }
     function optText(l) {
         var by = {};
@@ -183,7 +189,7 @@
         var all = list(), html = '<div class="axo-box"><div class="axo-head"><h3>🛵 ออร์เดอร์ลูกค้าสั่งเอง</h3><button class="axo-x" data-a="close" style="border:0;border-radius:8px;padding:8px 12px;font-weight:bold;cursor:pointer">ปิด</button></div>';
         if (!all.length) html += '<p class="axo-sm" style="text-align:center;padding:24px 0">ยังไม่มีออร์เดอร์ออนไลน์ใน 36 ชั่วโมงที่ผ่านมา</p>';
         all.forEach(function (o) {
-            var p = priced(o), isNew = o.status === 'new', stage = stageOf(o), dl = o.delivery, t = o.trackTok && tracks[o.trackTok];
+            var p = priced(o), isNew = o.status === 'new', stage = stageOf(o), dl = o.delivery, t = o.trackTok && tracks[o.trackTok], C = p.cur;
             var live = o.status === 'accepted' && !finished(o);
             html += '<div class="axo-card ' + (isNew ? 'new' : live ? 'live' : 'done') + '">' +
                 '<div class="axo-row"><div><b style="font-size:15px">' + E(o.id) + '</b> <span class="axo-pill ' + E(o.status) + '">' + ({ new: 'ใหม่', accepted: 'รับแล้ว', rejected: 'ไม่รับ' }[o.status] || E(o.status)) + '</span>' +
@@ -204,23 +210,29 @@
                 var meta = [l.variant, optText(l)].filter(Boolean).join(' · ');
                 var it = menu && menu.byId[l.itemId];
                 html += '<div class="axo-line"><div>' + l.qty + '× <b>' + E(l.name) + '</b>' + (it && it.preorder ? ' <span class="axo-pill unpaid">PRE-ORDER</span>' : '') + (it && it.retail ? ' <span class="axo-sm">(ไม่เข้าครัว)</span>' : '') +
-                    (meta ? '<div class="axo-sm">' + E(meta) + '</div>' : '') + (l.note ? '<div class="axo-sm">📝 ' + E(l.note) + '</div>' : '') + '</div><div style="white-space:nowrap">' + M(l.unitPrice * l.qty) + '</div></div>';
+                    (meta ? '<div class="axo-sm">' + E(meta) + '</div>' : '') + (l.note ? '<div class="axo-sm">📝 ' + E(l.note) + '</div>' : '') + '</div><div style="white-space:nowrap">' + MC(l.unitPrice * l.qty, C) +
+                    (it && it.preorder && (o.poMade || {})[p.lines.indexOf(l)] ? ' <span class="axo-pill paid">📦 ' + E(o.poMade[p.lines.indexOf(l)]) + '</span>' : '') +
+                    ((isNew || o.status === 'accepted') && !o.poNo && !(o.poMade || {})[p.lines.indexOf(l)] && it && it.preorder && window.AXPO ? ' <button class="axo-o" style="border:0;border-radius:8px;padding:6px 10px;font-weight:bold;cursor:pointer" data-a="po" data-id="' + E(o.id) + '" data-i="' + p.lines.indexOf(l) + '">📦 เปิดใบพรีออเดอร์</button>' : '') + '</div></div>';
             });
             if (isNew) {
                 p.problems.forEach(function (x) { html += '<div class="axo-warn ' + (/ไม่พบ/.test(x.reason) ? 'axo-err' : '') + '">⚠️ ' + E(x.line.name) + ': ' + E(x.reason) + '</div>'; });
-                if (Number(o.total) !== p.total) html += '<div class="axo-warn">⚠️ ยอดที่ลูกค้าเห็น ' + M(o.total) + ' · <b>ใช้ยอดจากระบบ ' + M(p.total) + '</b></div>';
+                if (Number(o.total) !== p.total) html += '<div class="axo-warn">⚠️ ยอดที่ลูกค้าเห็น ' + MC(o.total, C) + ' · <b>ใช้ยอดจากระบบ ' + MC(p.total, C) + '</b></div>';
+                if (p.po.length) html += '<div class="axo-warn">📦 มีสินค้าพรีออเดอร์ ' + p.po.length + ' รายการ → กด "เปิดใบพรีออเดอร์" เพื่อรับมัดจำ' + (p.normal.length ? ' · ส่วนรายการอื่นกดรับเข้าครัวตามปกติ' : '') + '</div>';
+                if (C === 'THB' && p.normal.length) html += '<div class="axo-warn">฿ ออร์เดอร์เงินบาท: กดเข้าครัว (ยังไม่จ่าย) แล้วรับเงินที่ "📋 บิลที่เปิดอยู่" เลือกจ่าย ฿ หรือ ₭</div>';
             }
-            html += '<div class="axo-tot"><span>ยอดค่าอาหาร' + (isNew ? ' (คิดจากเมนูในระบบ)' : '') + '</span><span>' + M(p.total) + '</span></div>';
-            html += '<div class="axo-acts"><a class="axo-w" target="_blank" rel="noopener" href="' + E(replyLink(o, p.total)) + '">💬 ตอบลูกค้าทาง WhatsApp</a>';
+            if (o.poNo) html += '<div class="axo-dl">📦 ย้ายไปเป็นพรีออเดอร์ <b>' + E(o.poNo) + '</b> แล้ว</div>';
+            html += '<div class="axo-tot"><span>ยอด' + (isNew ? ' (คิดจากเมนูในระบบ)' : '') + '</span><span>' + MC(p.total, C) + '</span></div>';
+            html += '<div class="axo-acts"><a class="axo-w" target="_blank" rel="noopener" href="' + E(replyLink(o, p.total, C)) + '">💬 ตอบลูกค้าทาง WhatsApp</a>';
             if (isNew) {
                 if (p.missing.length) html += '<span class="axo-sm" style="align-self:center">มีรายการที่ไม่มีในเมนูแล้ว ให้คีย์เองที่หน้าแคชเชียร์ แล้วกด "ไม่รับ"</span>';
-                else html += '<button class="axo-g" data-a="paid" data-id="' + E(o.id) + '">✅ รับเงินโอนแล้ว → เข้าครัว</button><button class="axo-b" data-a="unpaid" data-id="' + E(o.id) + '">เข้าครัว (ยังไม่จ่าย)</button>';
+                else if (!p.normal.length) html += p.po.length > 1 ? '<button class="axo-b" data-a="podone" data-id="' + E(o.id) + '">✓ เปิดใบพรีออเดอร์ครบแล้ว (ปิดออร์เดอร์นี้)</button>' : '';
+                else html += (C === 'THB' ? '' : '<button class="axo-g" data-a="paid" data-id="' + E(o.id) + '">✅ รับเงินโอนแล้ว → เข้าครัว</button>') + '<button class="axo-b" data-a="unpaid" data-id="' + E(o.id) + '">เข้าครัว (ยังไม่จ่าย)' + (p.po.length ? ' · เฉพาะรายการที่ไม่ใช่พรีออเดอร์' : '') + '</button>';
                 html += '<button class="axo-x" data-a="reject" data-id="' + E(o.id) + '">✕ ไม่รับ</button>';
                 if (rejecting[o.id]) html += '<div style="flex-basis:100%;margin-top:4px"><b>เหตุผลที่ไม่รับ</b> <span class="axo-sm">(ลูกค้าเห็นเป็นภาษาลาว · "อื่นๆ" ไม่แสดงเหตุผล)</span></div>' +
                     REJECT_REASONS.map(function (r) { return '<button class="axo-x" data-a="rejectwhy" data-r="' + E(r) + '" data-id="' + E(o.id) + '">' + E(r) + '</button>'; }).join('') +
                     '<button class="axo-b" data-a="rejectback" data-id="' + E(o.id) + '">กลับ</button>';
             } else if (live) {
-                if (!o.paid && o.billId) html += '<button class="axo-g" data-a="pay" data-id="' + E(o.id) + '">💰 รับเงินโอนแล้ว</button>';
+                if (!o.paid && o.billId && C !== 'THB') html += '<button class="axo-g" data-a="pay" data-id="' + E(o.id) + '">💰 รับเงินโอนแล้ว</button>';
                 if (dl) {
                     if (stage !== 'delivering') {
                         html += '<input type="number" inputmode="numeric" min="0" placeholder="ค่ารถจริง" data-fee="' + E(o.id) + '" value="' + E(feeDraft[o.id] || '') + '">' +
@@ -235,8 +247,8 @@
         overlay.scrollTop = keepScroll;
     }
 
-    function replyLink(o, total) {
-        var t = String(cfg.replyText || DEF_REPLY).replace(/\{name\}/g, o.name || '').replace(/\{bill\}/g, o.id).replace(/\{total\}/g, M(total))
+    function replyLink(o, total, c) {
+        var t = String(cfg.replyText || DEF_REPLY).replace(/\{name\}/g, o.name || '').replace(/\{bill\}/g, o.id).replace(/\{total\}/g, MC(total, c))
             .replace(/\{link\}/g, o.trackTok ? trackLink(o.trackTok) : '');
         return 'https://wa.me/' + waDigits(o.phone) + '?text=' + encodeURIComponent(t);
     }
@@ -257,6 +269,18 @@
             return;
         }
         if (a === 'paid' || a === 'unpaid') return accept(id, a === 'paid', b);
+        if (a === 'po') {
+            var pp = priced(o), ln = pp.lines[+b.dataset.i]; if (!ln || !window.AXPO) return;
+            var only = pp.lines.length === 1;   // ออร์เดอร์มีแค่สินค้าพรีออเดอร์ชิ้นเดียว → ใช้ลิงก์ติดตามเดิมของลูกค้าต่อ
+            closePanel();
+            window.AXPO.openCreate({ itemId: ln.itemId, variant: ln.variant || '', qty: ln.qty, name: o.name || '', phone: o.phone || '', note: [optText(ln), ln.note].filter(Boolean).join(' · '), trackTok: only ? (o.trackTok || '') : '', onlineId: id, onlineLine: +b.dataset.i, onlineOnly: only });
+            return;
+        }
+        if (a === 'podone') {
+            database.ref('online_orders/' + id).update({ status: 'accepted', movedToPo: true, handledAt: Date.now() });
+            setTrack(o, { status: 'rejected', reason: 'ຍ້າຍເປັນໃບສັ່ງຈອງ (PRE-ORDER) · ຮ້ານສົ່ງລິ້ງໃໝ່ທາງ WhatsApp' });
+            return say('ปิดออร์เดอร์ ' + id + ' แล้ว (ย้ายไปพรีออเดอร์)');
+        }
         if (a === 'pay') return payLater(id, b);
         if (a === 'ship') {
             var fee = Math.round(Number(feeDraft[id] || 0));
@@ -283,23 +307,25 @@
         if (p.missing.length) return say('มีรายการที่ไม่มีในเมนูแล้ว', false);
         busy[id] = true; b.disabled = true; b.textContent = 'กำลังส่ง…';
         try {
-            var items = p.lines.map(function (l) {
+            if (!p.normal.length) return say('ออร์เดอร์นี้มีแต่สินค้าพรีออเดอร์ ให้กด "เปิดใบพรีออเดอร์"', false);
+            var items = p.normal.map(function (l) {
                 var it = menu && menu.byId[l.itemId];
                 return {
                     itemId: l.itemId, name: it ? it.name : l.name, variant: l.variant || '', price: l.unitPrice, quantity: l.qty,
                     modifiers: arrOf(l.options).map(function (x) { return { group: x.group || '', option: x.name, price: Number(x.price || 0) }; }),
-                    note: l.note || '', cup: it ? (it.retail ? false : (raw.menu_items[l.itemId] || {}).usesCup !== false) : true
+                    note: l.note || '', cup: it ? (it.retail ? false : (raw.menu_items[l.itemId] || {}).usesCup !== false) : true, retail: !!(it && it.retail)
                 };
             });
             var cust = findCust(o.phone);
             var r = await createBill({
                 items: items, source: 'online', orderType: o.delivery ? 'Online 🛵' : 'Online', appOrderNo: id,
                 customerName: o.name || '', customerPhone: o.phone || '', customerId: cust ? cust.id : '',
-                trackTok: o.trackTok || '', trackDelivery: !!o.delivery
+                trackTok: o.trackTok || '', trackDelivery: !!o.delivery, currency: p.cur
             });
+            if (paid && p.cur === 'THB') paid = false;
             if (paid) await payBill(r.id, { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' });
             await database.ref('online_orders/' + id).update({ status: 'accepted', billId: r.id, orderNo: r.bill.orderNo, paid: !!paid, handledAt: Date.now() });
-            await setTrack(o, { status: 'accepted', paid: !!paid, total: p.total });
+            await setTrack(o, { status: 'accepted', paid: !!paid, total: p.normalTotal });
             if (!cust && o.phone) database.ref('customers').push({ name: o.name || '', phone: o.phone, email: '', source: 'online' });
             say('ออร์เดอร์ ' + id + ' เข้าครัวแล้ว (บิล #' + r.bill.orderNo + (paid ? ' · จ่ายแล้ว' : ' · ยังไม่จ่าย') + ')');
         } catch (err) {

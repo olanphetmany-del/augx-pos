@@ -256,6 +256,12 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .hero .loadpic { aspect-ratio: 4 / 3; width: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
 .badge.pre { background: var(--brand); color: var(--brand-ink); }
 .err-inline { color: var(--bad); font-size: 13.5px; }
+.apx { display: block; color: var(--muted); opacity: .75; font-weight: 400; font-size: 11.5px; }
+.trust { border: 1.5px solid var(--ink); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin: 10px 0; }
+.trust b { display: block; margin-bottom: 4px; }
+.trust ol { margin: 0; padding-left: 20px; } .trust li { margin: 2px 0; }
+.policy { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
+.policy b { display: block; } .policy ol { margin: 4px 0 0; padding-left: 20px; }
 </style>
 </head>
 <body>
@@ -321,14 +327,25 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function kip(n) { return Number(n || 0).toLocaleString('en-US') + ' ₭'; }
+  // เงินบาท: สินค้าราคา ฿ โชว์ยอดกีบโดยประมาณตัวเล็ก (เรทตั้งใน Admin)
+  var FXR = { rate: 0 };
+  function money2(n, c) { return c === 'THB' ? '฿' + Number(n || 0).toLocaleString('en-US') : kip(n); }
+  function lakOf(n, c) { return c === 'THB' ? Math.round(Number(n || 0) * FXR.rate / 1000) * 1000 : Number(n || 0); }
+  function approx(n, c) { return c === 'THB' && FXR.rate ? '≈ ' + kip(lakOf(n, c)) + ' ໂດຍປະມານ' : ''; }
+  function itCur(it) { return it && it.currency === 'THB' ? 'THB' : 'LAK'; }
+  function cartCur() { return cart.length ? itCur(MENU && MENU.byId[cart[0].itemId]) : 'LAK'; }
+  function cartLak() { return lakOf(cartTotal(), cartCur()); }
+  var AUTH_LO = ['ທຸກຄູ່ມີລະຫັດລຸ້ນ ໃຫ້ທ່ານກວດເອງໄດ້', 'ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ ພາຍໃນ 30 ວັນ', 'ເຄື່ອງຮອດພາຍໃນ 7–14 ວັນເຮັດການ · ຖ້າຮ້ານສົ່ງເຄື່ອງບໍ່ໄດ້ ຄືນເງິນເຕັມຈຳນວນ', 'ກໍລະນີເຄື່ອງສົ່ງມາແລ້ວ ແຕ່ມີບັນຫາຂົນສົ່ງ ລໍຖ້າເພີ່ມບໍ່ເກີນ 7 ວັນ · ຖ້າບໍ່ຮອດ ຄືນເງິນເຕັມຈຳນວນ'];
+  var pendingLine = null;
   function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); if (v === null) return localStorage.removeItem(k); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
   function toast(t) { var el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(function () { el.remove(); }, 2400); }
   function num(v, d) { var n = Number(v); return isFinite(n) && v !== '' && v != null ? n : d; }
 
   // ---------- โหลดตั้งค่า + เมนู + ป้ายโฆษณา ----------
   function val(path) { return db.ref(path).once('value').then(function (s) { return s.val(); }, function () { return null; }); }
-  Promise.all([val('settings/online'), val('menu_items'), val('modifiers'), val('categories'), val('banners')]).then(function (v) {
+  Promise.all([val('settings/online'), val('menu_items'), val('modifiers'), val('categories'), val('banners'), val('settings/currency')]).then(function (v) {
     var s = v[0] || {};
+    FXR.rate = num((v[5] || {}).rate, 0);
     Object.keys(CFG).forEach(function (k) { if (s[k] !== undefined && s[k] !== '') CFG[k] = s[k]; });
     var d = s.delivery || {};
     DLV.enabled = d.enabled === true;
@@ -391,12 +408,13 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function history() { var h = store('augx-history'); return Array.isArray(h) ? h : []; }
   function saveHistory(bill) {
     var h = history().filter(function (x) { return x.bill !== bill; });
-    h.unshift({ bill: bill, at: Date.now(), total: cartTotal(), lines: cart.map(function (l) { return { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty }; }) });
+    h.unshift({ bill: bill, at: Date.now(), total: cartTotal(), cur: cartCur(), lines: cart.map(function (l) { return { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty }; }) });
     store('augx-history', h.slice(0, 3));
   }
   function reorder(i) {
     var o = history()[i]; if (!o) return;
     var miss = 0;
+    if (cart.length && (o.cur || 'LAK') !== cartCur()) { toast('ສະກຸນເງິນບໍ່ຄືກັນ · ສັ່ງອໍເດີໃນກະຕ່າກ່ອນ ຫຼື ລ້າງກະຕ່າ'); return; }
     o.lines.forEach(function (l) {
       if (!MENU.byId[l.itemId]) { miss++; return; }
       var nl = { itemId: l.itemId, name: MENU.byId[l.itemId].name, variant: l.variant || '', options: l.options || [], note: l.note || '', qty: l.qty };
@@ -418,7 +436,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     box.innerHTML = '<h2 class="section-h">ສັ່ງຄືເກົ່າ <small>ອໍເດີຫຼ້າສຸດຂອງທ່ານ</small></h2><div class="list">' + h.map(function (o, i) {
       var names = o.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ');
       var d = new Date(o.at);
-      return '<div class="item re"><span class="txt"><span class="en" style="font-size:15px">' + esc(names) + '</span><br><span class="lo">' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' · ' + kip(o.total) + '</span></span>' +
+      return '<div class="item re"><span class="txt"><span class="en" style="font-size:15px">' + esc(names) + '</span><br><span class="lo">' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' · ' + money2(o.total, o.cur) + '</span></span>' +
         '<button class="mini-btn" type="button" data-re="' + i + '">ສັ່ງຄືເກົ່າ</button></div>';
     }).join('') + '</div>';
   }
@@ -442,7 +460,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
             (hasImg(it) ? '<img class="th" alt="" loading="lazy" src="' + esc(it.image) + '">' : '<span class="ph" aria-hidden="true">' + esc(it.name.charAt(0).toUpperCase()) + '</span>') +
             '<span class="txt"><span class="en">' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') +
             (q ? '<span class="in-cart">' + q + '</span>' : '') + '</span>' + (sub ? '<br><span class="lo">' + esc(sub) + '</span>' : '') + '</span>' +
-            '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + kip(minPrice(it)) + '</span></button>';
+            '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + money2(minPrice(it), itCur(it)) + (approx(minPrice(it), itCur(it)) ? '<span class="apx">' + approx(minPrice(it), itCur(it)) + '</span>' : '') + '</span></button>';
         }).join('') + '</div>';
     }).join('');
   }
@@ -498,32 +516,34 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var showHero = it.photos > 0 && (!pics || pics.length);
     h += showHero ? '<div class="sheet-head"><div><h2>' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</h2>' + (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + '</div></div>'
       : head(it.name.toUpperCase(), it.desc);
-    if (it.preorder) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ຮ້ານຈະແຈ້ງວັນທີ່ຂອງມາຮອດ ແລະ ການມັດຈຳ ທາງ WhatsApp</div>';
+    if (it.preorder) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ມັດຈຳ 50% ຫຼື ຈ່າຍເຕັມ · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ · ຮ້ານຈະຕິດຕໍ່ທາງ WhatsApp</div>';
+    if (it.authentic) h += '<div class="trust"><b>✓ ເປັນຫຍັງໝັ້ນໃຈໄດ້ · ເກີບຂອງແທ້ 100%</b><ol>' + AUTH_LO.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol></div>';
+    if (itCur(it) === 'THB' && FXR.rate) h += '<p class="hint" style="margin:6px 0 0">ລາຄາເປັນເງິນບາດ · ຈ່າຍເປັນກີບໄດ້ຕາມເຣດມື້ນັ້ນ</p>';
     if (it.variants.length > 1) {
       var labs = it.variants.map(function (v) { return v.label; });
       var sizes = labs.every(isSize);
       h += '<div class="group"><h3>' + (sizes ? 'ໄຊສ໌' : 'ເລືອກແບບ') + ' <small>' + (sizes ? 'ລາຄາຕາມໄຊສ໌ · ' : '') + 'ເລືອກ 1</small></h3><div class="seg">' + it.variants.map(function (v, i) {
         var lab = v.label || '—';
-        return '<button class="opt" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"><b>' + (sizes ? 'ໄຊສ໌ ' : TEMP_LO[lab.toUpperCase()] ? TEMP_LO[lab.toUpperCase()] + ' · ' : '') + esc(lab) + '</b><span class="num">' + kip(v.price) + '</span></button>';
+        return '<button class="opt" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"><b>' + (sizes ? 'ໄຊສ໌ ' : TEMP_LO[lab.toUpperCase()] ? TEMP_LO[lab.toUpperCase()] + ' · ' : '') + esc(lab) + '</b><span class="num">' + money2(v.price, itCur(it)) + '</span></button>';
       }).join('') + '</div></div>';
     }
     it.groups.forEach(function (g, gi) {
       var sel = draft.sel[gi] || [];
       if (g.single) {
         h += '<div class="group"><h3>' + esc(g.name) + ' <small>' + (g.required ? 'ຕ້ອງເລືອກ' : 'ເລືອກ 1') + '</small></h3><div class="seg">' + g.options.map(function (o, oi) {
-          return '<button class="opt" type="button" data-g="' + gi + '" data-o="' + oi + '" aria-pressed="' + (sel.indexOf(oi) >= 0) + '"><b>' + esc(o.name) + '</b>' + (o.price ? '<span class="num">+' + kip(o.price) + '</span>' : '') + '</button>';
+          return '<button class="opt" type="button" data-g="' + gi + '" data-o="' + oi + '" aria-pressed="' + (sel.indexOf(oi) >= 0) + '"><b>' + esc(o.name) + '</b>' + (o.price ? '<span class="num">+' + money2(o.price, itCur(it)) + '</span>' : '') + '</button>';
         }).join('') + '</div></div>';
       } else {
         h += '<div class="group"><h3>' + esc(g.name) + ' <small>ເລືອກໄດ້ຫຼາຍຢ່າງ</small></h3>' + g.options.map(function (o, oi) {
           var on = sel.indexOf(oi) >= 0;
-          return '<button class="chk" type="button" data-g="' + gi + '" data-o="' + oi + '" aria-pressed="' + on + '"><span class="box">' + (on ? '✓' : '') + '</span><span>' + esc(o.name) + '</span><span class="p num">' + (o.price ? '+' + kip(o.price) : '') + '</span></button>';
+          return '<button class="chk" type="button" data-g="' + gi + '" data-o="' + oi + '" aria-pressed="' + on + '"><span class="box">' + (on ? '✓' : '') + '</span><span>' + esc(o.name) + '</span><span class="p num">' + (o.price ? '+' + money2(o.price, itCur(it)) : '') + '</span></button>';
         }).join('') + '</div>';
       }
     });
     h += '<label class="f" for="note">ໝາຍເຫດ <span class="hint">' + (it.retail ? 'ເຊັ່ນ ສີ, ຫໍ່ຂອງຂວັນ' : 'ເຊັ່ນ ແຍກນ້ຳກ້ອນ, ນ້ຳກ້ອນໜ້ອຍ') + '</span><textarea class="in" id="note" rows="2" maxlength="100"></textarea></label>';
     h += '<div class="qty"><button type="button" data-q="-1" aria-label="ລົດ">−</button><b class="num">' + draft.qty + '</b><button type="button" data-q="1" aria-label="ເພີ່ມ">+</button></div>';
     h += '<div class="err" id="item-err"></div>';
-    h += '<button class="primary" type="button" data-act="add">ໃສ່ກະຕ່າ · <span class="num">' + kip(draftLine().unitPrice * draft.qty) + '</span></button>';
+    h += '<button class="primary" type="button" data-act="add">ໃສ່ກະຕ່າ · <span class="num">' + money2(draftLine().unitPrice * draft.qty, itCur(it)) + '</span></button>';
     var open = !$('sheet').hidden;
     openSheet(h);
     $('note').value = draft.note;
@@ -539,6 +559,15 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     }
   }
 
+  // สินค้าคนละสกุลเงิน (₭ / ฿) ต้องสั่งแยกบิล
+  function mixSheet(it) {
+    var now = cartCur() === 'THB' ? 'ເງິນບາດ (฿)' : 'ເງິນກີບ (₭)', want = itCur(it) === 'THB' ? 'ເງິນບາດ (฿)' : 'ເງິນກີບ (₭)';
+    var h = head('ກະລຸນາສັ່ງແຍກບິນ', '') + '<div class="notice"><b>' + esc(it.name.toUpperCase()) + '</b> ລາຄາເປັນ<b>' + want + '</b><br>ແຕ່ໃນກະຕ່າມີສິນຄ້າລາຄາ' + now + ' · 1 ບິນໃຊ້ສະກຸນເງິນດຽວ</div>' +
+      '<button class="primary" type="button" data-act="cart">ສັ່ງອັນໃນກະຕ່າກ່ອນ</button>' +
+      '<button class="ghost" type="button" data-act="mixclear">ລ້າງກະຕ່າ ແລ້ວໃສ່ອັນນີ້ແທນ</button>';
+    openSheet(h);
+  }
+
   // ---------- ตะกร้า ----------
   function cartTotal() { return cart.reduce(function (s, l) { return s + l.unitPrice * l.qty; }, 0); }
   function cartCount() { return cart.reduce(function (s, l) { return s + l.qty; }, 0); }
@@ -547,7 +576,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var n = cartCount();
     $('bar').hidden = n === 0 || !$('track').hidden;
     $('bar-count').textContent = 'ເບິ່ງກະຕ່າ · ' + n + ' ລາຍການ';
-    $('bar-total').textContent = kip(cartTotal());
+    $('bar-total').textContent = money2(cartTotal(), cartCur());
     updateChip();
   }
   $('bar-btn').addEventListener('click', openCart);
@@ -562,11 +591,11 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       var it = MENU.byId[l.itemId];
       var meta = [varText(l)].concat(optText(l)).filter(Boolean).join(' · ');
       return '<div class="line"><div class="txt"><div class="en">' + esc(l.name.toUpperCase()) + (it && it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</div>' + (meta ? '<div class="meta">' + esc(meta) + '</div>' : '') +
-        (l.note ? '<div class="meta">ໝາຍເຫດ: ' + esc(l.note) + '</div>' : '') + '</div><div class="r"><span class="num">' + kip(l.unitPrice * l.qty) + '</span>' +
+        (l.note ? '<div class="meta">ໝາຍເຫດ: ' + esc(l.note) + '</div>' : '') + '</div><div class="r"><span class="num">' + money2(l.unitPrice * l.qty, cartCur()) + '</span>' +
         '<span class="mini"><button type="button" data-line="' + i + '" data-d="-1" aria-label="ລົດ">−</button><b class="num">' + l.qty + '</b><button type="button" data-line="' + i + '" data-d="1" aria-label="ເພີ່ມ">+</button></span></div></div>';
     }).join('') + '</div>';
-    h += '<div class="total"><span>ລວມ</span><span class="num">' + kip(cartTotal()) + '</span></div>';
-    if (DLV.enabled) h += freeBar(cartTotal());
+    h += '<div class="total"><span>ລວມ</span><span class="num">' + money2(cartTotal(), cartCur()) + (approx(cartTotal(), cartCur()) ? '<span class="apx">' + approx(cartTotal(), cartCur()) + '</span>' : '') + '</span></div>';
+    if (DLV.enabled) h += freeBar(cartLak());
     h += '<button class="primary" type="button" data-act="checkout">ສັ່ງອໍເດີ້</button><button class="ghost" type="button" data-act="close">ເລືອກເພີ່ມ</button>';
     openSheet(h);
   }
@@ -599,7 +628,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function quoteBox() {
     if (ship.km == null) return '';
     if (ship.km > DLV.maxKm) return '<div class="qbox bad">ໄລຍະທາງ ' + kmText(ship.km) + ' ກມ. — ຂໍອະໄພ ຮ້ານຈັດສົ່ງໄດ້ບໍ່ເກີນ ' + DLV.maxKm + ' ກມ. ເພື່ອໃຫ້ເຄື່ອງດື່ມຍັງແຊບຢູ່ · ເລືອກ "ຮັບທີ່ຮ້ານ" ໄດ້</div>';
-    var sub = cartTotal(), q = quote(ship.km, sub);
+    var sub = cartLak(), q = quote(ship.km, sub);
     var h = '<div class="qbox"><div class="qrow"><span>ໄລຍະທາງ</span><b class="num">' + kmText(ship.km) + ' ກມ.</b></div>' +
       '<div class="qrow"><span>ຄ່າສົ່ງປະມານ</span><b class="num">' + kip(q.fee) + '</b></div>';
     if (q.shop) h += '<div class="qrow ok"><span>ຮ້ານອອກໃຫ້</span><b class="num">−' + kip(q.shop) + '</b></div>';
@@ -635,7 +664,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     h += '<label class="f" for="cname">ຊື່<input class="in" id="cname" autocomplete="name" maxlength="40" value="' + esc(saved.name) + '"></label>';
     h += '<label class="f" for="cphone">ເບີ WhatsApp <span class="hint">ເບີຂອງທ່ານ ເຊັ່ນ 020 xxxx xxxx</span><input class="in num" id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" value="' + esc(saved.phone) + '"></label>';
     h += '<div class="err" id="cerr">' + esc(err || '') + '</div>';
-    h += '<button class="primary" type="button" data-act="confirm">ຢືນຢັນ · <span class="num">' + kip(cartTotal()) + '</span></button><button class="ghost" type="button" data-act="cart">ກັບໄປກະຕ່າ</button>';
+    h += '<button class="primary" type="button" data-act="confirm">ຢືນຢັນ · <span class="num">' + money2(cartTotal(), cartCur()) + '</span></button><button class="ghost" type="button" data-act="cart">ກັບໄປກະຕ່າ</button>';
     openSheet(h);
     if (keepScroll) $('sheet').scrollTop = top;
     if (err) $('cerr').scrollIntoView({ block: 'center' });
@@ -671,9 +700,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       if (l.note) opts.push('ໝາຍເຫດ: ' + l.note);
       if (opts.length) out.push('   ' + opts.join(' | '));
     });
-    out.push('', 'ລວມ: ' + kip(cartTotal()), '');
+    out.push('', 'ລວມ: ' + money2(cartTotal(), cartCur()) + (approx(cartTotal(), cartCur()) ? ' (' + approx(cartTotal(), cartCur()) + ')' : ''), '');
     if (ship.mode === 'delivery') {
-      var q = quote(ship.km, cartTotal());
+      var q = quote(ship.km, cartLak());
       out.push('🛵 ຈັດສົ່ງ · ' + kmText(ship.km) + ' ກມ.');
       out.push(q.cust === 0 ? 'ຄ່າສົ່ງ: ສົ່ງຟຣີ (ຮ້ານອອກໃຫ້)' : q.shop ? 'ຄ່າສົ່ງ: ຮ້ານອອກ ' + kip(q.shop) + ' · ລູກຄ້າຈ່າຍສ່ວນເກີນປະມານ ' + kip(q.cust) + ' ກັບຄົນຂັບ' : 'ຄ່າສົ່ງປະມານ ' + kip(q.fee) + ' (ຈ່າຍກັບຄົນຂັບ)');
       out.push('📍 ສະຖານທີ່: ' + ship.place.trim());
@@ -694,8 +723,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var tok = rnd(20, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789');
     var dl = null;
     if (ship.mode === 'delivery') {
-      var q = quote(ship.km, cartTotal());
-      dl = { km: Math.round(ship.km * 100) / 100, lat: Math.round(ship.ll[0] * 1e5) / 1e5, lng: Math.round(ship.ll[1] * 1e5) / 1e5, place: ship.place.trim(), spot: ship.place.trim() + ' · ' + spotLabel(), estFee: q.fee, free: cartTotal() >= DLV.freeMin, freeCap: DLV.freeCap };
+      var q = quote(ship.km, cartLak());
+      dl = { km: Math.round(ship.km * 100) / 100, lat: Math.round(ship.ll[0] * 1e5) / 1e5, lng: Math.round(ship.ll[1] * 1e5) / 1e5, place: ship.place.trim(), spot: ship.place.trim() + ' · ' + spotLabel(), estFee: q.fee, free: cartLak() >= DLV.freeMin, freeCap: DLV.freeCap };
       try { localStorage.setItem('augx-ship', JSON.stringify({ ll: ship.ll, place: ship.place.trim(), spot: ship.spot, spotText: ship.spotText })); } catch (e) {}
     }
     var bill;
@@ -703,6 +732,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       bill = b;
       var o = { name: name, phone: phone, items: items, total: cartTotal(), status: 'new', trackTok: tok, createdAt: firebase.database.ServerValue.TIMESTAMP };
       if (dl) o.delivery = dl;
+      if (cartCur() === 'THB') o.cur = 'THB';
       return db.ref('online_orders/' + bill).set(o);
     }).then(function () {
       var t = {
@@ -710,6 +740,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         lines: cart.map(function (l) { return { id: l.itemId, n: l.name, m: [varText(l)].concat(optText(l)).filter(Boolean).join(' · '), note: l.note || '', q: l.qty, s: l.unitPrice * l.qty }; })
       };
       if (dl) t.delivery = { km: dl.km, spot: dl.spot, estFee: dl.estFee, free: dl.free, freeCap: dl.freeCap };
+      if (cartCur() === 'THB') t.cur = 'THB';
       return db.ref('order_track/' + tok).set(t).then(function () { return true; }, function () { return false; });
     }).then(function (tracked) {
       if (tracked) { store('augx-track', { tok: tok, bill: bill }); }
@@ -748,6 +779,61 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     rejected:   { icon: '!', h: 'ຮ້ານຮັບອໍເດີນີ້ບໍ່ໄດ້', p: 'ຂໍອະໄພ ກະລຸນາທັກ WhatsApp ຮ້ານເພື່ອສອບຖາມ', chip: 'ຮ້ານຮັບບໍ່ໄດ້' }
   };
   var RANK = { new: 0, accepted: 1, making: 2, packed: 3, delivering: 4, ready: 5 };
+  // พรีออเดอร์ (ใบมัดจำ) ใช้หน้าติดตามเดียวกัน
+  var PST = {
+    po_new:     { icon: '🧾', h: 'ຮັບອໍເດີແລ້ວ', p: 'ຮ້ານກຳລັງສັ່ງເຄື່ອງໃຫ້ທ່ານ', chip: 'ຮັບອໍເດີແລ້ວ', s: 'accepted' },
+    po_ordered: { icon: '🛒', h: 'ສັ່ງເຄື່ອງແລ້ວ', p: 'ລໍຖ້າຮ້ານຕົ້ນທາງສົ່ງເຄື່ອງ', chip: 'ສັ່ງເຄື່ອງແລ້ວ', s: 'accepted' },
+    po_ship:    { icon: '🚚', h: 'ກຳລັງຂົນສົ່ງ', p: 'ເຄື່ອງກຳລັງເດີນທາງມາຫາຮ້ານ', chip: 'ກຳລັງຂົນສົ່ງ', s: 'making' },
+    po_arrived: { icon: '📦', h: 'ເຄື່ອງຮອດຮ້ານແລ້ວ!', p: 'ມາຮັບໄດ້ທີ່ຮ້ານ AUGUSTX', chip: 'ເຄື່ອງຮອດແລ້ວ', s: 'ready' },
+    po_done:    { icon: '✓', h: 'ຮັບເຄື່ອງແລ້ວ', p: 'ຂອບໃຈທີ່ອຸດໜູນ AUGUSTX 🙏', chip: 'ຮັບເຄື່ອງແລ້ວ', s: 'ready' },
+    po_refund:  { icon: '↩', h: 'ຮ້ານຄືນເງິນໃຫ້ທ່ານແລ້ວ', p: 'ຂໍອະໄພໃນຄວາມບໍ່ສະດວກ', chip: 'ຄືນເງິນແລ້ວ', s: 'rejected' },
+    po_noshow:  { icon: '!', h: 'ເກີນກຳນົດຮັບເຄື່ອງ', p: 'ກະລຸນາທັກ WhatsApp ຮ້ານ', chip: 'ເກີນກຳນົດຮັບ', s: 'rejected' }
+  };
+  Object.keys(PST).forEach(function (k) { ST[k] = PST[k]; });
+  var PO_FLOW = ['po_new', 'po_ordered', 'po_ship', 'po_arrived', 'po_done'];
+  function dm(t) { var d = new Date(t); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+  function dmy(t) { return dm(t) + '/' + new Date(t).getFullYear(); }
+  function renderPoTrack(d, h) {
+    var s = PST[d.status] || PST.po_new, c = d.cur === 'THB' ? 'THB' : 'LAK', fi = PO_FLOW.indexOf(d.status), rem = Math.max(0, Number(d.total || 0) - Number(d.paidAmt || 0));
+    var R = function (n) { return d.rate && c === 'THB' ? ' (≈ ' + kip(Math.round(n * d.rate / 1000) * 1000) + ')' : ''; };
+    var p = s.p;
+    if (d.status === 'po_arrived' && d.pickupBy) p = 'ມາຮັບໄດ້ທີ່ຮ້ານ ພາຍໃນ ' + dmy(d.pickupBy) + (rem > 0 ? ' · ຍອດຄົງເຫຼືອ ' + money2(rem, c) : '');
+    h += '<div class="st-card" data-s="' + s.s + '"><div class="st-icon" aria-hidden="true">' + s.icon + '</div><h2>' + esc(s.h) + '</h2><p>' + esc(p) + '</p>' +
+      (d.status === 'po_refund' && d.reason ? '<div class="reason">ເຫດຜົນ: ' + esc(d.reason) + '</div>' : '') +
+      '<span class="st-bill num">' + esc(d.bill) + ' · PRE-ORDER</span>';
+    if (fi >= 0) {
+      h += '<span class="pay' + (d.paid ? ' ok' : '') + '">' + (d.paid ? 'ຊຳລະຄົບແລ້ວ' : 'ມັດຈຳແລ້ວ ' + money2(d.paidAmt, c)) + '</span>';
+      var sub = {
+        po_new: d.at ? dm(d.at) : '', po_ordered: 'ຮ້ານສັ່ງເຄື່ອງຈາກຕົ້ນທາງ', po_ship: 'ກຳລັງເດີນທາງ',
+        po_arrived: d.eta ? 'ຄາດວ່າ ' + dm(d.eta.from) + ' – ' + dm(d.eta.to) : '', po_done: d.pickedAt ? dm(d.pickedAt) : 'ຮັບທີ່ຮ້ານ'
+      };
+      var names = { po_new: 'ຮັບອໍເດີ', po_ordered: 'ສັ່ງເຄື່ອງແລ້ວ', po_ship: 'ກຳລັງຂົນສົ່ງ', po_arrived: 'ເຄື່ອງຮອດຮ້ານ', po_done: 'ຮັບເຄື່ອງແລ້ວ' };
+      h += '<ol class="steps">' + PO_FLOW.map(function (k, i) {
+        var cls = i < fi || d.status === 'po_done' ? 'done' : i === fi ? 'now' : '';
+        if (k === 'po_arrived' && d.arrivedAt) sub.po_arrived = dm(d.arrivedAt);
+        return '<li class="' + cls + '"><span class="dot">' + (cls === 'done' ? '✓' : i + 1) + '</span><span class="t"><b>' + names[k] + '</b><small>' + esc(sub[k] || '') + '</small></span></li>';
+      }).join('') + '</ol>';
+    }
+    h += '</div>';
+    var lines = Array.isArray(d.lines) ? d.lines : Object.keys(d.lines || {}).map(function (k) { return d.lines[k]; });
+    h += '<div class="panel"><h3><span>ສິນຄ້າສັ່ງຈອງ</span><span>' + (d.at ? dmy(d.at) : '') + '</span></h3>' + lines.filter(Boolean).map(function (l) {
+      return '<div class="tline"><span class="ph"></span><div class="txt"><div class="en">' + esc(String(l.n || '').toUpperCase()) + '</div>' + (l.m ? '<div class="meta">' + esc(l.m) + '</div>' : '') + '</div><div class="r num">× ' + esc(l.q) + '</div></div>';
+    }).join('') +
+      '<div class="qrow"><span>ລາຄາເຕັມ</span><b class="num">' + money2(d.total, c) + '</b></div>' +
+      '<div class="qrow"><span>ຊຳລະແລ້ວ</span><b class="num">' + money2(d.paidAmt, c) + '</b></div>' +
+      (rem > 0 && fi >= 0 ? '<div class="total"><span>ຄົງເຫຼືອ</span><span class="num">' + money2(rem, c) + '<span class="apx">' + esc(R(rem)) + '</span></span></div>' : '') +
+      (d.eta && fi >= 0 && fi < 3 ? '<div class="qrow"><span>ຄາດວ່າເຄື່ອງຮອດ</span><b class="num">' + dm(d.eta.from) + ' – ' + dm(d.eta.to) + '</b></div><p class="hint" style="margin:4px 0 0">7–14 ວັນເຮັດການ · ຮ້ານຈະແຈ້ງທາງ WhatsApp ເມື່ອເຄື່ອງຮອດ</p>' : '') + '</div>';
+    if (d.status === 'po_done' && d.auth && d.claimUntil) h += '<div class="trust"><b>✓ ຮັບປະກັນຂອງແທ້ 100%</b>ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ · ແຈ້ງໄດ້ຮອດ <b style="display:inline">' + dmy(d.claimUntil) + '</b> · ນຳເກີບ ແລະ ໃບຮັບເງິນມາກວດ</div>';
+    else if (fi >= 0 && fi < 4) {
+      var cond = (d.auth ? AUTH_LO : AUTH_LO.slice(2));
+      h += '<div class="policy"><b>' + (d.auth ? '✓ ເກີບຂອງແທ້ 100%' : 'ເງື່ອນໄຂການສັ່ງຈອງ') + '</b><ol>' + cond.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol>' +
+        '<p style="margin:6px 0 0;font-weight:700">⚠️ ມັດຈຳແລ້ວ ບໍ່ສາມາດຍົກເລີກ ແລະ ບໍ່ຄືນເງິນມັດຈຳ</p></div>';
+    }
+    var wa = 'https://wa.me/' + String(CFG.waNumber).replace(/\D/g, '') + '?text=' + encodeURIComponent('ສະບາຍດີ ສອບຖາມໃບສັ່ງຈອງ ' + d.bill);
+    h += '<a class="primary wa" href="' + esc(wa) + '" target="_blank" rel="noopener">ທັກ WhatsApp ຮ້ານ</a>';
+    if (fi < 0 || d.status === 'po_done') h += '<button class="ghost" type="button" data-tr="clear">ປິດ</button>';
+    $('track-in').innerHTML = h;
+  }
   function startTrackFromHash() {
     var m = location.hash.match(/t=([A-Za-z0-9]{20})/);
     if (m) { store('augx-track', { tok: m[1], bill: '' }); showTrack(m[1]); return; }
@@ -762,7 +848,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     T.ref.on('value', function (s) {
       var d = s.val();
       if (!d) { T.data = { missing: true }; } else {
-        if (T.lastStatus && T.lastStatus !== d.status && (d.status === 'ready' || d.status === 'rejected')) ding();
+        if (T.lastStatus && T.lastStatus !== d.status && (d.status === 'ready' || d.status === 'rejected' || d.status === 'po_arrived' || d.status === 'po_refund')) ding();
         T.lastStatus = d.status; T.data = d;
       }
       if (!$('track').hidden) renderTrack();
@@ -796,6 +882,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       $('track-in').innerHTML = h + '<div class="st-card"><h2>ບໍ່ພົບອໍເດີນີ້</h2><p>ລິ້ງອາດບໍ່ຖືກຕ້ອງ ຫຼື ອໍເດີຖືກລຶບແລ້ວ</p></div><button class="ghost" type="button" data-tr="clear">ປິດ</button>';
       return;
     }
+    if (d.kind === 'po') return renderPoTrack(d, h);
     // เกิน 24 ชั่วโมง: แสดงแค่สรุปสั้นๆ ไม่แสดงรายการและจุดส่ง
     if (d.at && Date.now() - d.at > 24 * 3600000) {
       var dd = new Date(d.at), ds = ('0' + dd.getDate()).slice(-2) + '/' + ('0' + (dd.getMonth() + 1)).slice(-2) + '/' + dd.getFullYear();
@@ -832,8 +919,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       return '<div class="tline">' + (it && hasImg(it) ? '<img alt="" src="' + esc(it.image) + '">' : '<span class="ph"></span>') +
         '<div class="txt"><div class="en">' + esc(String(l.n || '').toUpperCase()) + '</div>' + (l.m ? '<div class="meta">' + esc(l.m) + '</div>' : '') +
         (l.note ? '<div class="meta">ໝາຍເຫດ: ' + esc(l.note) + '</div>' : '') + '</div>' +
-        '<div class="r num">× ' + esc(l.q) + '<small>' + kip(l.s) + '</small></div></div>';
-    }).join('') + '<div class="total"><span>ລວມ</span><span class="num">' + kip(d.total) + '</span></div></div>';
+        '<div class="r num">× ' + esc(l.q) + '<small>' + money2(l.s, d.cur) + '</small></div></div>';
+    }).join('') + '<div class="total"><span>ລວມ</span><span class="num">' + money2(d.total, d.cur) + '</span></div></div>';
     var wa = 'https://wa.me/' + String(CFG.waNumber).replace(/\D/g, '') + '?text=' + encodeURIComponent('ສະບາຍດີ ສອບຖາມອໍເດີ ' + d.bill);
     h += '<a class="primary wa" href="' + esc(wa) + '" target="_blank" rel="noopener">ທັກ WhatsApp ຮ້ານ</a>';
     if (d.status === 'ready' || d.status === 'rejected') h += '<button class="ghost" type="button" data-tr="clear">ປິດອໍເດີນີ້ (ຮັບຂອງແລ້ວ)</button>';
@@ -842,19 +929,19 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function showTrack(tok) {
     tok = tok || (store('augx-track') || {}).tok; if (!tok) return;
     subscribe(tok);
-    if (location.hash !== '#t=' + tok) history.replaceState(null, '', '#t=' + tok);
+    if (location.hash !== '#t=' + tok) window.history.replaceState(null, '', '#t=' + tok);
     renderTrack(); $('track').hidden = false; $('track').scrollTop = 0; $('bar').hidden = true; updateChip();
   }
   function hideTrack() {
     $('track').hidden = true;
-    if (location.hash) history.replaceState(null, '', location.href.replace(/#.*$/, ''));
+    if (location.hash) window.history.replaceState(null, '', location.href.replace(/#.*$/, ''));
     updateBar();
   }
   function updateChip() {
     var c = $('chip-track'), s = store('augx-track');
     if (!s || !s.tok || !$('track').hidden || !T.data || T.data.missing) { c.hidden = true; return; }
-    c.hidden = false; c.dataset.s = T.data.paid || T.data.status !== 'new' ? T.data.status : 'new';
-    c.innerHTML = '<i></i>ອໍເດີ ' + esc(String(T.data.bill || '').split('-')[0]) + ' · ' + esc((ST[T.data.status] || ST.new).chip) + ' ›';
+    c.hidden = false; c.dataset.s = PST[T.data.status] ? PST[T.data.status].s : (T.data.paid || T.data.status !== 'new' ? T.data.status : 'new');
+    c.innerHTML = '<i></i>' + (T.data.kind === 'po' ? 'ສັ່ງຈອງ ' + esc(T.data.bill || '') : 'ອໍເດີ ' + esc(String(T.data.bill || '').split('-')[0])) + ' · ' + esc((ST[T.data.status] || ST.new).chip) + ' ›';
     c.classList.toggle('up', cartCount() > 0);
   }
   function ding() {
@@ -955,7 +1042,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     if (km > DLV.maxKm) {
       msg.className = 'mapmsg bad'; msg.textContent = 'ໄລຍະທາງ ' + kmText(km) + ' ກມ. — ເກີນ ' + DLV.maxKm + ' ກມ. ຮ້ານສົ່ງບໍ່ໄດ້'; ok.disabled = true;
     } else {
-      var q = quote(km, cartTotal());
+      var q = quote(km, cartLak());
       msg.className = 'mapmsg'; msg.innerHTML = 'ໄລຍະທາງ <b>' + kmText(km) + ' ກມ.</b> · ຄ່າສົ່ງປະມານ <b>' + kip(q.fee) + '</b>' + (q.shop ? ' · <b style="color:var(--ok)">' + (q.cust ? 'ຮ້ານອອກໃຫ້ ' + kip(q.shop) : 'ສົ່ງຟຣີ') + '</b>' : '');
       ok.disabled = false;
     }
@@ -994,6 +1081,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         var miss = item.groups.filter(function (g, i) { return g.required && !(draft.sel[i] || []).length; });
         if (miss.length) { $('item-err').textContent = 'ກະລຸນາເລືອກ: ' + miss.map(function (g) { return g.name; }).join(', '); return; }
         var nl = draftLine();
+        if (cart.length && cartCur() !== itCur(item)) { pendingLine = nl; return mixSheet(item); }
         var key = function (x) { return JSON.stringify([x.itemId, x.variant, x.options.map(function (o) { return o.group + ':' + o.name; }).sort(), x.note]); };
         var same = cart.filter(function (x) { return key(x) === key(nl); })[0];
         if (same) same.qty = Math.min(50, same.qty + nl.qty); else cart.push(nl);
@@ -1001,6 +1089,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         break;
       }
       case 'cart': openCart(); break;
+      case 'mixclear': if (pendingLine) { cart = [pendingLine]; pendingLine = null; saveCart(); closeSheet(); renderMenu(); updateBar(); toast('ໃສ່ກະຕ່າແລ້ວ'); } break;
       case 'checkout': openContact(); break;
       case 'track': closeSheet(); showTrack(); break;
       case 'map': keepContact(); openMap(); break;
