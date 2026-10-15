@@ -116,6 +116,38 @@
         .thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 4px; background: #e2e8f0; }
         .sec-title { margin: 6px 0 4px; font-size: 1.05rem; color: var(--blue); }
         td.wrap { white-space: normal; min-width: 160px; }
+        /* ===== มือถือ (แบบ C): หน้าแรกเป็นปุ่มใหญ่ → กดเข้าแต่ละหน้า มีปุ่ม ← กลับ ===== */
+        #m-bar, #m-home { display: none; }
+        @media (max-width: 760px) {
+            html, body { height: auto; }
+            body { display: block; overflow-x: hidden; overflow-y: auto; }
+            .sidebar { display: none; }
+            .main-content { height: auto; overflow: visible; padding: 0 12px 24px; }
+            #m-bar { display: flex; position: sticky; top: 0; z-index: 50; margin: 0 -12px 12px; background: var(--blue); color: #fff; align-items: center; gap: 10px; padding: 12px 14px; font-weight: bold; font-size: 16px; }
+            #m-bar button { background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; font-size: 15px; font-weight: bold; cursor: pointer; }
+            body.m-home #m-back { display: none; }
+            body.m-home .tab-content { display: none !important; }
+            body.m-home #m-home { display: grid; }
+            #m-home { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            #m-home button { background: var(--white); border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 6px; font-size: 13px; font-weight: bold; color: var(--blue); display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; min-height: 92px; box-shadow: 0 2px 5px rgba(0,0,0,.04); }
+            #m-home button span { font-size: 26px; line-height: 1; }
+            #m-home button.big { grid-column: 1 / -1; flex-direction: row; justify-content: center; font-size: 15px; min-height: 64px; background: #eef4ff; border-color: #c9d7f5; }
+            #m-home button.big small { font-weight: normal; color: #475569; }
+            #m-home .m-sec { grid-column: 1 / -1; font-size: 11px; color: #64748b; font-weight: bold; letter-spacing: .06em; margin-top: 6px; }
+            h2 { font-size: 1.1rem; }
+            .table-responsive { overflow-x: auto; }
+            .box { padding: 14px; }
+        }
+        #report-cards { display: block; }
+        .rtotal { font-size: 15px; margin: 0 0 10px; } .rtotal b { font-size: 22px; color: var(--blue); margin: 0 6px; }
+        .rgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+        .rbox { background: var(--white); border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.05); min-width: 0; }
+        .rb-h { font-weight: bold; color: var(--blue); font-size: 16px; } .rb-big { font-size: 28px; font-weight: bold; margin: 4px 0 0; color: #0f172a; }
+        .rb-sub { margin: 10px 0; } .rb-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 3px 0; color: #475569; } .rb-row.neg b { color: var(--red); }
+        .rb-t { width: 100%; min-width: 0 !important; border-collapse: collapse; margin-top: 6px; font-size: 14px; }
+        .rb-t td, .rb-t th { white-space: nowrap; } .rb-t th { text-align: left; font-size: 12px; color: #64748b; padding: 4px 6px; background: #f8fafc; }
+        .rb-t td { padding: 6px; border-top: 1px solid #eef2f7; font-variant-numeric: tabular-nums; }
+        .ralerts { margin-top: 12px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; line-height: 1.7; }
     </style>
 </head>
 <body>
@@ -145,6 +177,8 @@
     </div>
 
     <div class="main-content">
+        <div id="m-bar"><button type="button" id="m-back">←</button><span id="m-title">AUGUSTX ADMIN</span></div>
+        <div id="m-home"></div>
         <!-- FINANCIAL -->
         <div id="tab-financial" class="tab-content active">
             <h2>Financial & Reports</h2>
@@ -281,9 +315,10 @@
                     <button class="btn btn-green" onclick="addCategory()">ADD CATEGORY</button>
                 </div>
             </div>
+            <p class="hint" style="margin:0 0 8px;">ติ๊กที่หมวด แล้วทุกสินค้าในหมวดเป็นแบบนั้นเอง · <b>ขายที่หน้า SHOP</b> = ไม่ขึ้นในแคชเชียร์ ยอดเข้ากล่อง 👟 SHOP · <b>ของแท้</b> = ใบเสร็จพิมพ์กล่องรับประกัน 30 วัน (ลูกค้าไม่เห็นในหน้าสั่งออนไลน์) · <b>รองเท้า</b> = หน้าสั่งออนไลน์ถามความยาวเท้า cm</p>
             <div class="box table-responsive">
                 <table>
-                    <thead><tr><th style="width:60px;">No.</th><th>Category Name</th><th>จำนวนสินค้า</th><th>ຈັດການ</th></tr></thead>
+                    <thead><tr><th style="width:60px;">No.</th><th>Category Name</th><th>จำนวนสินค้า</th><th>👟 ขายที่หน้า SHOP</th><th>✓ ของแท้</th><th>👟 รองเท้า (ถาม cm)</th><th>ຈັດການ</th></tr></thead>
                     <tbody id="category-table-body"></tbody>
                 </table>
             </div>
@@ -428,6 +463,11 @@
                     <div><strong>Table management (ระบบจัดการโต๊ะ)</strong><div class="hint">ปิดแล้วช่องเลือกโต๊ะจะไม่แสดงในหน้าชำระเงิน</div></div>
                     <label class="switch"><input type="checkbox" id="feat-tables" checked onchange="saveFeatureSetting('tables', this.checked)"><span class="slider"></span></label>
                 </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+                    <div><strong>แคชเชียร์รับพรีออเดอร์ได้</strong><div class="hint">เปิดแล้ว สินค้าร้านกาแฟที่ติ๊ก "สั่งจอง" (เช่น มัทฉะล็อตใหม่) พนักงานเปิดใบมัดจำที่แคชเชียร์ได้ · รองเท้ายังอยู่หน้า 👟 SHOP เท่านั้น</div></div>
+                    <label class="switch"><input type="checkbox" id="feat-cafepo" onchange="saveFeatureSetting('cashierPreorder', this.checked)"><span class="slider"></span></label>
+                </div>
+                <div style="margin-top:14px;"><a class="btn btn-blue" href="shop.html" style="text-decoration:none;display:inline-block;">👟 เปิดหน้า SHOP</a> <span class="hint">พรีออเดอร์รองเท้า · ขายพร้อมส่ง · ออร์เดอร์ออนไลน์รองเท้า · ยอด SHOP</span></div>
             </div>
             <div class="box" id="online-settings">
                 <h3 style="margin-top:0; font-size:1rem; color:var(--blue);">🛵 ลูกค้าสั่งเองออนไลน์ (order.html)</h3>
@@ -447,6 +487,8 @@
                 <label style="display:block;margin-top:12px;"><strong>บรรทัดท้ายของข้อความลูกค้า</strong><input type="text" id="on-closing" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                 <label style="display:block;margin-top:12px;"><strong>ข้อความตอบลูกค้า (ปุ่ม 💬 ในหน้าแคชเชียร์)</strong><textarea id="on-reply" rows="4" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;font-family:inherit;"></textarea><div class="hint">ใช้ {name} = ชื่อลูกค้า, {bill} = เลขบิล, {total} = ยอดรวมที่ระบบคิด, {link} = ลิงก์หน้าติดตามออร์เดอร์</div></label>
                 <label style="display:block;margin-top:12px;"><strong>ข้อความตอนปิดรับออนไลน์</strong><input type="text" id="on-closed" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
+                <label style="display:block;margin-top:12px;"><strong>เวลาให้ลูกค้าโอนเงิน (นาที)</strong><input type="number" id="on-paymin" min="3" max="120" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><div class="hint">ลูกค้าเห็นนับถอยหลัง · เกินเวลาแล้วร้านยังไม่กดรับ → ออร์เดอร์หมดเวลา (ดึงกลับมาทำได้ใน 24 ชม.) · ร้านกดรับแล้วไม่ยกเลิกเอง</div></label>
+                <div style="margin-top:14px;"><strong>เบอร์ที่บล็อก</strong> <span class="hint">(กด 🚫 บล็อกเบอร์ ได้ที่แผงออร์เดอร์ออนไลน์)</span><div id="blocked-list" style="margin-top:6px;"></div></div>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px;">
                     <span class="hint" style="margin:0;">ลิงก์ให้ลูกค้า: <b id="on-link" style="user-select:all;"></b></span>
                     <button class="btn btn-blue btn-sm" type="button" onclick="copyOnlineLink()">คัดลอกลิงก์</button>
@@ -558,7 +600,8 @@
             <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;"><input type="checkbox" id="modal-item-cup" style="width:auto;" checked> สินค้านี้ใช้แก้ว (ตัดสต็อกแก้วอัตโนมัติ)</label></div>
             <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;"><input type="checkbox" id="modal-item-retail" style="width:auto;"> สินค้าขายปลีก ไม่เข้าครัว (เช่น ผงมัทฉะ อุปกรณ์ รองเท้า)</label>
                 <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-preorder" style="width:auto;"> สินค้าสั่งจอง (ขึ้นป้าย PRE-ORDER · แคชเชียร์กดแล้วเปิดใบมัดจำ)</label>
-                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-auth" style="width:auto;"> รับประกันของแท้ (รองเท้า) · ใบมัดจำและหน้าออนไลน์โชว์ "ເກີບຂອງແທ້ 100%" เคลมได้ 30 วัน</label>
+                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;margin-top:6px;"><input type="checkbox" id="modal-item-stock" style="width:auto;" onchange="stockOn=this.checked;renderVariantRows()"> นับสต็อกรายไซส์/แบบ (ใส่จำนวนที่มีที่ร้านในแถวราคาด้านบน · ขายแล้วหักเอง)</label>
+                <div class="hint">ของแท้ / รองเท้า / ขายที่ SHOP ตั้งที่หน้า <b>Categories</b> (ติ๊กที่หมวด)</div>
                 <div id="modal-item-cur-wrap" style="margin-top:8px;"><label>สกุลเงินของราคา</label><select id="modal-item-cur"><option value="LAK">₭ กีบ</option><option value="THB">฿ บาท</option></select></div>
                 <div class="hint">รองเท้าแต่ละไซส์ราคาไม่เท่ากัน: ใส่ไซส์เป็น "แบบสินค้า" เช่น 40 / 41 / 42 แล้วใส่ราคาของแต่ละไซส์</div></div>
             <div class="form-group"><label>คำอธิบายสั้นๆ ในหน้าสั่งออนไลน์ (ไม่บังคับ)</label><input type="text" id="modal-item-desc" maxlength="120" placeholder="เช่น นมสด ช็อตเอสเปรสโซ่ 2 ช็อต"></div>
@@ -568,10 +611,10 @@
                 <div style="margin-top:8px; display:flex; gap:10px; align-items:center;"><img id="modal-item-preview" class="thumb" style="width:60px;height:60px;display:none;"><button class="btn btn-gray btn-sm" id="modal-item-clear-img" style="display:none;" onclick="clearItemImage()">ลบรูป</button></div>
             </div>
             <div class="form-group">
-                <label>รูปใหญ่ในหน้าสั่งออนไลน์ (ไม่บังคับ สูงสุด 3 รูป)</label>
+                <label>รูปใหญ่ในหน้าสั่งออนไลน์ (ไม่บังคับ สูงสุด 4 รูป · ตัดเป็นรูปจัตุรัสให้เอง)</label>
                 <input type="file" id="modal-item-photos" accept="image/*" multiple onchange="onItemPhotosPicked(this)">
                 <div id="modal-item-photo-list" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;"></div>
-                <div class="hint">ลูกค้าเห็นตอนกดเปิดเมนูนี้ ปัดดูได้หลายรูป ระบบย่อให้เหลือรูปละประมาณ 50 KB · ถ้ายังไม่มีรูปเล็ก ระบบใช้รูปแรกทำรูปเล็กให้</div>
+                <div class="hint">ลูกค้าเห็นตอนกดเปิดเมนูนี้ ปัดดูได้หลายรูป ระบบย่อให้เหลือรูปละประมาณ 70 KB · ถ้ายังไม่มีรูปเล็ก ระบบใช้รูปแรกทำรูปเล็กให้</div>
             </div>
             <div style="text-align:right; margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn btn-red" onclick="closeItemModal()" style="padding:10px 15px;">ยกเลิก</button>
@@ -681,6 +724,12 @@
                 document.getElementById('set-shop-footer').value = p.footer || '';
             });
             database.ref('settings/features/tables').on('value', snap => { document.getElementById('feat-tables').checked = snap.val() !== false; });
+            database.ref('settings/features/cashierPreorder').on('value', snap => { document.getElementById('feat-cafepo').checked = snap.val() === true; });
+            database.ref('blocked').on('value', snap => {
+                let h = '';
+                snap.forEach(c => { const b = c.val() || {}; h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #e2e8f0"><span>🚫 <b>${esc(c.key)}</b> ${esc(b.name || '')} <span class="hint">${b.at ? fmtDate(b.at) : ''}</span></span><button class="btn btn-gray btn-sm" type="button" data-k="${esc(c.key)}" onclick="unblockPhone(this.dataset.k)">ปลดบล็อก</button></div>`; });
+                document.getElementById('blocked-list').innerHTML = h || '<span class="hint">ยังไม่มีเบอร์ที่บล็อก</span>';
+            });
 
             database.ref('tables').on('value', snap => {
                 let html = '';
@@ -816,6 +865,7 @@
             toast('ส่งไปที่ RawBT แล้ว');
         }
         function saveFeatureSetting(key, val) { database.ref('settings/features/' + key).set(val); }
+        function unblockPhone(k) { if (confirm('ปลดบล็อกเบอร์ ' + k + ' ?')) database.ref('blocked/' + k).remove().then(() => toast('ปลดบล็อกแล้ว')); }
         /* ---------- ลูกค้าสั่งเองออนไลน์ ---------- */
         const ONLINE_DEF = {
             enabled: true, beta: true, waNumber: '+8562057388383', prefix: 'ON',
@@ -835,6 +885,7 @@
             document.getElementById('on-closing').value = c.closing || '';
             document.getElementById('on-reply').value = c.replyText || '';
             document.getElementById('on-closed').value = c.closedText || '';
+            document.getElementById('on-paymin').value = c.payWindowMin || 10;
             document.getElementById('on-link').innerText = onlineLink();
         }
         function saveOnlineSettings() {
@@ -849,7 +900,8 @@
                 greeting: document.getElementById('on-greeting').value.trim() || ONLINE_DEF.greeting,
                 closing: document.getElementById('on-closing').value.trim(),
                 replyText: document.getElementById('on-reply').value.trim() || ONLINE_DEF.replyText,
-                closedText: document.getElementById('on-closed').value.trim() || ONLINE_DEF.closedText
+                closedText: document.getElementById('on-closed').value.trim() || ONLINE_DEF.closedText,
+                payWindowMin: Math.min(120, Math.max(3, parseInt(document.getElementById('on-paymin').value, 10) || 10))
             }).then(() => { markDirty('online-settings', false); toast('บันทึกตั้งค่าออนไลน์แล้ว'); }).catch(e => toast('บันทึกไม่สำเร็จ: ' + e.message, false));
         }
         function copyOnlineLink() {
@@ -902,16 +954,21 @@
             const keepFilter = document.getElementById('filter-category-select').value || 'ALL';
             globalCategories.forEach((cat, i) => {
                 const used = globalItems.filter(it => it.category === cat.name).length;
-                html += `<tr><td>${i + 1}</td><td><strong>${esc(cat.name)}</strong></td><td>${used}</td><td><div class="actions-cell"><button class="btn btn-blue btn-sm" data-id="${esc(cat.id)}" onclick="renameCategory(this.dataset.id)">เปลี่ยนชื่อ</button><button class="btn btn-red btn-sm" data-id="${esc(cat.id)}" onclick="deleteCategory(this.dataset.id)">ลบ</button></div></td></tr>`;
+                const ck = (k) => `<input type="checkbox" style="width:auto;transform:scale(1.3)" data-id="${esc(cat.id)}" data-k="${k}" ${cat[k] ? 'checked' : ''} onchange="setCatFlag(this)">`;
+                html += `<tr><td>${i + 1}</td><td><strong>${esc(cat.name)}</strong></td><td>${used}</td><td>${ck('shop')}</td><td>${ck('authentic')}</td><td>${ck('shoe')}</td><td><div class="actions-cell"><button class="btn btn-blue btn-sm" data-id="${esc(cat.id)}" onclick="renameCategory(this.dataset.id)">เปลี่ยนชื่อ</button><button class="btn btn-red btn-sm" data-id="${esc(cat.id)}" onclick="deleteCategory(this.dataset.id)">ลบ</button></div></td></tr>`;
                 dropdown += `<option value="${esc(cat.name)}">${esc(cat.name)}</option>`;
                 filter += `<option value="${esc(cat.name)}">${esc(cat.name)}</option>`;
             });
-            document.getElementById('category-table-body').innerHTML = html || emptyRow(4, 'ไม่มีหมวดหมู่');
+            document.getElementById('category-table-body').innerHTML = html || emptyRow(7, 'ไม่มีหมวดหมู่');
             document.getElementById('cat-count-badge').innerText = '(' + globalCategories.length + ')';
             const modalSel = document.getElementById('modal-item-cat'), keepModal = modalSel.value;
             modalSel.innerHTML = dropdown; modalSel.value = keepModal;
             document.getElementById('filter-category-select').innerHTML = filter;
             document.getElementById('filter-category-select').value = keepFilter;
+        }
+        function setCatFlag(el) {
+            database.ref('categories/' + el.dataset.id + '/' + el.dataset.k).set(el.checked ? true : null)
+                .then(() => toast('บันทึกแล้ว')).catch(e => toast('ไม่สำเร็จ: ' + e.message, false));
         }
         function addCategory() {
             const name = document.getElementById('new-cat-name').value.trim();
@@ -984,7 +1041,7 @@
             document.getElementById('modal-item-cup').checked = true;
             document.getElementById('modal-item-retail').checked = false;
             document.getElementById('modal-item-preorder').checked = false;
-            document.getElementById('modal-item-auth').checked = false;
+            stockOn = false; stockMap = {}; document.getElementById('modal-item-stock').checked = false; renderVariantRows();
             document.getElementById('modal-item-cur').value = 'LAK';
             document.getElementById('modal-item-cur-wrap').hidden = !FX.on;
             document.getElementById('modal-item-desc').value = '';
@@ -1008,7 +1065,8 @@
             document.getElementById('modal-item-cup').checked = it.usesCup !== false;
             document.getElementById('modal-item-retail').checked = it.retail === true;
             document.getElementById('modal-item-preorder').checked = it.preorder === true;
-            document.getElementById('modal-item-auth').checked = it.authentic === true;
+            stockOn = it.stockOn === true; stockMap = Object.assign({}, it.stock || {}); document.getElementById('modal-item-stock').checked = stockOn;
+            renderVariantRows();
             document.getElementById('modal-item-cur').value = it.currency === 'THB' ? 'THB' : 'LAK';
             document.getElementById('modal-item-cur-wrap').hidden = !FX.on && it.currency !== 'THB';
             document.getElementById('modal-item-desc').value = it.description || '';
@@ -1033,12 +1091,14 @@
             document.getElementById('modal-item-channels').innerHTML = chans.map(c =>
                 `<label><input type="checkbox" value="${esc(c.id)}" ${hidden.includes(c.id) ? '' : 'checked'}> ${esc(c.name)}</label>`).join('');
         }
+        let stockOn = false, stockMap = {};
         function renderVariantRows() {
             const box = document.getElementById('variant-rows');
             box.innerHTML = variantRows.map((r, i) =>
                 `<div style="display:flex; gap:8px; margin-bottom:6px; align-items:center;">
                     <input type="text" placeholder="ชื่อแบบ เช่น HOT" value="${esc(r.label)}" oninput="variantRows[${i}].label = this.value" style="flex:2;">
                     <input type="number" placeholder="ราคา" min="0" value="${esc(r.price)}" oninput="variantRows[${i}].price = this.value" style="flex:1;">
+                    ${stockOn ? `<input type="number" placeholder="มีกี่ชิ้น" min="0" title="จำนวนที่มีที่ร้าน" value="${esc(stockMap[stockKey(r.label)] != null ? stockMap[stockKey(r.label)] : '')}" oninput="stockMap[stockKey(variantRows[${i}].label)] = this.value" style="flex:1;background:#f0fdf4;">` : ''}
                     <button class="btn btn-red btn-sm" type="button" onclick="removeVariantRow(${i})" ${variantRows.length <= 1 ? 'disabled style="opacity:.4;"' : ''}>✕</button>
                 </div>`).join('');
         }
@@ -1060,7 +1120,7 @@
                 usesCup: document.getElementById('modal-item-cup').checked && !document.getElementById('modal-item-retail').checked,
                 retail: document.getElementById('modal-item-retail').checked,
                 preorder: document.getElementById('modal-item-preorder').checked,
-                authentic: document.getElementById('modal-item-auth').checked,
+                stockOn: stockOn,
                 currency: document.getElementById('modal-item-cur').value === 'THB' ? 'THB' : 'LAK',
                 description: document.getElementById('modal-item-desc').value.trim(),
                 image: modalImage || 'images/bg.jpg'
@@ -1068,7 +1128,10 @@
             const done = () => { toast('บันทึกสำเร็จ'); closeItemModal(); };
             const fail = e => toast('บันทึกไม่สำเร็จ: ' + e.message, false);
             const finish = id => {
-                if (!modalPhotosDirty) return Promise.resolve();
+                const st = {};
+                if (stockOn) prices.forEach(p => { const v = parseInt(stockMap[stockKey(p.label)], 10); st[stockKey(p.label)] = isNaN(v) ? 0 : Math.max(0, v); });
+                const stockSave = database.ref('menu_items/' + id + '/stock').set(stockOn ? st : null);
+                if (!modalPhotosDirty) return stockSave;
                 const n = modalPhotos.length;
                 return Promise.all([
                     n ? database.ref('menu_photos/' + id).set({ p: modalPhotos }) : database.ref('menu_photos/' + id).remove(),
@@ -1202,9 +1265,9 @@
                 `<div style="position:relative;"><img src="${u}" style="width:96px;height:72px;object-fit:cover;border-radius:6px;display:block;"><button class="btn btn-red btn-sm" type="button" onclick="removeItemPhoto(${i})" style="position:absolute;top:2px;right:2px;padding:2px 6px;">✕</button></div>`).join('');
         }
         function onItemPhotosPicked(input) {
-            const files = Array.from(input.files || []).slice(0, Math.max(0, 3 - modalPhotos.length));
-            if (!files.length) { input.value = ''; return toast('ใส่ได้สูงสุด 3 รูป', false); }
-            files.forEach(f => cropResize(f, 800, 600, 0.72, d => { if (modalPhotos.length < 3) { modalPhotos.push(d); modalPhotosDirty = true; renderItemPhotos(); } }));
+            const files = Array.from(input.files || []).slice(0, Math.max(0, 4 - modalPhotos.length));
+            if (!files.length) { input.value = ''; return toast('ใส่ได้สูงสุด 4 รูป', false); }
+            files.forEach(f => cropResize(f, 800, 800, 0.72, d => { if (modalPhotos.length < 4) { modalPhotos.push(d); modalPhotosDirty = true; renderItemPhotos(); } }));
             input.value = '';
         }
         function removeItemPhoto(i) { modalPhotos.splice(i, 1); modalPhotosDirty = true; renderItemPhotos(); }
@@ -1502,26 +1565,46 @@
 
             unpaid = openList.reduce((s, o) => s + Number(o.total || 0), 0);
             const bills = valid.length;
-            const cards = [
-                ['ຍອດຂາຍລວມທັງໝົດ', money(total), ''],
-                ['ຍອດຂາຍໜ້າຮ້ານ', money(store), ''],
-                ['ຍອດຂາຍ Delivery', money(delivery), 'green'],
-                ['เงินสด (ชำระแล้ว)', money(cash), 'green'],
-                ['โอนเงิน (ชำระแล้ว)', money(transfer), 'green'],
-                ...(thbBills ? [['รับเป็นเงินบาท (' + thbBills + ' บิล · คิดเป็น ' + money(thbLak) + ')', baht(thbCash + thbTransfer) + '<div style="font-size:12px;color:#64748b;font-weight:normal">เงินสด ' + baht(thbCash) + ' · โอน ' + baht(thbTransfer) + '</div>', 'green']] : []),
-                ...(poBills || poRefund.n ? [['📦 พรีออเดอร์ (มัดจำ + ชำระ ' + poBills + ' ครั้ง · รวมในยอดขายแล้ว)', money(poSum), 'orange']] : []),
-                ...(poRefund.n ? [['📦 คืนเงินพรีออเดอร์ (' + poRefund.n + ' รายการ · ยังไม่หักจากยอดขาย)', '−' + money(poRefund.lak), 'red']] : []),
-                ['บิลที่ยังเปิดอยู่ (' + openList.length + ' บิล ยังไม่นับเป็นยอดขาย)', money(unpaid), unpaid > 0 ? 'red' : 'gray'],
-                ['ต้องคืนเงินลูกค้า (ยังไม่คืน)', money(refundPending), refundPending > 0 ? 'red' : 'gray'],
-                ['คืนเงินแล้ว (ยกเลิกหลังจ่าย)', money(refunded), 'gray'],
-                ['จำนวนบิล', bills + (voided ? ' (ยกเลิก ' + voided + ')' : ''), 'orange'],
-                ['เฉลี่ยต่อบิล', money(bills ? Math.round(total / bills) : 0), 'orange'],
-                ['ส่วนลดรวม', money(discount), 'gray'],
-                ['ค่าคอม Delivery รวม', money(commission), 'gray'],
-                ['ยอดสุทธิหลังหักคอม', money(total - commission), ''],
-                ...(poRefund.n ? [['ยอดสุทธิหลังหักคอม และคืนเงินพรีออเดอร์', money(total - commission - poRefund.lak), '']] : [])
-            ];
-            document.getElementById('report-cards').innerHTML = cards.map(c => `<div class="card ${c[2]}"><div class="card-title">${c[0]}</div><div class="card-value">${c[1]}</div></div>`).join('');
+            /* ---- 2 กล่อง: ☕ ร้านกาแฟ | 👟 SHOP · แต่ละกล่องมีตารางเงินสด/โอน × กีบ/บาท ไว้เทียบตอนนับเงิน ---- */
+            const box = () => ({ sales: 0, bills: 0, lak: { cash: 0, transfer: 0 }, thb: { cash: 0, transfer: 0 }, app: 0, drinks: 0, retail: 0, po: 0, poN: 0 });
+            const B = { cafe: box(), shop: box() };
+            valid.forEach(o => {
+                const k = o.store === 'shop' ? 'shop' : 'cafe', b = B[k], amt = Number(o.total || 0);
+                b.sales += amt; b.bills++;
+                if (billCur(o) === 'THB' && o.payCurrency === 'THB') { if (o.paymentMethod === 'cash') b.thb.cash += Number(o.payAmount || 0); else b.thb.transfer += Number(o.payAmount || 0); }
+                else if (o.paymentMethod === 'cash') b.lak.cash += amt;
+                else if (o.paymentMethod === 'transfer') b.lak.transfer += amt;
+                else if (o.paymentMethod === 'delivery') b.app += amt;
+                if (o.source === 'preorder') { b.po += amt; b.poN++; }
+                else arr(o.items).forEach(it => { if (it.retail || it.shop) b.retail += lineLak(o, it); else b.drinks += lineLak(o, it); });
+            });
+            const refBy = { cafe: { n: 0, lak: 0 }, shop: { n: 0, lak: 0 } };
+            poRefund.list.forEach(p => { const r = refBy[p.store === 'cafe' ? 'cafe' : 'shop']; r.n++; r.lak += Number(p.refund.lak || 0); });
+            const row = (l, v, cls) => v ? `<div class="rb-row ${cls || ''}"><span>${l}</span><b>${v}</b></div>` : '';
+            const money2 = (t) => t.cash || t.transfer;
+            const boxHtml = (title, b, ref, extra) => {
+                if (!b.bills && !ref.n) return `<div class="rbox"><div class="rb-h">${title}</div><div class="rb-big">0 ₭</div><div class="hint">ยังไม่มียอดในช่วงนี้</div></div>`;
+                let h = `<div class="rbox"><div class="rb-h">${title}</div><div class="rb-big">${money(b.sales)}</div><div class="hint">${b.bills} บิล · เฉลี่ย ${money(b.bills ? Math.round(b.sales / b.bills) : 0)}</div>`;
+                h += '<div class="rb-sub">' + extra(b) + '</div>';
+                h += `<table class="rb-t"><tr><th></th><th>₭ กีบ</th>${money2(b.thb) ? '<th>฿ บาท</th>' : ''}</tr>
+                    <tr><td>💵 เงินสด</td><td>${money(b.lak.cash)}</td>${money2(b.thb) ? '<td>' + baht(b.thb.cash) + '</td>' : ''}</tr>
+                    <tr><td>📱 โอน</td><td>${money(b.lak.transfer)}</td>${money2(b.thb) ? '<td>' + baht(b.thb.transfer) + '</td>' : ''}</tr></table>`;
+                if (b.app) h += row('🛵 แอป Delivery (แอปจ่าย)', money(b.app));
+                if (ref.n) h += row('↩ คืนเงินพรีออเดอร์ ' + ref.n + ' รายการ', '−' + money(ref.lak), 'neg');
+                return h + '</div>';
+            };
+            const cafeExtra = b => row('🥤 เครื่องดื่ม/อาหาร', b.drinks ? money(b.drinks) : '') + row('🛍️ สินค้าปลีก', b.retail ? money(b.retail) : '') + row('📦 พรีออเดอร์ (มัดจำ+ชำระ)', b.po ? money(b.po) : '') + row('ส่วนลด', discount ? '−' + money(discount) : '') + row('ค่าคอม Delivery', commission ? '−' + money(commission) : '');
+            const shopExtra = b => row('👟 ขายพร้อมส่ง/ออนไลน์', b.sales - b.po ? money(b.sales - b.po) : '') + row('📦 พรีออเดอร์ (มัดจำ+ชำระ ' + b.poN + ' ครั้ง)', b.po ? money(b.po) : '');
+            const alerts = [];
+            if (openList.length) alerts.push(`⚠️ บิลยังไม่จ่าย ${openList.length} บิล · ${money(unpaid)} (ยังไม่นับเป็นยอดขาย)`);
+            if (refundPending) alerts.push(`⚠️ ต้องคืนเงินลูกค้า (ยังไม่คืน) ${money(refundPending)}`);
+            if (refunded) alerts.push(`คืนเงินแล้ว (ยกเลิกหลังจ่าย) ${money(refunded)}`);
+            if (voided) alerts.push(`ยกเลิก ${voided} บิล`);
+            const mrs = document.getElementById('m-rep-sub'); if (mrs) mrs.textContent = '· ' + money(total);
+            document.getElementById('report-cards').innerHTML =
+                `<div class="rtotal">รวมทั้ง 2 ร้าน <b>${money(total)}</b> <span class="hint">${bills} บิล${refBy.cafe.n + refBy.shop.n ? ' · หักคืนเงินพรีออเดอร์แล้ว ' + money(total - refBy.cafe.lak - refBy.shop.lak) : ''}</span></div>` +
+                `<div class="rgrid">${boxHtml('☕ ร้านกาแฟ', B.cafe, refBy.cafe, cafeExtra)}${boxHtml('👟 SHOP & PRE-ORDER', B.shop, refBy.shop, shopExtra)}</div>` +
+                (alerts.length ? `<div class="ralerts">${alerts.map(a => '<div>' + a + '</div>').join('')}</div>` : '');
 
             const top = Object.keys(itemMap).map(k => ({ name: k, qty: itemMap[k].qty, rev: itemMap[k].rev })).sort((a, b) => b.qty - a.qty).slice(0, 10);
             document.getElementById('report-top').innerHTML = top.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.name)}</td><td>${t.qty}</td><td>${money(t.rev)}</td></tr>`).join('') || emptyRow(4, 'ไม่มีข้อมูล');
@@ -1589,6 +1672,33 @@
             downloadFile('orders-' + document.getElementById('rep-from').value + '_to_' + document.getElementById('rep-to').value + '.csv', csv, 'text/csv;charset=utf-8');
         }
 
+        /* ---- มือถือ: สร้างปุ่มใหญ่จากเมนูซ้าย ---- */
+        (function () {
+            const home = document.getElementById('m-home'), mq = matchMedia('(max-width: 760px)');
+            let h = '<button type="button" class="big" data-tab="tab-financial" data-title="📊 รายงาน"><span>📊</span>รายงานวันนี้ <small id="m-rep-sub"></small></button>';
+            document.querySelectorAll('.nav-menu li').forEach(li => {
+                if (!li.classList.contains('nav-item')) { h += '<div class="m-sec">' + esc(li.textContent.trim()) + '</div>'; return; }
+                const m = (li.getAttribute('onclick') || '').match(/'(tab-[a-z]+)'/); if (!m || m[1] === 'tab-financial') return;
+                const t = li.textContent.trim(), mm = t.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+                const ic = mm ? mm[1] : '•', label = (mm ? mm[2] : t).replace(/\(.*?\)/g, '').trim();
+                h += `<button type="button" data-tab="${m[1]}" data-title="${esc(label)}"><span>${esc(ic)}</span>${esc(label)}</button>`;
+            });
+            h += '<div class="m-sec">หน้าอื่น</div><button type="button" data-axpo="1"><span>📦</span>พรีออเดอร์ (ทั้งหมด)</button><button type="button" data-go="shop.html"><span>👟</span>SHOP</button><button type="button" data-go="index.html"><span>🛒</span>Cashier</button><button type="button" data-go="kitchen.html"><span>👨‍🍳</span>จอครัว</button>';
+            home.innerHTML = h;
+            function goHome() { document.body.classList.add('m-home'); document.getElementById('m-title').textContent = 'AUGUSTX ADMIN'; window.scrollTo(0, 0); }
+            home.addEventListener('click', e => {
+                const b = e.target.closest('button'); if (!b) return;
+                if (b.dataset.go) { location.href = b.dataset.go; return; }
+                if (b.dataset.axpo) { if (window.AXPO) AXPO.open(); return; }
+                const li = Array.from(document.querySelectorAll('.nav-item')).find(x => (x.getAttribute('onclick') || '').indexOf(b.dataset.tab) >= 0);
+                switchTab(b.dataset.tab, li);
+                document.body.classList.remove('m-home');
+                document.getElementById('m-title').textContent = b.dataset.title || '';
+                window.scrollTo(0, 0);
+            });
+            document.getElementById('m-back').onclick = goHome;
+            if (mq.matches) goHome();
+        })();
         startApp('admin', startListeners);
     </script>
 </body>

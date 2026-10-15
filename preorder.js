@@ -30,8 +30,10 @@
         { th: 'ของไม่แท้ (ลูกค้าคืนของ)', lo: 'ກວດພົບວ່າບໍ່ແທ້', fake: true },
         { th: 'อื่นๆ', lo: '' }
     ];
+    // หน้าไหนใช้: 'shop' = หน้า SHOP (รองเท้า) · 'cafe' = แคชเชียร์ (สินค้าร้านกาแฟ เปิดได้ใน Admin) · 'all' = Admin
+    var MODE = window.AXPO_MODE || 'all';
     var A = {
-        list: {}, cfg: {}, items: {}, started: false, btn: null, ov: null,
+        list: {}, cfg: {}, items: {}, cats: {}, cafeOn: false, embed: false, started: false, btn: null, ov: null,
         view: 'list', id: null, tab: 'active', q: '', f: null, pay: null, busy: false, done: null, refund: null
     };
 
@@ -101,6 +103,8 @@
         database.ref('preorders').on('value', function (s) { A.list = s.val() || {}; render(); }, function (e) { say('อ่านพรีออเดอร์ไม่ได้: ' + e.message, false); });
         database.ref('settings/preorder').on('value', function (s) { A.cfg = s.val() || {}; render(); });
         database.ref('menu_items').on('value', function (s) { A.items = s.val() || {}; if (A.view === 'create') draw(); });
+        database.ref('categories').on('value', function (s) { A.cats = s.val() || {}; });
+        database.ref('settings/features/cashierPreorder').on('value', function (s) { A.cafeOn = s.val() === true; render(); });
         setInterval(render, 5 * 60000);
     }
     if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.REQUIRE_LOGIN && firebase.auth) firebase.auth().onAuthStateChanged(function (u) { if (u) boot(); });
@@ -135,14 +139,18 @@
         '.axp-chk{display:flex!important;align-items:center;gap:8px;font-weight:normal!important}.axp-chk input{width:auto!important}';
 
     function injectUI() {
-        var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+        var st = document.createElement('style'); st.textContent = CSS + '.axp-ov.embed{position:relative;inset:auto;z-index:1;height:100%;display:flex}.axp-ov.embed [data-a="close"]{display:none}';
+        document.head.appendChild(st);
         A.ov = document.createElement('div'); A.ov.className = 'axp-ov';
+        var embedHost = document.getElementById('axp-host');
         A.ov.innerHTML = '<div class="axp-head"><button class="axp-back" data-a="back">←</button><h3 id="axp-title">📦 พรีออเดอร์</h3><button class="axp-back" data-a="close">✕ ปิด</button></div>' +
             '<div class="axp-body" id="axp-body"><div class="axp-in" id="axp-main"></div></div><div class="axp-foot" id="axp-foot"></div>';
-        document.body.appendChild(A.ov);
+        if (embedHost) { A.embed = true; A.ov.classList.add('embed'); embedHost.appendChild(A.ov); }
+        else document.body.appendChild(A.ov);
         A.ov.addEventListener('click', onClick);
         A.ov.addEventListener('input', onInput);
         A.ov.addEventListener('change', onInput);
+        if (A.embed) { A.ov.style.display = 'flex'; draw(); return; }
         var host = document.querySelector('.top-controls');
         A.btn = document.createElement('button');
         A.btn.type = 'button';
@@ -156,11 +164,20 @@
     }
 
     /* ---------- รายการ ---------- */
-    function all() { return Object.keys(A.list).map(function (k) { return Object.assign({ id: k }, A.list[k]); }); }
+    function storeOf(p) { return p.store === 'cafe' ? 'cafe' : 'shop'; }
+    function inMode(p) { return MODE === 'all' || (MODE === 'cafe' ? storeOf(p) === 'cafe' : storeOf(p) === 'shop'); }
+    function all() { return Object.keys(A.list).map(function (k) { return Object.assign({ id: k }, A.list[k]); }).filter(inMode); }
+    function flagsOf(itemId) {
+        var it = A.items[itemId] || {}, c = null;
+        Object.keys(A.cats).forEach(function (k) { if (A.cats[k] && A.cats[k].name === it.category) c = A.cats[k]; });
+        return { shop: !!(c && c.shop), authentic: it.authentic === true || !!(c && c.authentic), shoe: !!(c && c.shoe) };
+    }
     function active(p) { return ['new', 'ordered', 'shipping', 'arrived'].indexOf(p.status) >= 0; }
     function needs(p) { var a = alertOf(p); return a && (a.lv === 'red' || a.lv === 'orange' || a.lv === 'yellow'); }
     function render() {
+        if (A.embed) { if ((A.view === 'list' || A.view === 'detail') && !(document.activeElement && document.activeElement.id === 'axp-q')) { A.keepScroll = true; draw(); } return; }
         if (!A.btn) return;
+        A.btn.hidden = MODE === 'cafe' && !A.cafeOn && !all().some(active);
         var L = all(), n = L.filter(active).length, warn = L.filter(needs).length;
         A.btn.innerHTML = '📦 พรีออเดอร์ <span class="cnt' + (warn ? ' warn' : '') + '" style="' + (warn ? 'background:#ef4444;color:#fff' : 'background:#fff;color:#7c3aed') + ';border-radius:10px;padding:0 7px;font-size:12px">' + (warn ? '⚠' + warn : n) + '</span>';
         if (A.ov && A.ov.style.display === 'flex' && (A.view === 'list' || A.view === 'detail') && document.activeElement && document.activeElement.id !== 'axp-q') { A.keepScroll = true; draw(); }
@@ -268,12 +285,16 @@
 
     /* ---------- สร้างพรีออเดอร์ ---------- */
     function poItems() {
-        return Object.keys(A.items).map(function (k) { return Object.assign({ id: k }, A.items[k]); }).filter(function (it) { return it.preorder === true; })
+        return Object.keys(A.items).map(function (k) { return Object.assign({ id: k }, A.items[k]); }).filter(function (it) {
+            if (it.preorder !== true) return false;
+            var sh = flagsOf(it.id).shop;
+            return MODE === 'all' || (MODE === 'shop' ? sh : !sh);
+        })
             .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
     }
     function newForm(pre) {
         pre = pre || {};
-        A.f = { itemId: '', name: '', variant: '', styleCode: '', qty: 1, unit: '', cur: 'LAK', authentic: false, customerName: pre.name || '', customerPhone: pre.phone || '', note: pre.note || '', plan: 'half', custom: '', trackTok: pre.trackTok || '', onlineId: pre.onlineId || '', onlineLine: pre.onlineLine, onlineOnly: !!pre.onlineOnly, err: '' };
+        A.f = { itemId: '', name: '', variant: '', styleCode: '', qty: 1, unit: '', cur: 'LAK', authentic: false, customerName: pre.name || '', customerPhone: pre.phone || '', note: pre.note || '', plan: 'custom', custom: '', trackTok: pre.trackTok || '', onlineId: pre.onlineId || '', onlineLine: pre.onlineLine, onlineOnly: !!pre.onlineOnly, err: '' };
         if (pre.itemId) pickItem(pre.itemId, pre.variant);
         else if (pre.itemName) A.f.name = pre.itemName;
         if (pre.qty) A.f.qty = pre.qty;
@@ -283,7 +304,7 @@
     function pickItem(id, variant) {
         var it = A.items[id]; if (!it) return;
         var f = A.f, prices = parsePrices(it.priceOptions);
-        f.itemId = id; f.name = it.name || ''; f.cur = it.currency === 'THB' ? 'THB' : 'LAK'; f.authentic = it.authentic === true;
+        f.itemId = id; f.name = it.name || ''; f.cur = it.currency === 'THB' ? 'THB' : 'LAK'; f.authentic = flagsOf(id).authentic;
         var v = prices.find(function (x) { return x.label === variant; }) || (prices.length === 1 ? prices[0] : null);
         f.variant = v ? v.label : (variant || ''); f.unit = v ? String(v.price) : (prices[0] ? String(prices[0].price) : '');
         if (A.pay) { A.pay.cur = f.cur; A.pay.payCur = f.cur === 'THB' ? 'THB' : 'LAK'; }
@@ -293,7 +314,6 @@
     function fAmount() {
         var f = A.f, t = fTotal();
         if (f.plan === 'full') return t;
-        if (f.plan === 'half') return Math.min(t, roundAmt(t / 2, f.cur));
         return Math.min(t, Math.max(0, Math.round(parseFloat(f.custom) || 0)));
     }
     function drawCreate() {
@@ -311,12 +331,11 @@
         h += '<label class="axp-chk"><input type="checkbox" data-f="authentic"' + (f.authentic ? ' checked' : '') + '> รับประกันของแท้ (พิมพ์ข้อ "ເກີບຂອງແທ້ 100%" + เคลมได้ 30 วัน)</label>' +
             '<label>หมายเหตุ (ไม่บังคับ)</label><input data-f="note" value="' + E(f.note) + '" placeholder="เช่น สีขาว-ดำ"></div>';
         h += '<div class="axp-box"><b>ลูกค้า</b> <span class="axp-sm">(จำเป็น)</span><div class="axp-2"><div><label>ชื่อ</label><input data-f="customerName" value="' + E(f.customerName) + '"></div>' +
-            '<div><label>WhatsApp</label><input data-f="customerPhone" type="tel" inputmode="tel" value="' + E(f.customerPhone) + '" placeholder="020 xxxx xxxx"></div></div></div>';
+            '<div><label>WhatsApp</label><input data-f="customerPhone" type="tel" inputmode="tel" value="' + E(f.customerPhone) + '" placeholder="020 xxxx xxxx · ไทย 08x xxx xxxx"></div></div></div>';
         h += '<div class="axp-box"><div class="axp-tot"><small>ราคาเต็ม</small><span id="axp-t">' + M(t, c) + '</span></div><div class="axp-ap" id="axp-tap">' + (c === 'THB' && t ? approxLak(t, parseFloat(A.pay.rate) || FX.rate) : '') + '</div>' +
             '<label>ลูกค้าจ่าย</label><div class="axp-seg"><button data-plan="full" class="' + (f.plan === 'full' ? 'on' : '') + '">จ่ายเต็ม<br><small id="axp-pf">' + M(t, c) + '</small></button>' +
-            '<button data-plan="half" class="' + (f.plan === 'half' ? 'on' : '') + '">มัดจำ 50%<br><small id="axp-ph">' + M(Math.min(t, roundAmt(t / 2, c)), c) + '</small></button>' +
-            '<button data-plan="custom" class="' + (f.plan === 'custom' ? 'on' : '') + '">มัดจำกำหนดเอง</button></div>' +
-            (f.plan === 'custom' ? '<input data-f="custom" type="number" inputmode="numeric" min="0" value="' + E(f.custom) + '" placeholder="ยอดมัดจำ (' + (c === 'THB' ? '฿' : '₭') + ')" style="margin-top:8px">' : '') +
+            '<button data-plan="custom" class="' + (f.plan === 'custom' ? 'on' : '') + '">มัดจำ<br><small>พิมพ์ยอดเอง</small></button></div>' +
+            (f.plan === 'custom' ? '<input data-f="custom" type="number" inputmode="numeric" min="0" value="' + E(f.custom) + '" placeholder="ยอดมัดจำ (' + (c === 'THB' ? '฿' : '₭') + ') เช่น ' + (c === 'THB' ? '2000' : '500000') + '" style="margin-top:8px">' : '') +
             '<div class="axp-hint" id="axp-rem">' + (amt < t && amt > 0 ? 'คงเหลือจ่ายตอนรับของ <b>' + M(t - amt, c) + '</b>' : '') + '</div></div>';
         h += payBoxHtml(amt);
         h += '<div class="axp-hint">ระบบนับวันให้: ถึงประมาณ <b>' + poEta({ etaFrom: addBiz(Date.now(), 7), etaTo: addBiz(Date.now(), 14) }) + '</b> (7–14 วันทำการ · หยุดอาทิตย์และวันหยุดที่ตั้งไว้)</div>' +
@@ -374,6 +393,7 @@
             date: fmtDate(now), dayKey: dk, openedAt: now, paidAt: now, timestamp: now,
             preorderId: p.id, customer: p.customerName || 'ทั่วไป'
         };
+        if (storeOf(p) === 'shop') bill.store = 'shop';
         if (thb) Object.assign(bill, { currency: 'THB', rate: d.rate, subtotalThb: amt, totalThb: amt, discountThb: 0, payCurrency: d.payCur, payAmount: d.due });
         var paidBefore = Number(p.paid || 0), dep = payments(p).filter(function (x) { return x.kind === 'deposit'; })[0];
         bill.po = Object.assign({
@@ -398,6 +418,7 @@
         else if (!f.customerName.trim()) f.err = 'ใส่ชื่อลูกค้า';
         else if (!phoneOk) f.err = 'ใส่เบอร์ WhatsApp ลูกค้าให้ถูก';
         else if (!(amt > 0)) f.err = 'ใส่ยอดมัดจำ';
+        else if (f.plan === 'custom' && (parseFloat(f.custom) || 0) > t) f.err = 'ยอดมัดจำเกินราคาเต็ม';
         else if (f.cur === 'THB' && !(d.rate > 0)) f.err = 'สินค้าราคาบาท ต้องใส่เรทวันนี้ (ใช้คิดยอดขายเป็นกีบ)';
         else if (!d.ok) f.err = 'รับเงินมาน้อยกว่ายอด';
         if (f.err) { A.keepScroll = true; draw(); var el = document.getElementById('axp-err'); if (el) el.scrollIntoView({ block: 'center' }); return; }
@@ -414,6 +435,7 @@
                 status: 'new', etaFrom: addBiz(now, 7), etaTo: addBiz(now, 14), paid: 0, trackTok: f.trackTok || rnd(20)
             };
             if (f.onlineId) p.onlineId = f.onlineId;
+            p.store = f.itemId ? (flagsOf(f.itemId).shop ? 'shop' : 'cafe') : (MODE === 'cafe' ? 'cafe' : 'shop');
             var kind = amt >= t ? 'full' : 'deposit';
             var r = await writePayBill(p, kind, amt, d);
             p.paid = amt; p.payments = {}; p.payments[database.ref('preorders').push().key] = r.pay;
@@ -614,7 +636,7 @@
         if (A.view === 'create') {
             var t = fTotal(); amt = fAmount(); d = payDue(amt);
             setTxt('axp-t', M(t, c)); setTxt('axp-tap', c === 'THB' && t ? approxLak(t, d.rate || FX.rate) : '');
-            setTxt('axp-pf', M(t, c)); setTxt('axp-ph', M(Math.min(t, roundAmt(t / 2, c)), c));
+            setTxt('axp-pf', M(t, c));
             setTxt('axp-rem', amt < t && amt > 0 ? 'คงเหลือจ่ายตอนรับของ <b>' + M(t - amt, c) + '</b>' : '');
             var b = A.ov.querySelector('[data-a="create-save"]');
             if (b) { b.disabled = !d.ok; b.textContent = '✓ รับเงิน ' + (d.ok ? M(d.due, d.payCur) : '') + ' · สร้าง' + (amt < t ? 'ใบมัดจำ' : 'ใบรับเงิน'); }
@@ -682,6 +704,7 @@
         open: function () { if (A.ov) open(); },
         openCreate: function (pre) { if (!A.ov) return; newForm(pre); open('create'); },
         list: function () { return all(); },
-        alertOf: alertOf, addBiz: addBiz
+        alertOf: alertOf, addBiz: addBiz,
+        cafeOn: function () { return A.cafeOn; }
     };
 })();

@@ -138,6 +138,40 @@ function normalizeModifier(m) {
     return m;
 }
 
+/* ---------- หมวดหมู่ / 2 ร้าน (☕ ร้านกาแฟ | 👟 SHOP) / สต็อกรายไซส์ ----------
+   categories/<id>: { name, shop:true = ขายที่หน้า SHOP, authentic:true = ของแท้ (ใบรับประกัน 30 วัน), shoe:true = รองเท้า (ถาม cm) }
+   menu_items/<id>: { stockOn:true, stock:{ "<ไซส์>": จำนวนคู่ } }  (จุดในชื่อไซส์ เช่น 42.5 เก็บเป็น 42_5) */
+function catByName(name) {
+    const L = (typeof globalCategories !== 'undefined' && Array.isArray(globalCategories)) ? globalCategories : [];
+    return L.find(function (c) { return c.name === name; }) || null;
+}
+function itemById(id) {
+    if (!id || typeof globalItems === 'undefined' || !Array.isArray(globalItems)) return null;
+    return globalItems.find(function (x) { return x.id === id; }) || null;
+}
+function itemFlags(it) {
+    const c = it ? catByName(it.category) : null;
+    return { shop: !!(c && c.shop), authentic: !!((it && it.authentic === true) || (c && c.authentic)), shoe: !!(c && c.shoe) };
+}
+function isShopItem(id) { return itemFlags(itemById(id)).shop; }
+function stockKey(label) { return String(label == null || label === '' ? 'one' : label).replace(/[.#$\/\[\]]/g, '_'); }
+// null = สินค้านี้ไม่ได้นับสต็อก · ตัวเลข = จำนวนที่เหลือ
+function stockOf(it, label) {
+    if (!it || it.stockOn !== true) return null;
+    const v = (it.stock || {})[stockKey(label)];
+    return Math.max(0, Number(v) || 0);
+}
+// ตัด/คืนสต็อกตามรายการในบิล (sign = -1 ขาย, +1 คืน)
+function adjustStock(lines, sign) {
+    arr(lines).forEach(function (c) {
+        const it = itemById(c.itemId);
+        if (!it || it.stockOn !== true || !c.quantity) return;
+        database.ref('menu_items/' + c.itemId + '/stock/' + stockKey(c.variant)).transaction(function (n) {
+            return Math.max(0, (Number(n) || 0) + sign * Number(c.quantity || 0));
+        }).catch(function () {});
+    });
+}
+
 /* ---------- ข้อความแจ้งเตือนมุมจอ (แทน alert) ---------- */
 function toast(msg, ok) {
     let box = document.getElementById('toast-box');
@@ -286,7 +320,7 @@ function isRetailItemId(id) {
     return !!(it && it.retail === true);
 }
 function pushTicket(billId, bill, kind, items, round, note) {
-    items = arr(items).filter(function (c) { return !isRetailItemId(c.itemId); });
+    items = arr(items).filter(function (c) { return !c.shop && !isRetailItemId(c.itemId) && !isShopItem(c.itemId); });
     if (!items.length) return null;
     const ts = Date.now();
     const t = {
@@ -310,6 +344,9 @@ async function createBill(d) {
     const items = d.items.map(function (c) {
         const x = { lid: newLid(), itemId: c.itemId || '', name: c.name, variant: c.variant || '', price: Number(c.price || 0), quantity: c.quantity, modifiers: c.modifiers || [], note: c.note || '', cup: c.cup !== false, round: 1 };
         if (c.retail || isRetailItemId(c.itemId)) x.retail = true;
+        const fl = itemFlags(itemById(c.itemId));
+        if (fl.authentic) x.auth = true;
+        if (fl.shop) { x.shop = true; x.retail = true; x.cup = false; }
         return x;
     });
     const sub = itemsSubtotal(items);
@@ -322,6 +359,7 @@ async function createBill(d) {
     };
     if (d.trackTok) { bill.trackTok = d.trackTok; bill.trackDelivery = !!d.trackDelivery; }
     if (d.currency === 'THB') { bill.currency = 'THB'; bill.rate = FX.rate || 0; recalcBill(bill); }
+    if (d.store === 'shop' || (items.length && items.every(function (x) { return x.shop; }))) bill.store = 'shop';
     bill.cups = billCups(bill);
     bill.customer = billName(bill) || 'ทั่วไป';
     if (d.paidByApp) bill.paidAt = now;
@@ -329,6 +367,7 @@ async function createBill(d) {
     ref.catch(function (e) { toast('บันทึกบิลไม่สำเร็จ: ' + e.message, false); });
     pushTicket(ref.key, bill, 'new', items, 1, '');
     adjustCups(-bill.cups);
+    adjustStock(items, -1);
     return { id: ref.key, bill: bill };
 }
 
@@ -342,6 +381,9 @@ function addItemsToBill(id, newItems) {
         added = arr(newItems).map(function (c) {
             const x = { lid: newLid(), itemId: c.itemId || '', name: c.name, variant: c.variant || '', price: Number(c.price || 0), quantity: c.quantity, modifiers: c.modifiers || [], note: c.note || '', cup: c.cup !== false, round: round };
             if (c.retail || isRetailItemId(c.itemId)) x.retail = true;
+            const fl = itemFlags(itemById(c.itemId));
+            if (fl.authentic) x.auth = true;
+            if (fl.shop) { x.shop = true; x.retail = true; x.cup = false; }
             return x;
         });
         o.items = arr(o.items).concat(added);
@@ -354,6 +396,7 @@ function addItemsToBill(id, newItems) {
         const bill = res.snapshot.val();
         if (!res.committed || !bill) throw new Error('บิลนี้ปิดหรือถูกยกเลิกไปแล้ว');
         pushTicket(id, bill, 'add', added, round, '');
+        adjustStock(added, -1);
         adjustCups(-added.reduce(function (s, i) { return s + (i.cup === false ? 0 : i.quantity); }, 0));
         return { bill: bill, round: round, added: added };
     });
@@ -380,6 +423,7 @@ function removeBillLine(id, lid) {
         const bill = res.snapshot.val();
         if (!res.committed || !bill || !removed) throw new Error('ลบรายการไม่ได้ (บิลปิดแล้ว หรือเหลือรายการเดียว ให้ใช้ยกเลิกบิลแทน)');
         pushTicket(id, bill, 'cancel', [removed], bill.rounds || 1, 'ลบรายการ');
+        adjustStock([removed], 1);
         adjustCups(removed.cup === false ? 0 : Number(removed.quantity || 0));
         return bill;
     });
@@ -463,6 +507,7 @@ function voidBill(id, bill, opts) {
         // ออร์เดอร์ที่ลูกค้าสั่งออนไลน์: แจ้งหน้าติดตามของลูกค้าว่ายกเลิก พร้อมเหตุผล (ภาษาลาว)
         if (bill.trackTok) database.ref('order_track/' + bill.trackTok).update({ status: 'rejected', reason: laoReason(opts.reason) }).catch(function () {});
         adjustCups(billCups(bill));
+        if (bill.source !== 'preorder') adjustStock(bill.items, 1);
         if (wasOpen) {
             Object.keys(bill.tickets || {}).forEach(function (k) {
                 database.ref('tickets/' + k + '/status').transaction(function (s) { return (s === 'pending' || s === 'cooking') ? 'canceled' : s; });
@@ -571,7 +616,8 @@ function receiptInit() {
 function receiptSub(o) {
     const items = arr(o.items);
     if (o.source === 'preorder') return 'SHOP & PRE-ORDER';
-    const shop = items.filter(function (c) { return c.retail || isRetailItemId(c.itemId); }).length;
+    if (o.store === 'shop') return 'SHOP & PRE-ORDER';
+    const shop = items.filter(function (c) { return c.shop || c.retail || isRetailItemId(c.itemId); }).length;
     if (items.length && shop === items.length) return 'SHOP & PRE-ORDER';
     if (shop > 0) return 'HOME COFFEE · SHOP';
     return RCPT.s.shopSub || '';
@@ -614,6 +660,7 @@ function receiptModel(o, copy) {
             m.push({ t: 'r', l: 'เงินสด', r: pm(o.cashReceived) });
             m.push({ t: 'r', l: 'เงินทอน', r: pm(o.change) });
         } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ชำระโดย', r: 'โอนเงิน QR' });
+        warrantyBox(o, m);
         m.push({ t: 'hr' });
         m.push({ t: 'c', x: S.footer || '' });
         return m;
@@ -627,9 +674,17 @@ function receiptModel(o, copy) {
         m.push({ t: 'r', l: 'เงินทอน', r: Number(o.change || 0).toLocaleString() });
     } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ชำระโดย', r: 'โอนเงิน QR' });
     else if (o.paymentMethod === 'delivery') m.push({ t: 'r', l: 'ชำระโดย', r: 'แอป Delivery' });
+    warrantyBox(o, m);
     m.push({ t: 'hr' });
     m.push({ t: 'c', x: S.footer || '' });
     return m;
+}
+// สินค้าในหมวด "ของแท้" → ใบเสร็จมีกล่องรับประกัน 30 วัน (นับจากวันที่จ่าย)
+function warrantyBox(o, m) {
+    if (o.status !== 'paid') return;
+    const auth = arr(o.items).filter(function (c) { return c.auth; });
+    if (!auth.length) return;
+    m.push({ t: 'box', lines: [{ x: '✓ ຮັບປະກັນຂອງແທ້ 100%', b: 1 }, { x: 'ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ' }, { x: 'ແຈ້ງໄດ້ຮອດ ' + fmtDate((o.paidAt || o.timestamp || Date.now()) + 30 * 86400000) + ' · ນຳສິນຄ້າ ແລະ ໃບນີ້ມາກວດ' }] });
 }
 
 function receiptText(o) {
@@ -950,8 +1005,14 @@ async function receiptPdfFile(o, copy) {
 
 /* ---------- ส่งใบเสร็จให้ลูกค้า (แชร์ไฟล์ + WhatsApp + อีเมล) ---------- */
 function waNumber(raw) {
-    let d = String(raw || '').replace(/[^\d]/g, '');
+    const t = String(raw || '').trim();
+    let d = t.replace(/[^\d]/g, '');
     if (!d) return '';
+    // ใส่ + นำหน้า = เบอร์ต่างประเทศครบรหัสแล้ว (เช่น +66 88 866 9566) ใช้ตามนั้นเลย
+    if (t.charAt(0) === '+') return d;
+    // เบอร์ไทย 10 หลัก ขึ้นต้น 06 / 08 / 09 (เบอร์ลาวขึ้นต้น 020 / 030)
+    if (/^0[689]\d{8}$/.test(d)) return '66' + d.slice(1);
+    if (/^66[689]\d{8}$/.test(d)) return d;
     const cc = String(APP_CONFIG.COUNTRY_CODE || '856');
     if (d.indexOf('00') === 0) return d.slice(2);
     if (d.charAt(0) === '0') return cc + d.slice(1);

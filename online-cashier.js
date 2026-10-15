@@ -15,6 +15,25 @@
     var orders = {}, tracks = {}, trackRefs = {}, billRefs = {}, menu = null, cfg = {}, raw = { menu_items: {}, modifiers: {}, categories: {} };
     var panelOpen = false, seen = {}, busy = {}, beepTimer = null, started = false, btn = null, overlay = null, feeDraft = {}, rejecting = {};
     var REJECT_REASONS = ['ของหมด', 'ร้านปิดแล้ว', 'อยู่นอกพื้นที่ส่ง', 'ยังไม่ได้รับเงิน', 'อื่นๆ'];
+    // 'cafe' = แคชเชียร์ (ไม่เห็นออร์เดอร์ที่มีสินค้า SHOP) · 'shop' = หน้า SHOP (เห็นเฉพาะออร์เดอร์ที่มีสินค้า SHOP)
+    var MODE = window.AXO_MODE || 'cafe', muteUntil = 0;
+    function winMs() { var m = Number(cfg.payWindowMin); return (m > 0 ? m : 10) * 60000; }
+    function deadline(o) { return Math.max(Number(o.until) || 0, (Number(o.createdAt) || 0) + winMs()); }
+    function mmss(ms) { ms = Math.max(0, ms); var m = Math.floor(ms / 60000), x = Math.floor(ms / 1000) % 60; return m + ':' + ('0' + x).slice(-2); }
+    function catOf(itemId) {
+        var it = raw.menu_items[itemId] || {}, c = null;
+        Object.keys(raw.categories || {}).forEach(function (k) { var x = raw.categories[k]; if (x && x.name === it.category) c = x; });
+        return c || {};
+    }
+    function isShopLine(l) { return !!catOf(l.itemId).shop; }
+    function orderIsShop(o) { return arrOf(o.items).some(isShopLine); }
+    // ไซส์นี้มีของที่ร้านไหม (สินค้าที่เปิดนับสต็อก)
+    function inStock(l) {
+        var it = raw.menu_items[l.itemId] || {};
+        if (it.stockOn !== true) return false;
+        var k = String(l.variant == null || l.variant === '' ? 'one' : l.variant).replace(/[.#$\/\[\]]/g, '_');
+        return Number((it.stock || {})[k]) >= Number(l.qty || 1);
+    }
 
     function E(s) { return typeof esc === 'function' ? esc(s) : String(s == null ? '' : s); }
     function M(n) { return typeof money === 'function' ? money(n) : Number(n || 0).toLocaleString() + ' ₭'; }
@@ -35,6 +54,7 @@
             database.ref(k).on('value', function (s) { raw[k] = s.val() || {}; menu = AugustxMenu.buildMenu(raw.menu_items, raw.modifiers, raw.categories); render(); });
         });
         database.ref('settings/online').on('value', function (s) { cfg = s.val() || {}; });
+        setInterval(function () { sweep(); if (panelOpen) drawPanel(); else render(); }, 15000);
         database.ref('online_orders').orderByChild('createdAt').startAt(Date.now() - 36 * 3600000).on('value', function (s) {
             orders = s.val() || {};
             watch();
@@ -107,21 +127,36 @@
     function finished(o) { var s = stageOf(o); return o.status === 'rejected' || s === 'ready' || s === 'rejected'; }
     function list() {
         return Object.keys(orders).map(function (k) { return Object.assign({ id: k }, orders[k]); })
+            .filter(function (o) { return MODE === 'shop' ? orderIsShop(o) : !orderIsShop(o); })
             .sort(function (a, b) {
                 return (b.status === 'new') - (a.status === 'new') || finished(a) - finished(b) || (b.createdAt || 0) - (a.createdAt || 0);
             });
     }
-    function newOnes() { return list().filter(function (o) { return o.status === 'new'; }); }
+    function newOnes() { return list().filter(function (o) { return o.status === 'new' && Date.now() <= deadline(o); }); }
+    function expiredOnes() { return list().filter(function (o) { return o.status === 'expired' || (o.status === 'new' && Date.now() > deadline(o)); }); }
+    // หมดเวลา: ยังไม่มีใครกดรับเกินเวลาที่ตั้ง → "หมดเวลา" (ดึงกลับมาทำได้ใน 24 ชม.) · เกิน 24 ชม. → ลบทิ้ง
+    function sweep() {
+        var now = Date.now();
+        list().forEach(function (o) {
+            if (o.status === 'new' && now > deadline(o)) {
+                database.ref('online_orders/' + o.id).update({ status: 'expired', expiredAt: now }).catch(function () {});
+                setTrack(o, { status: 'expired' });
+            } else if (o.status === 'expired' && now - (o.createdAt || 0) > 24 * 3600000) {
+                var upd = {}; upd['online_orders/' + o.id] = null; if (o.trackTok) upd['order_track/' + o.trackTok] = null;
+                database.ref().update(upd).catch(function () {});
+            }
+        });
+    }
     function liveOnes() { return list().filter(function (o) { return o.status === 'accepted' && !finished(o); }); }
 
     function render() {
         if (!btn) return;
         var n = newOnes(), live = liveOnes();
-        btn.innerHTML = '🛵 ออนไลน์' + (n.length ? ' <span class="cnt" style="background:#fff;color:#dc2626;border-radius:99px;padding:0 7px;margin-left:4px">' + n.length + '</span>' : '') +
+        btn.innerHTML = '🛵 ออนไลน์' + (MODE === 'shop' ? ' 👟' : '') + (n.length ? ' <span class="cnt" style="background:#fff;color:#dc2626;border-radius:99px;padding:0 7px;margin-left:4px">' + n.length + '</span>' : '') +
             (!n.length && live.length ? ' <span class="cnt" style="background:#dbeafe;color:#1e3a8a;border-radius:99px;padding:0 7px;margin-left:4px">' + live.length + '</span>' : '');
         btn.classList.toggle('alert', n.length > 0 && !panelOpen);
         var fresh = n.filter(function (o) { return !seen[o.id]; });
-        if (fresh.length && !panelOpen) startBeep(); else if (!n.length || panelOpen) stopBeep();
+        if (fresh.length && !panelOpen && Date.now() > muteUntil) startBeep(); else if (!n.length || panelOpen || Date.now() <= muteUntil) stopBeep();
         document.title = (n.length ? '(' + n.length + ') 🛵 ' : '') + document.title.replace(/^\(\d+\) 🛵 /, '');
         if (panelOpen) drawPanel();
     }
@@ -166,7 +201,7 @@
         r.missing = r.problems.filter(function (p) { return /ไม่พบ/.test(p.reason); });
         // สกุลเงินของออร์เดอร์ (สินค้าราคาบาท = บิลบาท) + แยกสินค้าพรีออเดอร์ออกไปเปิดใบมัดจำ
         r.cur = o.cur === 'THB' || r.lines.some(function (l) { var it = menu && menu.byId[l.itemId]; return it && it.currency === 'THB'; }) ? 'THB' : 'LAK';
-        r.po = r.lines.filter(function (l) { var it = menu && menu.byId[l.itemId]; return it && it.preorder; });
+        r.po = r.lines.filter(function (l) { var it = menu && menu.byId[l.itemId]; return it && it.preorder && !inStock(l); });
         r.normal = r.lines.filter(function (l) { return r.po.indexOf(l) < 0; });
         r.normalTotal = r.normal.reduce(function (s, l) { return s + l.unitPrice * l.qty; }, 0);
         return r;
@@ -186,17 +221,22 @@
 
     function drawPanel() {
         var keepScroll = overlay.scrollTop;
-        var all = list(), html = '<div class="axo-box"><div class="axo-head"><h3>🛵 ออร์เดอร์ลูกค้าสั่งเอง</h3><button class="axo-x" data-a="close" style="border:0;border-radius:8px;padding:8px 12px;font-weight:bold;cursor:pointer">ปิด</button></div>';
+        var all = list().filter(function (o) { return !(o.status === 'expired' || (o.status === 'new' && Date.now() > deadline(o))); }), exp = expiredOnes();
+        var html = '<div class="axo-box"><div class="axo-head"><h3>🛵 ออร์เดอร์ลูกค้าสั่งเอง' + (MODE === 'shop' ? ' · 👟 SHOP' : '') + '</h3><button class="axo-x" data-a="close" style="border:0;border-radius:8px;padding:8px 12px;font-weight:bold;cursor:pointer">ปิด</button></div>' +
+            '<div class="axo-acts" style="margin:0 0 6px">' + (Date.now() > muteUntil ? '<button class="axo-x" data-a="mute" style="color:#334155">🔇 ปิดเสียง 30 นาที</button>' : '<button class="axo-b" data-a="unmute">🔔 เปิดเสียง (ปิดถึง ' + timeHHMM(muteUntil) + ')</button>') +
+            (newOnes().length > 1 ? '<button class="axo-x" data-a="rejectall">🗑️ ไม่รับออร์เดอร์ใหม่ทั้งหมด (' + newOnes().length + ')</button>' : '') + '</div>';
         if (!all.length) html += '<p class="axo-sm" style="text-align:center;padding:24px 0">ยังไม่มีออร์เดอร์ออนไลน์ใน 36 ชั่วโมงที่ผ่านมา</p>';
         all.forEach(function (o) {
             var p = priced(o), isNew = o.status === 'new', stage = stageOf(o), dl = o.delivery, t = o.trackTok && tracks[o.trackTok], C = p.cur;
             var live = o.status === 'accepted' && !finished(o);
+            var left = deadline(o) - Date.now();
             html += '<div class="axo-card ' + (isNew ? 'new' : live ? 'live' : 'done') + '">' +
                 '<div class="axo-row"><div><b style="font-size:15px">' + E(o.id) + '</b> <span class="axo-pill ' + E(o.status) + '">' + ({ new: 'ใหม่', accepted: 'รับแล้ว', rejected: 'ไม่รับ' }[o.status] || E(o.status)) + '</span>' +
                 (o.status === 'accepted' ? '<span class="axo-pill ' + (o.paid ? 'paid">จ่ายแล้ว' : 'unpaid">ยังไม่จ่าย') + '</span><span class="axo-pill st">' + E(STAGE_TH[stage] || stage) + '</span>' : '') +
                 (dl ? '<span class="axo-pill dlv">🛵 จัดส่ง</span>' : '') +
                 (o.orderNo ? ' <span class="axo-sm">บิล #' + E(o.orderNo) + '</span>' : '') + '</div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
-                '<div style="margin:4px 0 8px"><b>' + E(o.name) + '</b> <span class="axo-sm">📞 ' + E(o.phone) + '</span></div>';
+                '<div style="margin:4px 0 8px"><b>' + E(o.name) + '</b> <span class="axo-sm">📞 ' + E(o.phone) + '</span></div>' +
+                (isNew ? '<div class="axo-warn" style="display:flex;justify-content:space-between;align-items:center;gap:8px">⏱ ลูกค้ามีเวลาโอนอีก <b>' + mmss(left) + '</b> (หมดเวลาแล้วระบบยกเลิกเอง)<button class="axo-b" data-a="extend" data-id="' + E(o.id) + '" style="border:0;border-radius:8px;padding:6px 10px;font-weight:bold;cursor:pointer">+10 นาที</button></div>' : '');
             if (dl) {
                 var fee = Number((t && t.delivery && t.delivery.fee) || dl.actualFee || 0), est = Number(dl.estFee || 0);
                 var sp = feeSplit(dl, fee || est);
@@ -209,16 +249,17 @@
             p.lines.forEach(function (l) {
                 var meta = [l.variant, optText(l)].filter(Boolean).join(' · ');
                 var it = menu && menu.byId[l.itemId];
-                html += '<div class="axo-line"><div>' + l.qty + '× <b>' + E(l.name) + '</b>' + (it && it.preorder ? ' <span class="axo-pill unpaid">PRE-ORDER</span>' : '') + (it && it.retail ? ' <span class="axo-sm">(ไม่เข้าครัว)</span>' : '') +
+                var isPo = p.po.indexOf(l) >= 0;
+                html += '<div class="axo-line"><div>' + l.qty + '× <b>' + E(l.name) + '</b>' + (isPo ? ' <span class="axo-pill unpaid">PRE-ORDER</span>' : it && it.preorder ? ' <span class="axo-pill paid">พร้อมส่ง</span>' : '') + (it && it.retail ? ' <span class="axo-sm">(ไม่เข้าครัว)</span>' : '') +
                     (meta ? '<div class="axo-sm">' + E(meta) + '</div>' : '') + (l.note ? '<div class="axo-sm">📝 ' + E(l.note) + '</div>' : '') + '</div><div style="white-space:nowrap">' + MC(l.unitPrice * l.qty, C) +
                     (it && it.preorder && (o.poMade || {})[p.lines.indexOf(l)] ? ' <span class="axo-pill paid">📦 ' + E(o.poMade[p.lines.indexOf(l)]) + '</span>' : '') +
-                    ((isNew || o.status === 'accepted') && !o.poNo && !(o.poMade || {})[p.lines.indexOf(l)] && it && it.preorder && window.AXPO ? ' <button class="axo-o" style="border:0;border-radius:8px;padding:6px 10px;font-weight:bold;cursor:pointer" data-a="po" data-id="' + E(o.id) + '" data-i="' + p.lines.indexOf(l) + '">📦 เปิดใบพรีออเดอร์</button>' : '') + '</div></div>';
+                    ((isNew || o.status === 'accepted') && !o.poNo && !(o.poMade || {})[p.lines.indexOf(l)] && isPo && window.AXPO ? ' <button class="axo-o" style="border:0;border-radius:8px;padding:6px 10px;font-weight:bold;cursor:pointer" data-a="po" data-id="' + E(o.id) + '" data-i="' + p.lines.indexOf(l) + '">📦 เปิดใบพรีออเดอร์</button>' : '') + '</div></div>';
             });
             if (isNew) {
                 p.problems.forEach(function (x) { html += '<div class="axo-warn ' + (/ไม่พบ/.test(x.reason) ? 'axo-err' : '') + '">⚠️ ' + E(x.line.name) + ': ' + E(x.reason) + '</div>'; });
                 if (Number(o.total) !== p.total) html += '<div class="axo-warn">⚠️ ยอดที่ลูกค้าเห็น ' + MC(o.total, C) + ' · <b>ใช้ยอดจากระบบ ' + MC(p.total, C) + '</b></div>';
                 if (p.po.length) html += '<div class="axo-warn">📦 มีสินค้าพรีออเดอร์ ' + p.po.length + ' รายการ → กด "เปิดใบพรีออเดอร์" เพื่อรับมัดจำ' + (p.normal.length ? ' · ส่วนรายการอื่นกดรับเข้าครัวตามปกติ' : '') + '</div>';
-                if (C === 'THB' && p.normal.length) html += '<div class="axo-warn">฿ ออร์เดอร์เงินบาท: กดเข้าครัว (ยังไม่จ่าย) แล้วรับเงินที่ "📋 บิลที่เปิดอยู่" เลือกจ่าย ฿ หรือ ₭</div>';
+                if (C === 'THB' && p.normal.length) html += '<div class="axo-warn">฿ ออร์เดอร์เงินบาท: กด "รับออร์เดอร์ (ยังไม่จ่าย)" แล้วรับเงินที่ ' + (MODE === 'shop' ? '"👟 ขายพร้อมส่ง → บิลค้างจ่าย"' : '"📋 บิลที่เปิดอยู่"') + ' เลือกจ่าย ฿ หรือ ₭</div>';
             }
             if (o.poNo) html += '<div class="axo-dl">📦 ย้ายไปเป็นพรีออเดอร์ <b>' + E(o.poNo) + '</b> แล้ว</div>';
             html += '<div class="axo-tot"><span>ยอด' + (isNew ? ' (คิดจากเมนูในระบบ)' : '') + '</span><span>' + MC(p.total, C) + '</span></div>';
@@ -226,8 +267,8 @@
             if (isNew) {
                 if (p.missing.length) html += '<span class="axo-sm" style="align-self:center">มีรายการที่ไม่มีในเมนูแล้ว ให้คีย์เองที่หน้าแคชเชียร์ แล้วกด "ไม่รับ"</span>';
                 else if (!p.normal.length) html += p.po.length > 1 ? '<button class="axo-b" data-a="podone" data-id="' + E(o.id) + '">✓ เปิดใบพรีออเดอร์ครบแล้ว (ปิดออร์เดอร์นี้)</button>' : '';
-                else html += (C === 'THB' ? '' : '<button class="axo-g" data-a="paid" data-id="' + E(o.id) + '">✅ รับเงินโอนแล้ว → เข้าครัว</button>') + '<button class="axo-b" data-a="unpaid" data-id="' + E(o.id) + '">เข้าครัว (ยังไม่จ่าย)' + (p.po.length ? ' · เฉพาะรายการที่ไม่ใช่พรีออเดอร์' : '') + '</button>';
-                html += '<button class="axo-x" data-a="reject" data-id="' + E(o.id) + '">✕ ไม่รับ</button>';
+                else html += (C === 'THB' ? '' : '<button class="axo-g" data-a="paid" data-id="' + E(o.id) + '">' + (MODE === 'shop' ? '✅ รับเงินโอนแล้ว' : '✅ รับเงินโอนแล้ว → เข้าครัว') + '</button>') + '<button class="axo-b" data-a="unpaid" data-id="' + E(o.id) + '">' + (MODE === 'shop' ? 'รับออร์เดอร์ (ยังไม่จ่าย)' : 'เข้าครัว (ยังไม่จ่าย)') + (p.po.length ? ' · เฉพาะรายการที่ไม่ใช่พรีออเดอร์' : '') + '</button>';
+                html += '<button class="axo-x" data-a="reject" data-id="' + E(o.id) + '">✕ ไม่รับ</button><button class="axo-x" data-a="block" data-id="' + E(o.id) + '">🚫 บล็อกเบอร์นี้</button>';
                 if (rejecting[o.id]) html += '<div style="flex-basis:100%;margin-top:4px"><b>เหตุผลที่ไม่รับ</b> <span class="axo-sm">(ลูกค้าเห็นเป็นภาษาลาว · "อื่นๆ" ไม่แสดงเหตุผล)</span></div>' +
                     REJECT_REASONS.map(function (r) { return '<button class="axo-x" data-a="rejectwhy" data-r="' + E(r) + '" data-id="' + E(o.id) + '">' + E(r) + '</button>'; }).join('') +
                     '<button class="axo-b" data-a="rejectback" data-id="' + E(o.id) + '">กลับ</button>';
@@ -243,6 +284,15 @@
             if (o.trackTok) html += '<span class="axo-sm">หน้าติดตาม: <a target="_blank" rel="noopener" href="' + E(trackLink(o.trackTok)) + '">เปิดดู</a></span>';
             html += '</div></div>';
         });
+        if (exp.length) {
+            html += '<h3 style="margin:16px 0 4px;font-size:15px;color:#64748b">⏰ หมดเวลา (' + exp.length + ') · ดึงกลับมาทำได้ภายใน 24 ชม. หลังจากนั้นระบบลบเอง</h3>';
+            exp.forEach(function (o) {
+                var p = priced(o);
+                html += '<div class="axo-card done"><div class="axo-row"><div><b>' + E(o.id) + '</b> <span class="axo-pill rejected">หมดเวลา</span></div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
+                    '<div class="axo-sm">' + E(o.name) + ' · 📞 ' + E(o.phone) + ' · ' + p.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') + ' · ' + MC(p.total, p.cur) + '</div>' +
+                    '<div class="axo-acts"><button class="axo-g" data-a="revive" data-id="' + E(o.id) + '">↩ ดึงกลับมาทำ</button><span class="axo-sm">ลูกค้าโอนมาช้า หรือร้านลืมกด → ดึงกลับ เลขบิลเดิม</span></div></div>';
+            });
+        }
         overlay.innerHTML = html + '</div>';
         overlay.scrollTop = keepScroll;
     }
@@ -257,7 +307,33 @@
         var b = e.target.closest('[data-a]'); if (!b) return;
         var a = b.dataset.a, id = b.dataset.id, o = id && orders[id];
         if (a === 'close') return closePanel();
+        if (a === 'mute') { muteUntil = Date.now() + 30 * 60000; stopBeep(); return render(); }
+        if (a === 'unmute') { muteUntil = 0; return render(); }
+        if (a === 'rejectall') {
+            var ns = newOnes();
+            if (!confirm('ไม่รับออร์เดอร์ใหม่ทั้งหมด ' + ns.length + ' รายการ? (ใช้ตอนโดนสั่งมั่ว)')) return;
+            ns.forEach(function (x) { database.ref('online_orders/' + x.id).update({ status: 'rejected', rejectReason: 'อื่นๆ', handledAt: Date.now() }); setTrack(x, { status: 'rejected', reason: '' }); });
+            return say('ไม่รับ ' + ns.length + ' ออร์เดอร์แล้ว');
+        }
         if (!o || busy[id]) return;
+        if (a === 'extend') {
+            var until = Math.max(deadline(o), Date.now()) + 10 * 60000;
+            database.ref('online_orders/' + id + '/until').set(until); setTrack(o, { until: until });
+            return say('ต่อเวลาให้ลูกค้าอีก 10 นาที');
+        }
+        if (a === 'revive') {
+            var u2 = Date.now() + winMs();
+            database.ref('online_orders/' + id).update({ status: 'new', until: u2, revivedAt: Date.now() }); setTrack(o, { status: 'new', until: u2 });
+            seen[id] = true;
+            return say('ดึงออร์เดอร์ ' + id + ' กลับมาแล้ว · กดรับเข้าครัวได้เลย');
+        }
+        if (a === 'block') {
+            if (!confirm('บล็อกเบอร์ ' + o.phone + ' ?\nเบอร์นี้จะสั่งออนไลน์ไม่ได้อีก (ปลดบล็อกได้ที่ Admin → สั่งออนไลน์) และไม่รับออร์เดอร์นี้')) return;
+            database.ref('blocked/' + String(o.phone).replace(/[.#$\/\[\]]/g, '')).set({ name: o.name || '', at: Date.now(), order: id });
+            database.ref('online_orders/' + id).update({ status: 'rejected', rejectReason: 'บล็อก', handledAt: Date.now() });
+            setTrack(o, { status: 'rejected', reason: '' });
+            return say('บล็อกเบอร์ ' + o.phone + ' แล้ว');
+        }
         if (a === 'reject') { rejecting[id] = true; return render(); }
         if (a === 'rejectback') { delete rejecting[id]; return render(); }
         if (a === 'rejectwhy') {
@@ -282,6 +358,7 @@
             return say('ปิดออร์เดอร์ ' + id + ' แล้ว (ย้ายไปพรีออเดอร์)');
         }
         if (a === 'pay') return payLater(id, b);
+        if ((a === 'ship' || a === 'ready') && !o.paid && !confirm('⚠️ ออร์เดอร์นี้ยังไม่ได้รับเงิน!\nยืนยันว่าจะ' + (a === 'ship' ? 'ส่งของ' : 'แจ้งพร้อมรับ') + 'ก่อนรับเงิน?')) return;
         if (a === 'ship') {
             var fee = Math.round(Number(feeDraft[id] || 0));
             if (!(fee > 0) && !confirm('ยังไม่ได้ใส่ค่ารถจริง จะใช้ค่าประมาณ ' + M(o.delivery.estFee) + ' ไปก่อน?')) return;
@@ -308,23 +385,31 @@
         busy[id] = true; b.disabled = true; b.textContent = 'กำลังส่ง…';
         try {
             if (!p.normal.length) return say('ออร์เดอร์นี้มีแต่สินค้าพรีออเดอร์ ให้กด "เปิดใบพรีออเดอร์"', false);
-            var items = p.normal.map(function (l) {
+            var mk = function (l) {
                 var it = menu && menu.byId[l.itemId];
                 return {
                     itemId: l.itemId, name: it ? it.name : l.name, variant: l.variant || '', price: l.unitPrice, quantity: l.qty,
                     modifiers: arrOf(l.options).map(function (x) { return { group: x.group || '', option: x.name, price: Number(x.price || 0) }; }),
                     note: l.note || '', cup: it ? (it.retail ? false : (raw.menu_items[l.itemId] || {}).usesCup !== false) : true, retail: !!(it && it.retail)
                 };
-            });
+            };
             var cust = findCust(o.phone);
-            var r = await createBill({
-                items: items, source: 'online', orderType: o.delivery ? 'Online 🛵' : 'Online', appOrderNo: id,
-                customerName: o.name || '', customerPhone: o.phone || '', customerId: cust ? cust.id : '',
-                trackTok: o.trackTok || '', trackDelivery: !!o.delivery, currency: p.cur
-            });
+            // สินค้า SHOP กับเครื่องดื่ม แยกเป็น 2 บิล (ยอดเข้าคนละกล่องในรายงาน)
+            var groups = [p.normal.filter(isShopLine), p.normal.filter(function (l) { return !isShopLine(l); })].filter(function (g) { return g.length; });
             if (paid && p.cur === 'THB') paid = false;
-            if (paid) await payBill(r.id, { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' });
-            await database.ref('online_orders/' + id).update({ status: 'accepted', billId: r.id, orderNo: r.bill.orderNo, paid: !!paid, handledAt: Date.now() });
+            var made = [];
+            for (var gi = 0; gi < groups.length; gi++) {
+                var isShop = isShopLine(groups[gi][0]);
+                var rb = await createBill({
+                    items: groups[gi].map(mk), source: 'online', orderType: o.delivery ? 'Online 🛵' : 'Online', appOrderNo: id,
+                    customerName: o.name || '', customerPhone: o.phone || '', customerId: cust ? cust.id : '',
+                    trackTok: made.length ? '' : (o.trackTok || ''), trackDelivery: !!o.delivery, currency: p.cur, store: isShop ? 'shop' : ''
+                });
+                if (paid) await payBill(rb.id, { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' });
+                made.push(rb);
+            }
+            var r = made[0];
+            await database.ref('online_orders/' + id).update({ status: 'accepted', billId: r.id, billIds: made.map(function (x) { return x.id; }), orderNo: r.bill.orderNo, paid: !!paid, handledAt: Date.now() });
             await setTrack(o, { status: 'accepted', paid: !!paid, total: p.normalTotal });
             if (!cust && o.phone) database.ref('customers').push({ name: o.name || '', phone: o.phone, email: '', source: 'online' });
             say('ออร์เดอร์ ' + id + ' เข้าครัวแล้ว (บิล #' + r.bill.orderNo + (paid ? ' · จ่ายแล้ว' : ' · ยังไม่จ่าย') + ')');
@@ -338,7 +423,8 @@
         if (!o || !o.billId || o.paid) return;
         busy[id] = true; b.disabled = true; b.textContent = 'กำลังบันทึก…';
         try {
-            await payBill(o.billId, { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' });
+            var ids = arrOf(o.billIds).length ? arrOf(o.billIds) : [o.billId];
+            for (var bi = 0; bi < ids.length; bi++) { try { await payBill(ids[bi], { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' }); } catch (x) { if (bi === 0) throw x; } }
             await database.ref('online_orders/' + id + '/paid').set(true);
             await setTrack(o, { paid: true });
             say('บันทึกรับเงินแล้ว · ลูกค้าเห็นสถานะ "ชำระแล้ว"');

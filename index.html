@@ -352,7 +352,8 @@
             const p = globalPartners.find(x => x.name === currentOrderSource);
             return p ? p.id : null;
         }
-        function itemVisible(item) { const k = channelKey(); return !k || !String(item.hiddenChannels || '').split(',').includes(k); }
+        // สินค้าในหมวด SHOP (รองเท้า ฯลฯ) ขายที่หน้า SHOP เท่านั้น ไม่ขึ้นในแคชเชียร์
+        function itemVisible(item) { if (itemFlags(item).shop) return false; const k = channelKey(); return !k || !String(item.hiddenChannels || '').split(',').includes(k); }
         function renderMenuGrid() {
             const base = currentCategory === 'ALL' ? globalItems : globalItems.filter(i => i.category === currentCategory);
             let html = '';
@@ -373,7 +374,7 @@
         function onItemClick(id) {
             const item = globalItems.find(i => i.id === id);
             if (!item) return;
-            if (item.preorder && window.AXPO && !addToBillId) return AXPO.openCreate({ itemId: item.id });
+            if (item.preorder && window.AXPO && AXPO.cafeOn() && !addToBillId) return AXPO.openCreate({ itemId: item.id });
             const groups = getItemGroups(item);
             if (item.prices.length <= 1 && groups.length === 0) { const p = item.prices[0] || { label: '', price: 0 }; addLine(item, p.label, p.price, [], ''); return; }
             opt = { item: item, variantIdx: 0, sel: {}, note: '' };
@@ -430,7 +431,11 @@
         function mc(n, cur) { return moneyC(n, cur); }
         function curName(c) { return c === 'THB' ? 'เงินบาท (฿)' : 'เงินกีบ (₭)'; }
         function addLine(item, variant, price, mods, note) {
-            const cur = itemCur(item);
+            const cur = itemCur(item), left = stockOf(item, variant);
+            if (left !== null) {
+                const inCart = cart.filter(c => c.itemId === item.id && c.variant === (variant || '')).reduce((n, c) => n + c.quantity, 0);
+                if (left - inCart <= 0) return toast(item.name + (variant ? ' ' + variant : '') + ' หมดแล้ว (สต็อก 0)', false);
+            }
             if (addToBillId) {
                 const b = bills[addToBillId];
                 if (b && billCur(b) !== cur) return toast('บิล #' + b.orderNo + ' เป็น' + curName(billCur(b)) + ' เพิ่มสินค้า' + curName(cur) + ' ไม่ได้ ให้เปิดบิลใหม่', false);
@@ -936,11 +941,37 @@
             document.getElementById('sheet').style.display = 'flex';
         }
 
+        /* ---- 👟 รองเท้ารอลูกค้ามารับ (ดูอย่างเดียว · จัดการที่หน้า SHOP) ---- */
+        let waitPick = [];
+        function startPickupWatch() {
+            const host = document.querySelector('.top-controls');
+            const b = document.createElement('button');
+            b.className = 'top-btn'; b.style.background = '#7c3aed'; b.hidden = true; b.id = 'pick-btn';
+            b.onclick = showPickups;
+            host.insertBefore(b, host.firstChild);
+            database.ref('preorders').orderByChild('status').equalTo('arrived').on('value', snap => {
+                waitPick = [];
+                snap.forEach(c => { const p = c.val(); if (p && p.store !== 'cafe' && p.status === 'arrived') waitPick.push(p); });
+                b.hidden = !waitPick.length;
+                b.innerHTML = '👟 รอมารับ <span class="cnt">' + waitPick.length + '</span>';
+            }, () => {});
+        }
+        function showPickups() {
+            const rows = waitPick.sort((a, b) => (a.pickupBy || 0) - (b.pickupBy || 0)).map(p => {
+                const rem = Math.max(0, Number(p.total || 0) - Number(p.paid || 0));
+                return `<div style="border-top:1px dashed #cbd5e1;padding:8px 0"><b>${esc(p.customerName)}</b> · ${esc(p.customerPhone)}<br>${esc(p.name)}${p.variant ? ' · ไซส์ ' + esc(p.variant) : ''}<br>` +
+                    `<span style="color:${rem > 0 ? '#b91c1c' : '#166534'};font-weight:bold">${rem > 0 ? 'ค้างจ่าย ' + moneyC(rem, p.cur) : 'จ่ายครบแล้ว'}</span> · มารับภายใน ${fmtDate(p.pickupBy)}</div>`;
+            }).join('');
+            const ov = sxModal('<div class="sx-title">👟 รองเท้ารอลูกค้ามารับ</div>' + rows + '<div class="sx-warn" style="background:#eff6ff;color:#1e3a8a;border-color:#bfdbfe">ลูกค้ามารับ → โทรหาเจ้าของร้าน หรือใช้หน้า 👟 SHOP</div><button class="sx-btn sx-close" id="pk-x">ปิด</button>');
+            ov.querySelector('#pk-x').onclick = () => ov.remove();
+        }
+
         renderNavTabs();
         renderCategories();
         renderCart();
-        startApp('staff', startListeners);
+        startApp('staff', () => { startListeners(); startPickupWatch(); });
     </script>
+    <script>window.AXO_MODE = 'cafe'; window.AXPO_MODE = 'cafe';</script>
     <script src="online-cashier.js"></script>
     <script src="preorder.js"></script>
 <script>

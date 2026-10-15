@@ -68,6 +68,15 @@ main { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 0 
 .item:hover { border-color: var(--brand); }
 .item .txt { min-width: 0; flex: 1; }
 .item .en { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .03em; line-height: 1.15; }
+.item .nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.item .lo .badge { margin-left: 0; margin-right: 6px; vertical-align: 1px; }
+.item .price { flex: none; max-width: 38%; }
+.item .price .apx { white-space: nowrap; font-size: 11px; }
+.stk { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-right: 6px; background: var(--ok); color: #fff; }
+.opt .tag { display: block; font-size: 11px; font-weight: 700; margin-top: 2px; }
+.opt .tag.in { color: var(--ok); } .opt .tag.po { color: var(--muted); }
+.opt[disabled] { opacity: .4; cursor: not-allowed; }
+.countdown { margin-top: 12px; font-weight: 700; font-size: 15px; } .countdown b { font-size: 22px; color: var(--bad); font-variant-numeric: tabular-nums; }
 .item .lo { color: var(--muted); font-size: 13px; }
 .item .price { font-weight: 600; white-space: nowrap; text-align: right; }
 .item .price small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
@@ -157,9 +166,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .hero { position: relative; margin: -18px -16px 0; border-radius: 18px 18px 0 0; overflow: hidden; background: var(--line); }
 .hero .gal { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .hero .gal::-webkit-scrollbar { display: none; }
-.hero img { flex: 0 0 100%; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; scroll-snap-align: start; display: block; }
+.hero img { flex: 0 0 100%; width: 100%; aspect-ratio: 1 / 1; object-fit: contain; background: #fff; scroll-snap-align: start; display: block; }
 .hero .x { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,.9); color: #0e1626; }
-.hero .cnt { position: absolute; left: 12px; bottom: 10px; background: rgba(5,12,28,.65); color: #fff; font-size: 12px; font-weight: 700; border-radius: 99px; padding: 2px 9px; }
+.hero .cnt { position: absolute; left: 12px; top: 14px; background: rgba(5,12,28,.65); color: #fff; font-size: 12px; font-weight: 700; border-radius: 99px; padding: 2px 9px; }
 .notice { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; }
 .track { position: fixed; inset: 0; z-index: 25; background: var(--bg); overflow-y: auto; }
 .track-in { max-width: 560px; margin: 0 auto; padding: 20px 16px calc(28px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 16px; }
@@ -253,7 +262,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .leaflet-container { font: inherit; }
 
 .item .ph { width: 56px; height: 56px; border-radius: 10px; flex: none; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 20px; }
-.hero .loadpic { aspect-ratio: 4 / 3; width: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.hero .loadpic { aspect-ratio: 1 / 1; width: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
 .badge.pre { background: var(--brand); color: var(--brand-ink); }
 .err-inline { color: var(--bad); font-size: 13.5px; }
 .apx { display: block; color: var(--muted); opacity: .75; font-weight: 400; font-size: 11.5px; }
@@ -311,7 +320,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     prefix: 'ON',
     greeting: 'ສະບາຍດີ ຕ້ອງການສັ່ງອໍເດີ້',
     closing: 'ລົບກວນທາງຮ້ານສະຫຼຸບຍອດ ແລະ ສົ່ງຄິວອາໃຫ້ແນ່ເດີ້ ຂໍຂອບໃຈ',
-    closedText: 'ຕອນນີ້ຮ້ານຍັງບໍ່ເປີດຮັບອໍເດີ້ອອນລາຍ ກະລຸນາທັກ WhatsApp ຫາຮ້ານ'
+    closedText: 'ຕອນນີ້ຮ້ານຍັງບໍ່ເປີດຮັບອໍເດີ້ອອນລາຍ ກະລຸນາທັກ WhatsApp ຫາຮ້ານ',
+    payWindowMin: 10
   };
   // จัดส่ง: ค่าประมาณ = base + perKm × กม. · ยอดถึง freeMin ร้านออกค่ารถให้ไม่เกิน freeCap · ส่งไม่เกิน maxKm
   var DLV = { enabled: false, base: 10000, perKm: 5000, freeMin: 180000, freeCap: 25000, maxKm: 5, lat: null, lng: null };
@@ -336,7 +346,13 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function cartCur() { return cart.length ? itCur(MENU && MENU.byId[cart[0].itemId]) : 'LAK'; }
   function cartLak() { return lakOf(cartTotal(), cartCur()); }
   var AUTH_LO = ['ທຸກຄູ່ມີລະຫັດລຸ້ນ ໃຫ້ທ່ານກວດເອງໄດ້', 'ກວດພົບວ່າບໍ່ແທ້ ຄືນເງິນເຕັມຈຳນວນ ພາຍໃນ 30 ວັນ', 'ເຄື່ອງຮອດພາຍໃນ 7–14 ວັນເຮັດການ · ຖ້າຮ້ານສົ່ງເຄື່ອງບໍ່ໄດ້ ຄືນເງິນເຕັມຈຳນວນ', 'ກໍລະນີເຄື່ອງສົ່ງມາແລ້ວ ແຕ່ມີບັນຫາຂົນສົ່ງ ລໍຖ້າເພີ່ມບໍ່ເກີນ 7 ວັນ · ຖ້າບໍ່ຮອດ ຄືນເງິນເຕັມຈຳນວນ'];
-  var pendingLine = null;
+  var pendingLine = null, RAW = {}, CATS = {};
+  function catOf(it) { return (it && CATS[it.category]) || {}; }
+  function isShoe(it) { return !!catOf(it).shoe; }
+  function sKey(v) { return String(v == null || v === '' ? 'one' : v).replace(/[.#$\/\[\]]/g, '_'); }
+  // null = ไม่นับสต็อก · ตัวเลข = เหลือกี่ชิ้น
+  function stockLeft(it, v) { var r = RAW[it.id] || {}; if (r.stockOn !== true) return null; return Math.max(0, Number((r.stock || {})[sKey(v)]) || 0); }
+  function winMs() { var m = Number(CFG.payWindowMin); return (m > 0 ? m : 10) * 60000; }
   function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); if (v === null) return localStorage.removeItem(k); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
   function toast(t) { var el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(function () { el.remove(); }, 2400); }
   function num(v, d) { var n = Number(v); return isFinite(n) && v !== '' && v != null ? n : d; }
@@ -346,6 +362,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   Promise.all([val('settings/online'), val('menu_items'), val('modifiers'), val('categories'), val('banners'), val('settings/currency')]).then(function (v) {
     var s = v[0] || {};
     FXR.rate = num((v[5] || {}).rate, 0);
+    RAW = v[1] || {}; CATS = {};
+    Object.keys(v[3] || {}).forEach(function (k) { var c = v[3][k]; if (c && c.name) CATS[c.name] = c; });
     Object.keys(CFG).forEach(function (k) { if (s[k] !== undefined && s[k] !== '') CFG[k] = s[k]; });
     var d = s.delivery || {};
     DLV.enabled = d.enabled === true;
@@ -453,14 +471,17 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       return '<h2 class="section-h" id="sec-' + ci + '">' + esc(c || 'MENU') + '</h2><div class="list">' +
         MENU.items.filter(function (it) { return it.category === c; }).map(function (it) {
           var q = cart.reduce(function (s, l) { return s + (l.itemId === it.id ? l.qty : 0); }, 0);
-          var multi = it.variants.length > 1;
+          var prices = it.variants.map(function (v) { return v.price; });
+          var multi = prices.some(function (x) { return x !== prices[0]; });
           var labels = it.variants.map(function (v) { return v.label; }).filter(Boolean);
-          var sub = labels.length && labels.every(isSize) ? 'ໄຊສ໌ ' + labels.join(' · ') : labels.join(' · ');
+          var nums = labels.length && labels.every(isSize) ? labels.map(Number).sort(function (a, b) { return a - b; }) : null;
+          var sub = nums ? 'ໄຊສ໌ ' + (nums.length > 2 ? nums[0] + '–' + nums[nums.length - 1] : nums.join(' · ')) : labels.join(' · ');
+          var ready = it.variants.filter(function (v) { return stockLeft(it, v.label) > 0; }).length;
           return '<button class="item" type="button" data-id="' + esc(it.id) + '">' +
             (hasImg(it) ? '<img class="th" alt="" loading="lazy" src="' + esc(it.image) + '">' : '<span class="ph" aria-hidden="true">' + esc(it.name.charAt(0).toUpperCase()) + '</span>') +
-            '<span class="txt"><span class="en">' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') +
-            (q ? '<span class="in-cart">' + q + '</span>' : '') + '</span>' + (sub ? '<br><span class="lo">' + esc(sub) + '</span>' : '') + '</span>' +
-            '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + money2(minPrice(it), itCur(it)) + (approx(minPrice(it), itCur(it)) ? '<span class="apx">' + approx(minPrice(it), itCur(it)) + '</span>' : '') + '</span></button>';
+            '<span class="txt"><span class="en nm">' + esc(it.name.toUpperCase()) + (q ? '<span class="in-cart">' + q + '</span>' : '') + '</span>' +
+            ((sub || it.preorder || ready) ? '<span class="lo">' + (ready ? '<span class="stk">ພ້ອມສົ່ງ' + (it.variants.length > 1 ? ' ' + ready + ' ໄຊສ໌' : '') + '</span>' : '') + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '<span style="white-space:nowrap">' + esc(sub) + '</span></span>' : '') + '</span>' +
+            '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + money2(minPrice(it), itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(minPrice(it), 'THB')) + '</span>' : '') + '</span></button>';
         }).join('') + '</div>';
     }).join('');
   }
@@ -517,14 +538,14 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     h += showHero ? '<div class="sheet-head"><div><h2>' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</h2>' + (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + '</div></div>'
       : head(it.name.toUpperCase(), it.desc);
     if (it.preorder) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ມັດຈຳ 50% ຫຼື ຈ່າຍເຕັມ · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ · ຮ້ານຈະຕິດຕໍ່ທາງ WhatsApp</div>';
-    if (it.authentic) h += '<div class="trust"><b>✓ ເປັນຫຍັງໝັ້ນໃຈໄດ້ · ເກີບຂອງແທ້ 100%</b><ol>' + AUTH_LO.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol></div>';
     if (itCur(it) === 'THB' && FXR.rate) h += '<p class="hint" style="margin:6px 0 0">ລາຄາເປັນເງິນບາດ · ຈ່າຍເປັນກີບໄດ້ຕາມເຣດມື້ນັ້ນ</p>';
     if (it.variants.length > 1) {
       var labs = it.variants.map(function (v) { return v.label; });
       var sizes = labs.every(isSize);
       h += '<div class="group"><h3>' + (sizes ? 'ໄຊສ໌' : 'ເລືອກແບບ') + ' <small>' + (sizes ? 'ລາຄາຕາມໄຊສ໌ · ' : '') + 'ເລືອກ 1</small></h3><div class="seg">' + it.variants.map(function (v, i) {
-        var lab = v.label || '—';
-        return '<button class="opt" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"><b>' + (sizes ? 'ໄຊສ໌ ' : TEMP_LO[lab.toUpperCase()] ? TEMP_LO[lab.toUpperCase()] + ' · ' : '') + esc(lab) + '</b><span class="num">' + money2(v.price, itCur(it)) + '</span></button>';
+        var lab = v.label || '—', left = stockLeft(it, v.label);
+        var tag = left == null ? '' : left > 0 ? '<span class="tag in">ພ້ອມສົ່ງ</span>' : it.preorder ? '<span class="tag po">ສັ່ງຈອງ 7–14 ວັນ</span>' : '<span class="tag po">ໝົດ</span>';
+        return '<button class="opt" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"' + (left === 0 && !it.preorder ? ' disabled' : '') + '><b>' + (sizes ? 'ໄຊສ໌ ' : TEMP_LO[lab.toUpperCase()] ? TEMP_LO[lab.toUpperCase()] + ' · ' : '') + esc(lab) + '</b><span class="num">' + money2(v.price, itCur(it)) + '</span>' + tag + '</button>';
       }).join('') + '</div></div>';
     }
     it.groups.forEach(function (g, gi) {
@@ -540,7 +561,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         }).join('') + '</div>';
       }
     });
-    h += '<label class="f" for="note">ໝາຍເຫດ <span class="hint">' + (it.retail ? 'ເຊັ່ນ ສີ, ຫໍ່ຂອງຂວັນ' : 'ເຊັ່ນ ແຍກນ້ຳກ້ອນ, ນ້ຳກ້ອນໜ້ອຍ') + '</span><textarea class="in" id="note" rows="2" maxlength="100"></textarea></label>';
+    if (isShoe(it)) h += '<label class="f" for="cm">ຄວາມຍາວຕີນ (cm) <span class="hint">ບໍ່ບັງຄັບ · ວັດຈາກສົ້ນຕີນ ຫາ ປາຍນິ້ວໂປ້ · ຮ້ານຊ່ວຍແນະນຳໄຊສ໌</span><input class="in num" id="cm" type="number" inputmode="decimal" step="0.5" min="10" max="35" placeholder="ເຊັ່ນ 26.5" value="' + esc(draft.cm || '') + '"></label>';
+    h += '<label class="f" for="note">ໝາຍເຫດ <span class="hint">' + (it.retail || isShoe(it) || catOf(it).shop ? 'ເຊັ່ນ ສີ' : 'ເຊັ່ນ ແຍກນ້ຳກ້ອນ, ນ້ຳກ້ອນໜ້ອຍ') + '</span><textarea class="in" id="note" rows="2" maxlength="100"></textarea></label>';
     h += '<div class="qty"><button type="button" data-q="-1" aria-label="ລົດ">−</button><b class="num">' + draft.qty + '</b><button type="button" data-q="1" aria-label="ເພີ່ມ">+</button></div>';
     h += '<div class="err" id="item-err"></div>';
     h += '<button class="primary" type="button" data-act="add">ໃສ່ກະຕ່າ · <span class="num">' + money2(draftLine().unitPrice * draft.qty, itCur(it)) + '</span></button>';
@@ -662,7 +684,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       }
     }
     h += '<label class="f" for="cname">ຊື່<input class="in" id="cname" autocomplete="name" maxlength="40" value="' + esc(saved.name) + '"></label>';
-    h += '<label class="f" for="cphone">ເບີ WhatsApp <span class="hint">ເບີຂອງທ່ານ ເຊັ່ນ 020 xxxx xxxx</span><input class="in num" id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" value="' + esc(saved.phone) + '"></label>';
+    h += '<label class="f" for="cphone">ເບີ WhatsApp <span class="hint">ເບີຂອງທ່ານ ເຊັ່ນ 020 xxxx xxxx · ເບີໄທ 08x xxx xxxx</span><input class="in num" id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" value="' + esc(saved.phone) + '"></label>';
     h += '<div class="err" id="cerr">' + esc(err || '') + '</div>';
     h += '<button class="primary" type="button" data-act="confirm">ຢືນຢັນ · <span class="num">' + money2(cartTotal(), cartCur()) + '</span></button><button class="ghost" type="button" data-act="cart">ກັບໄປກະຕ່າ</button>';
     openSheet(h);
@@ -673,6 +695,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   function normPhone(raw) {
     var s = String(raw).trim(), d = s.replace(/[^\d]/g, '');
     if (s.charAt(0) === '+' && d.indexOf('856') !== 0) return /^\d{8,15}$/.test(d) ? '+' + d : null;
+    // เบอร์ไทย 06 / 08 / 09 (10 หลัก) หรือ 66xxxxxxxxx
+    if (/^0[689]\d{8}$/.test(d)) return '+66' + d.slice(1);
+    if (/^66[689]\d{8}$/.test(d)) return '+' + d;
     if (d.indexOf('856') === 0) d = d.slice(3);
     if (d.charAt(0) === '0') d = d.slice(1);
     return /^(20\d{8}|30\d{7,8})$/.test(d) ? '+856' + d : null;
@@ -733,7 +758,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       var o = { name: name, phone: phone, items: items, total: cartTotal(), status: 'new', trackTok: tok, createdAt: firebase.database.ServerValue.TIMESTAMP };
       if (dl) o.delivery = dl;
       if (cartCur() === 'THB') o.cur = 'THB';
-      return db.ref('online_orders/' + bill).set(o);
+      // กันสั่งรัว: เบอร์เดียวกันสั่งได้ 1 ครั้งต่อ 2 นาที (กฎ Firebase ตรวจ throttle/<เบอร์>)
+      var up = {}; up['online_orders/' + bill] = o; up['throttle/' + phone] = firebase.database.ServerValue.TIMESTAMP;
+      return db.ref().update(up);
     }).then(function () {
       var t = {
         bill: bill, status: 'new', paid: false, total: cartTotal(), at: firebase.database.ServerValue.TIMESTAMP,
@@ -748,8 +775,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       lastMsg = buildMessage(name, phone, bill, tracked ? tok : '');
       openDone(bill, lastMsg, tracked ? tok : '');
       cart = []; saveCart(); renderMenu(); updateBar(); renderReorder();
-    }).catch(function () {
-      openContact('ສົ່ງອໍເດີ້ບໍ່ສຳເລັດ ກວດອິນເຕີເນັດ ແລ້ວລອງໃໝ່');
+    }).catch(function (e) {
+      var denied = e && /permission|PERMISSION/.test(String(e.code || e.message || ''));
+      openContact(denied ? 'ສົ່ງອໍເດີ້ບໍ່ໄດ້ · ຖ້າຫາກໍ່ສັ່ງໄປ ກະລຸນາລໍຖ້າ 2 ນາທີ ແລ້ວລອງໃໝ່ · ຫຼື ທັກ WhatsApp ຮ້ານ' : 'ສົ່ງອໍເດີ້ບໍ່ສຳເລັດ ກວດອິນເຕີເນັດ ແລ້ວລອງໃໝ່');
     });
   }
 
@@ -787,7 +815,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     po_arrived: { icon: '📦', h: 'ເຄື່ອງຮອດຮ້ານແລ້ວ!', p: 'ມາຮັບໄດ້ທີ່ຮ້ານ AUGUSTX', chip: 'ເຄື່ອງຮອດແລ້ວ', s: 'ready' },
     po_done:    { icon: '✓', h: 'ຮັບເຄື່ອງແລ້ວ', p: 'ຂອບໃຈທີ່ອຸດໜູນ AUGUSTX 🙏', chip: 'ຮັບເຄື່ອງແລ້ວ', s: 'ready' },
     po_refund:  { icon: '↩', h: 'ຮ້ານຄືນເງິນໃຫ້ທ່ານແລ້ວ', p: 'ຂໍອະໄພໃນຄວາມບໍ່ສະດວກ', chip: 'ຄືນເງິນແລ້ວ', s: 'rejected' },
-    po_noshow:  { icon: '!', h: 'ເກີນກຳນົດຮັບເຄື່ອງ', p: 'ກະລຸນາທັກ WhatsApp ຮ້ານ', chip: 'ເກີນກຳນົດຮັບ', s: 'rejected' }
+    po_noshow:  { icon: '!', h: 'ເກີນກຳນົດຮັບເຄື່ອງ', p: 'ກະລຸນາທັກ WhatsApp ຮ້ານ', chip: 'ເກີນກຳນົດຮັບ', s: 'rejected' },
+    expired:    { icon: '⏰', h: 'ອໍເດີໝົດເວລາ', p: '', chip: 'ໝົດເວລາ', s: 'rejected' }
   };
   Object.keys(PST).forEach(function (k) { ST[k] = PST[k]; });
   var PO_FLOW = ['po_new', 'po_ordered', 'po_ship', 'po_arrived', 'po_done'];
@@ -893,12 +922,22 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         '<button class="ghost" type="button" data-tr="clear">ປິດ</button>';
       return;
     }
+    var dlEnd = Math.max(Number(d.until) || 0, (Number(d.at) || 0) + winMs());
+    if (d.status === 'expired' || (d.status === 'new' && !d.paid && Date.now() > dlEnd)) {
+      var waX = 'https://wa.me/' + String(CFG.waNumber).replace(/\D/g, '') + '?text=' + encodeURIComponent('ສະບາຍດີ ໂອນເງິນແລ້ວ ແຕ່ອໍເດີ ' + d.bill + ' ໝົດເວລາ');
+      $('track-in').innerHTML = h + '<div class="st-card" data-s="rejected"><div class="st-icon" aria-hidden="true">⏰</div><h2>ອໍເດີໝົດເວລາ</h2><p>ບໍ່ໄດ້ຮັບການຊຳລະພາຍໃນເວລາທີ່ກຳນົດ · ສັ່ງໃໝ່ໄດ້ເລີຍ</p><span class="st-bill num">' + esc(d.bill) + '</span></div>' +
+        '<button class="primary" type="button" data-tr="menu">ສັ່ງໃໝ່</button>' +
+        '<a class="ghost" style="display:block;text-align:center;margin-top:8px" href="' + esc(waX) + '" target="_blank" rel="noopener">ໂອນແລ້ວ? ທັກ WhatsApp ຮ້ານ</a>' +
+        '<button class="ghost" type="button" data-tr="clear">ປິດ</button>';
+      return;
+    }
     var s = ST[d.status] || ST.new, q = dq(d), dl = d.delivery;
     if (dl && d.status === 'delivering') s = { icon: s.icon, h: s.h, p: 'ຄົນຂັບກຳລັງມາ · ກຽມລົງມາຮັບທີ່ ' + dl.spot };
     if (dl && d.status === 'ready') s = { icon: s.icon, h: 'ສົ່ງເຖິງແລ້ວ!', p: 'ລົງມາຮັບທີ່ ' + dl.spot + (q.cust ? ' · ຈ່າຍຄົນຂັບ ' + kip(q.cust) : ' · ບໍ່ຕ້ອງຈ່າຍຄົນຂັບ') };
     h += '<div class="st-card" data-s="' + esc(d.status) + '"><div class="st-icon" aria-hidden="true">' + s.icon + '</div><h2>' + esc(s.h) + '</h2><p>' + esc(s.p) + '</p>' +
       (d.status === 'rejected' && d.reason ? '<div class="reason">ເຫດຜົນ: ' + esc(d.reason) + '</div>' : '') +
       '<span class="st-bill num">' + esc(d.bill) + '</span>';
+    if (d.status === 'new' && !d.paid) h += '<div class="countdown">ກະລຸນາໂອນເງິນພາຍໃນ <b id="cd">' + mmss(dlEnd - Date.now()) + '</b></div>';
     if (d.status !== 'rejected') {
       h += '<span class="pay' + (d.paid ? ' ok' : '') + '">' + (d.paid ? 'ຊຳລະແລ້ວ' : 'ຍັງບໍ່ທັນຊຳລະ') + '</span>';
       h += '<ol class="steps">' + stepList(d).map(function (x) {
@@ -963,6 +1002,14 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     if (b.dataset.tr === 'clear') { if (T.ref) T.ref.off(); T = { tok: '', data: null, ref: null, lastStatus: '' }; store('augx-track', null); return hideTrack(); }
   });
   setInterval(function () { if (T.data && T.data.at && !$('track').hidden && $('ago')) $('ago').textContent = ago(T.data.at); }, 30000);
+  function mmss(ms) { ms = Math.max(0, ms); var m = Math.floor(ms / 60000), x = Math.floor(ms / 1000) % 60; return m + ':' + ('0' + x).slice(-2); }
+  // นับถอยหลังทุกวินาที · หมดเวลาแล้ววาดหน้าใหม่เป็น "ໝົດເວລາ"
+  setInterval(function () {
+    var d = T.data; if (!d || d.missing || d.kind === 'po' || $('track').hidden || d.status !== 'new' || d.paid) return;
+    var end = Math.max(Number(d.until) || 0, (Number(d.at) || 0) + winMs()), left = end - Date.now();
+    if (left <= 0) return renderTrack();
+    if ($('cd')) $('cd').textContent = mmss(left);
+  }, 1000);
 
   // ---------- แผนที่ปักหมุด (OpenStreetMap ฟรี · โหลดเฉพาะตอนลูกค้ากดเลือกจุดส่ง) ----------
   var MAPLIB = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
@@ -1051,7 +1098,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('mapwrap') && !$('mapwrap').hidden) closeMap(); });
 
   // ---------- ปุ่มทั้งหมดในแผ่นเลื่อน ----------
-  $('sheet').addEventListener('input', function (e) { if (draft && e.target.id === 'note') draft.note = e.target.value; });
+  $('sheet').addEventListener('input', function (e) { if (draft && e.target.id === 'note') draft.note = e.target.value; if (draft && e.target.id === 'cm') draft.cm = e.target.value; });
   $('sheet').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
     if (draft) {
@@ -1080,7 +1127,10 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         var item = MENU.byId[draft.itemId];
         var miss = item.groups.filter(function (g, i) { return g.required && !(draft.sel[i] || []).length; });
         if (miss.length) { $('item-err').textContent = 'ກະລຸນາເລືອກ: ' + miss.map(function (g) { return g.name; }).join(', '); return; }
+        if (stockLeft(item, draft.variant) === 0 && !item.preorder) { $('item-err').textContent = 'ແບບນີ້ໝົດແລ້ວ ກະລຸນາເລືອກແບບອື່ນ'; return; }
         var nl = draftLine();
+        var cm = parseFloat(draft.cm);
+        if (cm > 0) nl.note = (nl.note ? nl.note + ' · ' : '') + 'ຕີນ ' + cm + ' cm';
         if (cart.length && cartCur() !== itCur(item)) { pendingLine = nl; return mixSheet(item); }
         var key = function (x) { return JSON.stringify([x.itemId, x.variant, x.options.map(function (o) { return o.group + ':' + o.name; }).sort(), x.note]); };
         var same = cart.filter(function (x) { return key(x) === key(nl); })[0];
