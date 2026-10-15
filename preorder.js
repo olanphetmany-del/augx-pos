@@ -301,12 +301,20 @@
         A.pay = newPay(A.f.cur);
     }
     function newPay(c) { return { cur: c, payCur: c === 'THB' ? 'THB' : 'LAK', rate: String(FX.rate || ''), method: 'transfer', received: '' }; }
+    // ราคาพรีของไซส์นี้ (ตั้งในหน้าเพิ่มรองเท้า) · ไม่ตั้ง = ราคาปกติ
+    function poUnit(it, v) {
+        if (!it || !v) return v ? v.price : 0;
+        var k = String(v.label == null || v.label === '' ? 'one' : v.label).replace(/[.#$\/\[\]]/g, '_'), p = (it.poPrice || {})[k];
+        if (p != null && p !== '' && isFinite(Number(p))) return Number(p);
+        if (it.prePrice != null && it.prePrice !== '' && isFinite(Number(it.prePrice))) return Number(it.prePrice);
+        return v.price;
+    }
     function pickItem(id, variant) {
         var it = A.items[id]; if (!it) return;
         var f = A.f, prices = parsePrices(it.priceOptions);
         f.itemId = id; f.name = it.name || ''; f.cur = it.currency === 'THB' ? 'THB' : 'LAK'; f.authentic = flagsOf(id).authentic;
         var v = prices.find(function (x) { return x.label === variant; }) || (prices.length === 1 ? prices[0] : null);
-        f.variant = v ? v.label : (variant || ''); f.unit = v ? String(v.price) : (prices[0] ? String(prices[0].price) : '');
+        f.variant = v ? v.label : (variant || ''); f.unit = v ? String(poUnit(it, v)) : (prices[0] ? String(poUnit(it, prices[0])) : '');
         if (A.pay) { A.pay.cur = f.cur; A.pay.payCur = f.cur === 'THB' ? 'THB' : 'LAK'; }
     }
     function fTotal() { var f = A.f; return Math.max(0, Math.round((parseFloat(f.unit) || 0) * Math.max(1, parseInt(f.qty, 10) || 1))); }
@@ -324,7 +332,7 @@
             its.map(function (it) { return '<option value="' + E(it.id) + '"' + (it.id === f.itemId ? ' selected' : '') + '>' + E(it.name) + (it.currency === 'THB' ? ' (฿)' : '') + '</option>'; }).join('') + '</select>' +
             (its.length ? '' : '<div class="axp-hint">ยังไม่มีสินค้าที่ติ๊ก "สินค้าสั่งจอง" ใน Admin · พิมพ์ชื่อเองได้</div>') +
             '<label>ชื่อรุ่น (พิมพ์บนใบ)</label><input data-f="name" value="' + E(f.name) + '" placeholder="เช่น AIR JORDAN 1 LOW">';
-        if (variants.length > 1) h += '<label>ไซส์ / แบบ</label><div class="axp-seg">' + variants.map(function (v) { return '<button data-var="' + E(v.label) + '" class="' + (v.label === f.variant ? 'on' : '') + '">' + E(v.label || '-') + '<br><small>' + M(v.price, c) + '</small></button>'; }).join('') + '</div>';
+        if (variants.length > 1) h += '<label>ไซส์ / แบบ</label><div class="axp-seg">' + variants.map(function (v) { return '<button data-var="' + E(v.label) + '" class="' + (v.label === f.variant ? 'on' : '') + '">' + E(v.label || '-') + '<br><small>' + M(poUnit(sel, v), c) + '</small></button>'; }).join('') + '</div>';
         h += '<div class="axp-2"><div><label>ไซส์ / แบบ</label><input data-f="variant" value="' + E(f.variant) + '" placeholder="เช่น 42"></div><div><label>รหัสรุ่น (Style code)</label><input data-f="styleCode" value="' + E(f.styleCode) + '" placeholder="เช่น 553558-140"></div></div>' +
             '<div class="axp-3"><div><label>ราคาต่อชิ้น (' + (c === 'THB' ? '฿ บาท' : '₭ กีบ') + ')</label><input data-f="unit" type="number" inputmode="numeric" min="0" value="' + E(f.unit) + '"></div><div><label>จำนวน</label><input data-f="qty" type="number" inputmode="numeric" min="1" value="' + E(f.qty) + '"></div></div>';
         if (FX.on || c === 'THB') h += '<label>สกุลเงินของราคา</label><div class="axp-seg"><button data-cur="LAK" class="' + (c === 'LAK' ? 'on' : '') + '">₭ กีบ</button><button data-cur="THB" class="' + (c === 'THB' ? 'on' : '') + '">฿ บาท</button></div>';
@@ -655,7 +663,7 @@
         var ds = b.dataset;
         if (ds.open) { A.view = 'detail'; A.id = ds.open; return draw(); }
         if (ds.tab) { A.tab = ds.tab; A.q = ''; return draw(); }
-        if (ds.var != null && A.f) { var it = A.items[A.f.itemId], v = parsePrices(it && it.priceOptions).find(function (x) { return x.label === ds.var; }); A.f.variant = ds.var; if (v) A.f.unit = String(v.price); A.keepScroll = true; return draw(); }
+        if (ds.var != null && A.f) { var it = A.items[A.f.itemId], v = parsePrices(it && it.priceOptions).find(function (x) { return x.label === ds.var; }); A.f.variant = ds.var; if (v) A.f.unit = String(poUnit(it, v)); A.keepScroll = true; return draw(); }
         if (ds.cur && A.f) { A.f.cur = ds.cur; A.pay.cur = ds.cur; A.pay.payCur = ds.cur; A.keepScroll = true; return draw(); }
         if (ds.plan && A.f) { A.f.plan = ds.plan; A.keepScroll = true; return draw(); }
         if (ds.pc && A.pay) { A.pay.payCur = ds.pc; A.pay.received = ''; A.keepScroll = true; return draw(); }

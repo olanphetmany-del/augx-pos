@@ -93,6 +93,43 @@
         input:checked + .slider:before { transform: translateX(20px); }
 
         /* Modal Popup */
+        /* ---------- หน้าเพิ่ม/แก้รองเท้า ---------- */
+        #shoe-overlay .modal-container { max-width: 480px; padding: 0; background: #f7f6f3; }
+        .sh-bar { position: sticky; top: 0; z-index: 2; background: #6b3fa0; color: #fff; padding: 12px 16px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .sh-bar button { background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; }
+        .sh-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .sh-sec { background: #fff; border: 1px solid #e3dfd8; border-radius: 12px; padding: 12px; }
+        .sh-st { font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #1d1b19; }
+        .sh-st small { font-weight: normal; color: #77716a; font-size: 12px; }
+        .sh-n { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: #6b3fa0; color: #fff; font-size: 12px; align-items: center; justify-content: center; margin-right: 6px; }
+        .sh-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .sh-chip { border: 1px solid #e3dfd8; background: #fff; color: #1d1b19; border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+        .sh-chip.on { background: #6b3fa0; border-color: #6b3fa0; color: #fff; font-weight: bold; }
+        .sh-chip.sm { font-size: 12px; padding: 5px 10px; }
+        #shoe-overlay label.sh-f { display: block; font-size: 12px; color: #77716a; margin: 8px 0 4px; }
+        #shoe-overlay input[type="text"], #shoe-overlay input[type="number"] { font-size: 15px; padding: 9px 10px; }
+        .sh-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .sh-pics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .sh-pic { position: relative; aspect-ratio: 1/1; border: 1.5px dashed #d6d1c8; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #77716a; font-size: 22px; cursor: pointer; background: #f7f6f3; overflow: hidden; }
+        .sh-pic img { width: 100%; height: 100%; object-fit: cover; }
+        .sh-pic b { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,.6); color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .sh-tg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .sh-tl { border: 1px solid #e3dfd8; background: #fff; color: #1d1b19; border-radius: 10px; padding: 6px 0 4px; font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+        .sh-tl b { font-size: 14px; } .sh-tl small { font-size: 10px; color: #b06a00; font-weight: bold; }
+        .sh-tl.in { background: #e5f5ec; border-color: #1f8a4c; } .sh-tl.in small { color: #1f8a4c; }
+        .sh-tl.off { opacity: .35; } .sh-tl.off b { text-decoration: line-through; } .sh-tl.off small { color: #77716a; }
+        .sh-tl.cus { box-shadow: inset 0 -3px 0 #6b3fa0; }
+        .sh-tl.cur { outline: 2px solid #6b3fa0; outline-offset: 1px; }
+        .sh-pan { margin-top: 8px; border: 1.5px solid #6b3fa0; border-radius: 12px; padding: 10px; background: #f1eaf9; }
+        .sh-pr { display: flex; align-items: center; gap: 8px; margin: 6px 0; } .sh-pr > span:first-child { width: 78px; font-size: 12px; color: #77716a; flex: none; }
+        .sh-stp { display: flex; align-items: center; gap: 6px; } .sh-stp button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e3dfd8; background: #fff; font-size: 18px; cursor: pointer; } .sh-stp span { min-width: 22px; text-align: center; font-weight: bold; font-size: 16px; }
+        .sh-tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; white-space: nowrap; font-weight: bold; } .sh-tag.ok { background: #1f8a4c; color: #fff; } .sh-tag.po { background: #fff3df; color: #b06a00; }
+        .sh-foot { position: sticky; bottom: 0; background: #f7f6f3; border-top: 1px solid #e3dfd8; padding: 10px 12px; display: flex; gap: 8px; }
+        .sh-btn { flex: 1; border: 0; border-radius: 12px; padding: 13px 8px; font: inherit; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .sh-btn.p { background: #6b3fa0; color: #fff; } .sh-btn.s { background: #f1eaf9; color: #6b3fa0; }
+        .sh-sum { font-size: 12.5px; color: #1d1b19; background: #f7f6f3; border-radius: 8px; padding: 8px 10px; margin-top: 8px; line-height: 1.6; }
+        .mv-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+        .mv-row select { width: auto !important; padding: 5px 6px !important; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
         .modal-container { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
     
@@ -296,7 +333,12 @@
                         <option value="ALL">-- ທຸກໝວດໝູ່ (All Items) --</option>
                     </select>
                 </div>
-                <button class="btn btn-green" onclick="openItemModalForAdd()">+ Add Item</button>
+                <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:normal;white-space:nowrap;"><input type="checkbox" id="filter-hide-shoe" style="width:auto;" onchange="renderItemListTable()"> ซ่อนรองเท้า</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn" style="background:#6b3fa0" onclick="openShoe()">👟 เพิ่มรองเท้า</button>
+                    <button class="btn btn-gray" onclick="openMoveShoes()" title="ย้ายรองเท้าที่อยู่หมวดเดิมเข้าหมวดแบรนด์">🔀 ย้ายรองเท้าเข้าแบรนด์</button>
+                    <button class="btn btn-green" onclick="openItemModalForAdd()">+ Add Item</button>
+                </div>
             </div>
             <div class="box table-responsive">
                 <table>
@@ -314,11 +356,15 @@
                     <div class="form-group" style="flex: 2; margin-bottom:0;"><input type="text" id="new-cat-name" placeholder="Category Name"></div>
                     <button class="btn btn-green" onclick="addCategory()">ADD CATEGORY</button>
                 </div>
+                <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <button class="btn" style="background:#6b3fa0" onclick="createBrandCats()">👟 สร้างหมวดแบรนด์รองเท้า</button>
+                    <span class="hint" style="margin:0">สร้าง NIKE · JORDAN · NEW BALANCE · ADIDAS · ON · PUMA ให้ครบ (ติ๊ก SHOP / ของแท้ / รองเท้า + ตารางไซส์ให้เอง) · มีอยู่แล้วจะข้าม</span>
+                </div>
             </div>
             <p class="hint" style="margin:0 0 8px;">ติ๊กที่หมวด แล้วทุกสินค้าในหมวดเป็นแบบนั้นเอง · <b>ขายที่หน้า SHOP</b> = ไม่ขึ้นในแคชเชียร์ ยอดเข้ากล่อง 👟 SHOP · <b>ของแท้</b> = ใบเสร็จพิมพ์กล่องรับประกัน 30 วัน (ลูกค้าไม่เห็นในหน้าสั่งออนไลน์) · <b>รองเท้า</b> = หน้าสั่งออนไลน์ถามความยาวเท้า cm</p>
             <div class="box table-responsive">
                 <table>
-                    <thead><tr><th style="width:60px;">No.</th><th>Category Name</th><th>จำนวนสินค้า</th><th>👟 ขายที่หน้า SHOP</th><th>✓ ของแท้</th><th>👟 รองเท้า (ถาม cm)</th><th>ຈັດການ</th></tr></thead>
+                    <thead><tr><th style="width:60px;">No.</th><th>Category Name</th><th>จำนวนสินค้า</th><th>👟 ขายที่หน้า SHOP</th><th>✓ ของแท้</th><th>👟 รองเท้า (ถาม cm)</th><th>ตารางไซส์</th><th>ຈັດການ</th></tr></thead>
                     <tbody id="category-table-body"></tbody>
                 </table>
             </div>
@@ -481,6 +527,7 @@
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
                     <label><strong>เบอร์ WhatsApp ร้าน</strong><input type="text" id="on-wa" placeholder="020 5738 8383" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><div class="hint">ข้อความออร์เดอร์ของลูกค้าจะเปิดแชทไปหาเบอร์นี้ (ต้องมี WhatsApp)</div></label>
+                    <label><strong>👟 เบอร์ WhatsApp ร้าน SHOP</strong><input type="text" id="on-shopwa" placeholder="ว่าง = ใช้เบอร์ร้านด้านบน" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><div class="hint">ลูกค้ากด "ສອບຖາມລາຄາ" ที่รองเท้า จะเปิดแชทไปเบอร์นี้ · ใส่เบอร์ไทย (08x / 09x / 06x) หรือลาวได้</div></label>
                     <label><strong>คำนำหน้าเลขบิล (2 ตัวอักษร)</strong><input type="text" id="on-prefix" maxlength="2" placeholder="ON" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;text-transform:uppercase;"><div class="hint">เช่น ON → ON131026001-ABC</div></label>
                 </div>
                 <label style="display:block;margin-top:12px;"><strong>บรรทัดแรกของข้อความลูกค้า</strong><input type="text" id="on-greeting" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
@@ -619,6 +666,68 @@
             <div style="text-align:right; margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn btn-red" onclick="closeItemModal()" style="padding:10px 15px;">ยกเลิก</button>
                 <button class="btn btn-green" onclick="saveItemModalData()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- เพิ่ม/แก้รองเท้า -->
+    <div class="modal-overlay" id="shoe-overlay">
+        <div class="modal-container">
+            <div class="sh-bar"><span id="sh-title">👟 เพิ่มรองเท้า</span><button type="button" onclick="closeShoe()" aria-label="ปิด">×</button></div>
+            <div class="sh-body">
+                <div class="sh-sec">
+                    <div class="sh-st"><span><span class="sh-n">1</span>แบรนด์</span><small>ไซส์ขึ้นเองตามแบรนด์</small></div>
+                    <div class="sh-chips" id="sh-brands"></div>
+                </div>
+                <div class="sh-sec">
+                    <div class="sh-st"><span><span class="sh-n">2</span>ชื่อรุ่น & รูป</span></div>
+                    <label class="sh-f">ชื่อรุ่น</label><input type="text" id="sh-name" placeholder="เช่น DUNK LOW TEAM GOLD" oninput="SH.dirty=true">
+                    <label class="sh-f">สี (ไม่บังคับ)</label><input type="text" id="sh-color" placeholder="เช่น White / Team Gold" oninput="SH.dirty=true">
+                    <label class="sh-f">รูป (สูงสุด 4 · ตัดเป็นสี่เหลี่ยมจัตุรัสให้เอง · รูปแรก = รูปปก)</label>
+                    <div class="sh-pics" id="sh-pics"></div>
+                    <input type="file" id="sh-file" accept="image/*" multiple style="display:none" onchange="shPhotos(this)">
+                </div>
+                <div class="sh-sec">
+                    <div class="sh-st"><span><span class="sh-n">3</span>ราคา (ใส่ครั้งเดียว)</span><small>฿ บาท</small></div>
+                    <div class="sh-2">
+                        <div><label class="sh-f">ราคาหน้าร้าน (พร้อมส่ง)</label><input type="number" id="sh-base" inputmode="numeric" min="0" placeholder="เช่น 8900" oninput="shPriceInput()"></div>
+                        <div><label class="sh-f">ราคา PRE-ORDER</label><input type="number" id="sh-pre" inputmode="numeric" min="0" placeholder="ว่าง = สอบถามราคา" oninput="shPriceInput()"></div>
+                    </div>
+                    <div class="hint">เบอร์ไหนราคาต่าง แตะเบอร์นั้นในตารางด้านล่างแล้วใส่ราคาเฉพาะเบอร์</div>
+                </div>
+                <div class="sh-sec">
+                    <div class="sh-st"><span><span class="sh-n">4</span>ไซส์ & สต็อก</span><small id="sh-cnt"></small></div>
+                    <div class="sh-chips" style="margin-bottom:8px">
+                        <button type="button" class="sh-chip sm" onclick="shCut('lo')">✕ ลบเบอร์เล็ก (&lt;38)</button>
+                        <button type="button" class="sh-chip sm" onclick="shCut('hi')">✕ ลบเบอร์ใหญ่ (&gt;45)</button>
+                        <button type="button" class="sh-chip sm" onclick="shRestore()">↺ เปิดทุกเบอร์</button>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-bottom:8px"><input type="text" id="sh-addz" placeholder="เพิ่มเบอร์ เช่น 35, 47, 48, 42 2/3" onkeydown="if(event.key==='Enter')shAddSize()"><button type="button" class="sh-chip on" style="white-space:nowrap" onclick="shAddSize()">＋ เพิ่ม</button></div>
+                    <div id="sh-sizes"></div>
+                    <div class="hint">แตะเบอร์เพื่อแก้สต็อก/ราคา · <span style="color:#1f8a4c;font-weight:bold">เขียว = มีของ (พร้อมส่ง)</span> · <span style="color:#b06a00;font-weight:bold">PRE</span> = ไม่มีของ ลูกค้าสั่งจองได้ · ขีดม่วงใต้ = ราคาเฉพาะเบอร์ · ขายคู่สุดท้ายแล้วเบอร์นั้นกลับเป็น PRE เอง</div>
+                    <div class="sh-sum" id="sh-sum"></div>
+                </div>
+                <div class="sh-sec">
+                    <label class="sh-f" style="margin-top:0">คำอธิบายสั้นๆ (ไม่บังคับ)</label><input type="text" id="sh-desc" maxlength="120" oninput="SH.dirty=true">
+                    <div class="hint" style="margin-top:8px">หมวด = แบรนด์ที่เลือก (ติ๊ก SHOP / ของแท้ / รองเท้า ที่หน้า Categories) · ราคาเป็น ฿ · ไม่เข้าครัว ไม่ตัดแก้ว · <a href="#" onclick="shOldModal();return false;">เปิดแบบฟอร์มเดิม</a></div>
+                </div>
+            </div>
+            <div class="sh-foot">
+                <button type="button" class="sh-btn s" onclick="shSave(true)">📋 บันทึก + ทำสำเนา</button>
+                <button type="button" class="sh-btn p" id="sh-save" onclick="shSave(false)">💾 บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ย้ายรองเท้าเดิมเข้าหมวดแบรนด์ -->
+    <div class="modal-overlay" id="mv-overlay">
+        <div class="modal-container">
+            <h3 style="margin-top:0;color:var(--blue)">🔀 ย้ายรองเท้าเข้าหมวดแบรนด์</h3>
+            <div class="hint" style="margin-bottom:8px">ระบบเดาแบรนด์จากชื่อสินค้า ตรวจ/เปลี่ยนได้ก่อนกดย้าย · ชื่อสินค้า ราคา สต็อก ไม่เปลี่ยน</div>
+            <div id="mv-list"></div>
+            <div style="text-align:right;margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">
+                <button class="btn btn-gray" onclick="document.getElementById('mv-overlay').style.display='none'">ยกเลิก</button>
+                <button class="btn btn-green" id="mv-go" onclick="doMoveShoes()">ย้าย</button>
             </div>
         </div>
     </div>
@@ -880,6 +989,7 @@
             document.getElementById('on-enabled').checked = c.enabled !== false;
             document.getElementById('on-beta').checked = c.beta !== false;
             document.getElementById('on-wa').value = c.waNumber || '';
+            document.getElementById('on-shopwa').value = c.shopWa || '';
             document.getElementById('on-prefix').value = c.prefix || 'ON';
             document.getElementById('on-greeting').value = c.greeting || '';
             document.getElementById('on-closing').value = c.closing || '';
@@ -893,10 +1003,12 @@
             const prefix = document.getElementById('on-prefix').value.trim().toUpperCase();
             if (!wa || wa.length < 10) return toast('เบอร์ WhatsApp ไม่ถูกต้อง', false);
             if (!/^[A-Z]{2}$/.test(prefix)) return toast('คำนำหน้าเลขบิลต้องเป็นตัวอักษรอังกฤษ 2 ตัว', false);
+            const shopRaw = document.getElementById('on-shopwa').value.trim(), shopWa = shopRaw ? waNumber(shopRaw) : '';
+            if (shopRaw && (!shopWa || shopWa.length < 10)) return toast('เบอร์ WhatsApp ร้าน SHOP ไม่ถูกต้อง', false);
             database.ref('settings/online').update({
                 enabled: document.getElementById('on-enabled').checked,
                 beta: document.getElementById('on-beta').checked,
-                waNumber: '+' + wa, prefix: prefix,
+                waNumber: '+' + wa, prefix: prefix, shopWa: shopWa ? '+' + shopWa : null,
                 greeting: document.getElementById('on-greeting').value.trim() || ONLINE_DEF.greeting,
                 closing: document.getElementById('on-closing').value.trim(),
                 replyText: document.getElementById('on-reply').value.trim() || ONLINE_DEF.replyText,
@@ -955,11 +1067,11 @@
             globalCategories.forEach((cat, i) => {
                 const used = globalItems.filter(it => it.category === cat.name).length;
                 const ck = (k) => `<input type="checkbox" style="width:auto;transform:scale(1.3)" data-id="${esc(cat.id)}" data-k="${k}" ${cat[k] ? 'checked' : ''} onchange="setCatFlag(this)">`;
-                html += `<tr><td>${i + 1}</td><td><strong>${esc(cat.name)}</strong></td><td>${used}</td><td>${ck('shop')}</td><td>${ck('authentic')}</td><td>${ck('shoe')}</td><td><div class="actions-cell"><button class="btn btn-blue btn-sm" data-id="${esc(cat.id)}" onclick="renameCategory(this.dataset.id)">เปลี่ยนชื่อ</button><button class="btn btn-red btn-sm" data-id="${esc(cat.id)}" onclick="deleteCategory(this.dataset.id)">ลบ</button></div></td></tr>`;
+                html += `<tr><td>${i + 1}</td><td><strong>${esc(cat.name)}</strong></td><td>${used}</td><td>${ck('shop')}</td><td>${ck('authentic')}</td><td>${ck('shoe')}</td><td>${cat.shoe ? `<button class="btn btn-gray btn-sm" data-id="${esc(cat.id)}" onclick="editCatSizes(this.dataset.id)">📏 ${catSizes(cat).length ? catSizes(cat)[0] + '–' + catSizes(cat)[catSizes(cat).length - 1] + ' (' + catSizes(cat).length + ')' : 'ตั้งไซส์'}</button>` : '-'}</td><td><div class="actions-cell"><button class="btn btn-blue btn-sm" data-id="${esc(cat.id)}" onclick="renameCategory(this.dataset.id)">เปลี่ยนชื่อ</button><button class="btn btn-red btn-sm" data-id="${esc(cat.id)}" onclick="deleteCategory(this.dataset.id)">ลบ</button></div></td></tr>`;
                 dropdown += `<option value="${esc(cat.name)}">${esc(cat.name)}</option>`;
                 filter += `<option value="${esc(cat.name)}">${esc(cat.name)}</option>`;
             });
-            document.getElementById('category-table-body').innerHTML = html || emptyRow(7, 'ไม่มีหมวดหมู่');
+            document.getElementById('category-table-body').innerHTML = html || emptyRow(8, 'ไม่มีหมวดหมู่');
             document.getElementById('cat-count-badge').innerText = '(' + globalCategories.length + ')';
             const modalSel = document.getElementById('modal-item-cat'), keepModal = modalSel.value;
             modalSel.innerHTML = dropdown; modalSel.value = keepModal;
@@ -1000,7 +1112,8 @@
         /* ---------- สินค้า ---------- */
         function renderItemListTable() {
             const f = document.getElementById('filter-category-select').value || 'ALL';
-            const list = f === 'ALL' ? globalItems : globalItems.filter(it => it.category === f);
+            const hideShoe = document.getElementById('filter-hide-shoe').checked;
+            const list = (f === 'ALL' ? globalItems : globalItems.filter(it => it.category === f)).filter(it => !(hideShoe && isShoeCat(it.category)));
             let html = '';
             list.forEach((item, i) => {
                 const prices = parsePrices(item.priceOptions);
@@ -1009,7 +1122,7 @@
                 const hiddenNames = channelNames(item.hiddenChannels);
                 const chanTxt = hiddenNames ? 'ซ่อนใน: ' + esc(hiddenNames) : 'ทุกช่องทาง';
                 const mods = String(item.modifierIds || '').split(',').filter(Boolean).map(id => globalModifiers.find(m => m.id === id)).filter(Boolean).map(m => esc(m.name)).join(', ') || '-';
-                html += `<tr><td>${i + 1}</td><td><img class="thumb" src="${esc(item.image || 'images/bg.jpg')}"></td><td>${esc(item.category)}</td><td><strong>${esc(item.name)}</strong></td><td class="wrap">${priceTxt}</td><td class="wrap">${mods}</td><td class="wrap">${chanTxt}</td><td><div class="actions-cell"><button class="btn btn-blue btn-sm" data-id="${esc(item.id)}" onclick="openItemModalForEdit(this.dataset.id)">แก้ไข</button>${delBtn('menu_items/' + item.id, item.name)}</div></td></tr>`;
+                html += `<tr><td>${i + 1}</td><td><img class="thumb" src="${esc(item.image || 'images/bg.jpg')}"></td><td>${esc(item.category)}</td><td><strong>${esc(item.name)}</strong></td><td class="wrap">${priceTxt}</td><td class="wrap">${mods}</td><td class="wrap">${chanTxt}</td><td><div class="actions-cell">${isShoeCat(item.category) ? `<button class="btn btn-sm" style="background:#6b3fa0" data-id="${esc(item.id)}" onclick="openShoe(this.dataset.id)">👟 แก้ไข</button><button class="btn btn-gray btn-sm" title="ทำสำเนา" data-id="${esc(item.id)}" onclick="openShoe(this.dataset.id, true)">📋</button>` : `<button class="btn btn-blue btn-sm" data-id="${esc(item.id)}" onclick="openItemModalForEdit(this.dataset.id)">แก้ไข</button>`}${delBtn('menu_items/' + item.id, item.name)}</div></td></tr>`;
             });
             document.getElementById('menu-table-body').innerHTML = html || emptyRow(8, 'ไม่มีสินค้า');
             document.getElementById('item-count-badge').innerText = '(' + list.length + ')';
@@ -1154,6 +1267,263 @@
                 img.onerror = go;
                 img.src = modalPhotos[0];
             } else go();
+        }
+
+        /* ---------- 👟 หมวดแบรนด์ + ตารางไซส์ ---------- */
+        const BRANDS = ['NIKE', 'JORDAN', 'NEW BALANCE', 'ADIDAS', 'ON', 'PUMA'];
+        const BRAND_SIZES = {
+            NIKE: '35.5,36,36.5,37.5,38,38.5,39,40,40.5,41,42,42.5,43,44,44.5,45,45.5,46',
+            JORDAN: '35.5,36,36.5,37.5,38,38.5,39,40,40.5,41,42,42.5,43,44,44.5,45,45.5,46',
+            'NEW BALANCE': '36,37,37.5,38,38.5,39.5,40,40.5,41.5,42,42.5,43,44,44.5,45,45.5',
+            ADIDAS: '36,36⅔,37⅓,38,38⅔,39⅓,40,40⅔,41⅓,42,42⅔,43⅓,44,44⅔,45⅓,46',
+            ON: '36,36.5,37,37.5,38,38.5,39,40,40.5,41,42,42.5,43,44,44.5,45,46',
+            PUMA: '35.5,36,37,37.5,38,38.5,39,40,40.5,41,42,42.5,43,44,44.5,45,46'
+        };
+        // "42 2/3" → "42⅔" · "42,5" → "42.5"
+        function normSize(s) {
+            s = String(s || '').trim().replace(/\s+/g, ' ');
+            s = s.replace(/^(\d+)\s*1\/3$/, '$1⅓').replace(/^(\d+)\s*2\/3$/, '$1⅔').replace(/^(\d+)\s*1\/2$/, '$1.5').replace(/^(\d+),(\d)$/, '$1.$2');
+            return s;
+        }
+        function sizeVal(s) { s = String(s); const m = { '⅓': 1 / 3, '⅔': 2 / 3 }, c = s.slice(-1); const n = parseFloat(s); return isNaN(n) ? 9999 : n + (m[c] || 0); }
+        function catSizes(cat) { return String((cat && cat.sizes) || '').split(',').map(normSize).filter(Boolean); }
+        function catByNameA(n) { return globalCategories.find(c => c.name === n); }
+        function isShoeCat(n) { const c = catByNameA(n); return !!(c && c.shoe); }
+        function shoeBrandCats() { return globalCategories.filter(c => c.shoe && catSizes(c).length); }
+        function createBrandCats() {
+            const upd = {}; let made = [], t = Date.now();
+            BRANDS.forEach((b, i) => {
+                const c = catByNameA(b);
+                if (c) { if (!c.sizes || !c.shoe || !c.shop) { upd['categories/' + c.id + '/shop'] = true; upd['categories/' + c.id + '/authentic'] = c.authentic === false ? null : true; upd['categories/' + c.id + '/shoe'] = true; if (!c.sizes) upd['categories/' + c.id + '/sizes'] = BRAND_SIZES[b]; made.push(b + ' (อัปเดต)'); } return; }
+                const k = database.ref('categories').push().key;
+                upd['categories/' + k] = { name: b, order: t + i, shop: true, authentic: true, shoe: true, sizes: BRAND_SIZES[b] };
+                made.push(b);
+            });
+            if (!made.length) return toast('มีหมวดแบรนด์ครบแล้ว');
+            database.ref().update(upd).then(() => toast('สร้างแล้ว: ' + made.join(', '))).catch(e => toast('ไม่สำเร็จ: ' + e.message, false));
+        }
+        function editCatSizes(id) {
+            const c = globalCategories.find(x => x.id === id); if (!c) return;
+            const def = catSizes(c).join(', ') || BRAND_SIZES[c.name.toUpperCase()] || '';
+            const v = prompt('ตารางไซส์ของ ' + c.name + ' (คั่นด้วย , · เบอร์เศษใส่ 42 2/3 ได้)\nใช้ตอนเพิ่มรองเท้าใหม่ · รองเท้าที่มีอยู่แล้วไม่เปลี่ยน', def);
+            if (v === null) return;
+            const list = v.split(',').map(normSize).filter(Boolean).filter((s, i, a) => a.indexOf(s) === i).sort((a, b) => sizeVal(a) - sizeVal(b));
+            if (list.some(s => sizeVal(s) === 9999)) return toast('มีไซส์ที่ไม่ใช่ตัวเลข', false);
+            database.ref('categories/' + id + '/sizes').set(list.length ? list.join(',') : null).then(() => toast('บันทึกตารางไซส์แล้ว (' + list.length + ' เบอร์)'));
+        }
+
+        /* ---------- 👟 เพิ่ม/แก้รองเท้า ---------- */
+        let SH = {};
+        function shoeIsOverride(v, base) { return v != null && base != null && Number(v) !== Number(base); }
+        function openShoe(id, copy) {
+            const brands = shoeBrandCats();
+            if (!brands.length) return toast('ยังไม่มีหมวดแบรนด์ — ไปหน้า Categories กด "👟 สร้างหมวดแบรนด์รองเท้า" ก่อน', false);
+            const it = id ? globalItems.find(x => x.id === id) : null;
+            SH = { id: it && !copy ? it.id : null, brand: '', rows: [], cur: null, photos: [], photosDirty: false, dirty: false, keep: {} };
+            if (it) {
+                const cat = catByNameA(it.category);
+                SH.brand = cat && catSizes(cat).length ? it.category : '';
+                const prices = parsePrices(it.priceOptions);
+                const base = it.basePrice != null ? Number(it.basePrice) : (prices.length ? mode(prices.map(p => p.price)) : null);
+                const st = it.stock || {}, po = it.poPrice || {};
+                SH.rows = prices.map(p => ({ z: normSize(p.label) || p.label, on: true, n: copy ? 0 : Math.max(0, Number(st[stockKey(p.label)]) || 0), p: shoeIsOverride(p.price, base) ? p.price : null, q: po[stockKey(p.label)] != null ? Number(po[stockKey(p.label)]) : null }));
+                // แบบเดิมที่ไม่ใช่เบอร์ (เช่น "36-45EU Pre-order") → ปิดไว้ แล้วเปิดตารางไซส์ของแบรนด์แทน
+                const okSize = z => /^\d+(\.\d+)?[⅓⅔]?$/.test(z);
+                const bad = SH.rows.filter(r => !okSize(r.z));
+                bad.forEach(r => r.on = false);
+                const anyGood = SH.rows.some(r => okSize(r.z));
+                if (cat) catSizes(cat).forEach(z => { if (!SH.rows.some(r => r.z === z)) SH.rows.push({ z: z, on: !anyGood, n: 0, p: null, q: null }); });
+                if (bad.length) setTimeout(() => toast('แบบเดิม "' + bad.map(r => r.z).join('", "') + '" ไม่ใช่เบอร์ ปิดไว้ให้แล้ว · ตรวจไซส์/สต็อกแล้วกดบันทึก'), 300);
+                SH.rows.sort((a, b) => sizeVal(a.z) - sizeVal(b.z));
+                document.getElementById('sh-name').value = copy ? '' : (it.name || '');
+                document.getElementById('sh-color').value = copy ? '' : (it.color || '');
+                document.getElementById('sh-desc').value = it.description || '';
+                document.getElementById('sh-base').value = base != null ? base : '';
+                document.getElementById('sh-pre').value = it.prePrice != null ? it.prePrice : '';
+                SH.keep = { modifierIds: it.modifierIds || '', hiddenChannels: it.hiddenChannels || '' };
+                if (!copy && it.photoCount) database.ref('menu_photos/' + it.id).once('value').then(s => { if (SH.id !== it.id || SH.photosDirty) return; const v = s.val() || {}; SH.photos = arr(v.p); shPics(); });
+                SH.thumb = copy ? '' : (it.image && it.image !== 'images/bg.jpg' ? it.image : '');
+            } else {
+                ['sh-name', 'sh-color', 'sh-desc', 'sh-base', 'sh-pre'].forEach(k => document.getElementById(k).value = '');
+                pickShoeBrand(brands[0].name, true);
+            }
+            if (copy && it) SH.photosDirty = true;
+            document.getElementById('sh-title').textContent = SH.id ? '👟 แก้ไขรองเท้า' : copy ? '👟 เพิ่มรองเท้า (สำเนา)' : '👟 เพิ่มรองเท้า';
+            shBrands(); shPics(); shDraw();
+            document.getElementById('shoe-overlay').style.display = 'flex';
+            document.querySelector('#shoe-overlay .modal-container').scrollTop = 0;
+            if (copy) setTimeout(() => document.getElementById('sh-name').focus(), 50);
+        }
+        function mode(a) { const c = {}; let best = a[0], n = 0; a.forEach(x => { c[x] = (c[x] || 0) + 1; if (c[x] > n) { n = c[x]; best = x; } }); return best; }
+        function closeShoe(force) {
+            if (!force && SH.dirty && !confirm('ยังไม่ได้บันทึก ปิดเลยไหม?')) return;
+            document.getElementById('shoe-overlay').style.display = 'none';
+        }
+        function shOldModal() { const id = SH.id; closeShoe(true); if (id) openItemModalForEdit(id); else openItemModalForAdd(); }
+        function pickShoeBrand(name, fresh) {
+            const cat = catByNameA(name); if (!cat) return;
+            const sizes = catSizes(cat);
+            if (!fresh && name === SH.brand) return;
+            if (!fresh && SH.rows.some(r => r.n > 0 || r.p != null || r.q != null)) {
+                // เปลี่ยนแบรนด์: เก็บสต็อก/ราคาของเบอร์ที่ตรงกัน
+                const old = {}; SH.rows.forEach(r => old[r.z] = r);
+                SH.rows = sizes.map(z => old[z] ? Object.assign({}, old[z], { on: true }) : { z: z, on: true, n: 0, p: null, q: null });
+                Object.keys(old).forEach(z => { if (sizes.indexOf(z) < 0 && (old[z].n > 0)) SH.rows.push(Object.assign({}, old[z], { add: true })); });
+                SH.rows.sort((a, b) => sizeVal(a.z) - sizeVal(b.z));
+            } else SH.rows = sizes.map(z => ({ z: z, on: true, n: 0, p: null, q: null }));
+            SH.brand = name; SH.cur = null; SH.dirty = !fresh;
+            shBrands(); shDraw();
+        }
+        function shBrands() {
+            document.getElementById('sh-brands').innerHTML = shoeBrandCats().map(c => `<button type="button" class="sh-chip${c.name === SH.brand ? ' on' : ''}" data-b="${esc(c.name)}" onclick="pickShoeBrand(this.dataset.b)">${esc(c.name)}</button>`).join('');
+        }
+        function shPics() {
+            let h = '';
+            for (let i = 0; i < 4; i++) h += i < SH.photos.length ? `<div class="sh-pic" title="แตะเพื่อลบ" onclick="shDelPic(${i})"><img src="${SH.photos[i]}" alt=""><b>×</b></div>` : `<div class="sh-pic" onclick="document.getElementById('sh-file').click()">＋</div>`;
+            document.getElementById('sh-pics').innerHTML = h;
+        }
+        function shDelPic(i) { if (!confirm('ลบรูปนี้?')) return; SH.photos.splice(i, 1); SH.photosDirty = SH.dirty = true; if (i === 0) SH.thumb = ''; shPics(); }
+        function shPhotos(input) {
+            Array.from(input.files || []).slice(0, 4 - SH.photos.length).forEach(f => cropResize(f, 800, 800, 0.72, d => { if (SH.photos.length < 4) { SH.photos.push(d); SH.photosDirty = SH.dirty = true; if (SH.photos.length === 1) SH.thumb = ''; shPics(); } }));
+            input.value = '';
+        }
+        function shBase() { const v = parseFloat(document.getElementById('sh-base').value); return isNaN(v) ? null : v; }
+        function shPre() { const v = parseFloat(document.getElementById('sh-pre').value); return isNaN(v) ? null : v; }
+        function shPriceInput() { SH.dirty = true; shDraw(true); }
+        function fmtB(n) { return '฿' + Number(n).toLocaleString('en-US'); }
+        function shDraw(keepPanel) {
+            const base = shBase(), pre = shPre();
+            let on = 0, st = 0;
+            const g = SH.rows.map((r, i) => {
+                if (r.on) { on++; if (r.n > 0) st++; }
+                const cls = 'sh-tl' + (!r.on ? ' off' : r.n > 0 ? ' in' : '') + (SH.cur === i ? ' cur' : '') + (r.p != null || r.q != null ? ' cus' : '');
+                return `<button type="button" class="${cls}" onclick="shPick(${i})"><b>${esc(r.z)}</b><small>${!r.on ? 'ไม่ขาย' : r.n > 0 ? 'มี ' + r.n : 'PRE'}</small></button>`;
+            }).join('');
+            let ed = '';
+            const r = SH.rows[SH.cur];
+            if (r) {
+                const i = SH.cur;
+                ed = `<div class="sh-pan"><div class="sh-st" style="margin:0"><b>ไซส์ ${esc(r.z)}</b><button type="button" class="sh-chip sm" onclick="SH.cur=null;shDraw()">✕ ปิด</button></div>` +
+                    (r.on ? `<div class="sh-pr"><span>สต็อกที่ร้าน</span><div class="sh-stp"><button type="button" onclick="shSt(${i},-1)">−</button><span>${r.n}</span><button type="button" onclick="shSt(${i},1)">+</button></div>${r.n > 0 ? '<span class="sh-tag ok">พร้อมส่ง</span>' : '<span class="sh-tag po">PRE</span>'}</div>` +
+                        `<div class="sh-pr"><span>ราคาพร้อมส่ง</span><input type="number" inputmode="numeric" placeholder="${base != null ? 'ราคาหลัก ' + fmtB(base) : 'ใส่ราคาหลักก่อน'}" value="${r.p != null ? r.p : ''}" oninput="shOv(${i},'p',this.value)"></div>` +
+                        `<div class="sh-pr"><span>ราคา PRE</span><input type="number" inputmode="numeric" placeholder="${pre != null ? 'ราคาหลัก ' + fmtB(pre) : 'ว่าง = ສອບຖາມລາຄາ'}" value="${r.q != null ? r.q : ''}" oninput="shOv(${i},'q',this.value)"></div>` +
+                        `<button type="button" class="sh-chip sm" style="margin-top:4px" onclick="shTog(${i})">✕ ไม่ขายเบอร์นี้</button>`
+                        : `<button type="button" class="sh-chip on" style="margin-top:6px" onclick="shTog(${i})">↺ เปิดขายเบอร์นี้</button>`) + '</div>';
+            }
+            if (!(keepPanel && document.activeElement && document.activeElement.closest && document.activeElement.closest('.sh-pan'))) {
+                document.getElementById('sh-sizes').innerHTML = `<div class="sh-tg">${g}</div>` + ed;
+            } else {
+                const tg = document.querySelector('#sh-sizes .sh-tg'); if (tg) tg.innerHTML = g;
+            }
+            document.getElementById('sh-cnt').textContent = on + ' ไซส์ · พร้อมส่ง ' + st;
+            // สรุปแบบที่ลูกค้าเห็น
+            const act = SH.rows.filter(x => x.on), ready = act.filter(x => x.n > 0), pos = act.filter(x => x.n === 0);
+            const rp = ready.map(x => x.p != null ? x.p : base).filter(x => x != null);
+            const pp = pos.map(x => x.q != null ? x.q : pre);
+            let s = '<b>ลูกค้าเห็น:</b><br>';
+            s += ready.length ? `🟢 ພ້ອມສົ່ງ ${ready.map(x => esc(x.z)).join(', ')} · ${rp.length ? fmtB(Math.min(...rp)) + (Math.max(...rp) !== Math.min(...rp) ? '–' + fmtB(Math.max(...rp)).slice(1) : '') : '—'}<br>` : '';
+            s += pos.length ? `🟠 ສັ່ງຈອງ ${esc(pos[0].z)}–${esc(pos[pos.length - 1].z)} · ${pp.every(x => x == null) ? 'ສອບຖາມລາຄາ' : pp.some(x => x == null) ? 'ບາງໄຊສ໌ ' + fmtB(Math.min(...pp.filter(x => x != null))) + ' · ທີ່ເຫຼືອ ສອບຖາມລາຄາ' : fmtB(Math.min(...pp)) + (Math.max(...pp) !== Math.min(...pp) ? '–' + fmtB(Math.max(...pp)).slice(1) : '')}` : '';
+            if (!act.length) s += 'ยังไม่ได้เปิดขายไซส์ไหน';
+            document.getElementById('sh-sum').innerHTML = s;
+        }
+        function shPick(i) { SH.cur = SH.cur === i ? null : i; shDraw(); }
+        function shSt(i, d) { SH.rows[i].n = Math.max(0, SH.rows[i].n + d); SH.dirty = true; shDraw(); }
+        function shOv(i, k, v) { const n = parseFloat(v); SH.rows[i][k] = isNaN(n) ? null : n; SH.dirty = true; shDraw(true); }
+        function shTog(i) { SH.rows[i].on = !SH.rows[i].on; if (!SH.rows[i].on) SH.cur = null; SH.dirty = true; shDraw(); }
+        function shCut(w) { SH.rows.forEach(r => { const v = sizeVal(r.z); if ((w === 'lo' && v < 38) || (w === 'hi' && v > 45)) r.on = false; }); SH.cur = null; SH.dirty = true; shDraw(); }
+        function shRestore() { SH.rows.forEach(r => r.on = true); SH.cur = null; SH.dirty = true; shDraw(); }
+        function shAddSize() {
+            const el = document.getElementById('sh-addz');
+            const list = el.value.split(',').map(normSize).filter(Boolean);
+            if (!list.length) return;
+            for (const z of list) {
+                if (sizeVal(z) === 9999) return toast('ใส่เบอร์เป็นตัวเลข เช่น 47 หรือ 42 2/3', false);
+                const ex = SH.rows.find(r => r.z === z);
+                if (ex) ex.on = true; else SH.rows.push({ z: z, on: true, n: 0, p: null, q: null, add: true });
+            }
+            SH.rows.sort((a, b) => sizeVal(a.z) - sizeVal(b.z));
+            el.value = ''; SH.cur = null; SH.dirty = true; shDraw(); toast('เพิ่มเบอร์ ' + list.join(', '));
+        }
+        function shThumb() {
+            return new Promise(res => {
+                if (SH.thumb || !SH.photos.length) return res(SH.thumb || 'images/bg.jpg');
+                const img = new Image();
+                img.onload = () => { const c = document.createElement('canvas'), sz = Math.min(img.width, img.height); c.width = c.height = 240; c.getContext('2d').drawImage(img, (img.width - sz) / 2, (img.height - sz) / 2, sz, sz, 0, 0, 240, 240); res(c.toDataURL('image/jpeg', 0.72)); };
+                img.onerror = () => res('images/bg.jpg'); img.src = SH.photos[0];
+            });
+        }
+        async function shSave(thenCopy) {
+            const name = document.getElementById('sh-name').value.trim().replace(/\s+/g, ' ');
+            const base = shBase(), pre = shPre();
+            const act = SH.rows.filter(r => r.on);
+            if (!SH.brand) return toast('เลือกแบรนด์ก่อน', false);
+            if (!name) return toast('ใส่ชื่อรุ่น', false);
+            if (base == null || base <= 0) return toast('ใส่ราคาหน้าร้าน', false);
+            if (!act.length) return toast('ต้องเปิดขายอย่างน้อย 1 ไซส์', false);
+            if (pre != null && pre <= 0) return toast('ราคา PRE ต้องมากกว่า 0 (หรือเว้นว่าง)', false);
+            const dup = SH.rows.map(r => stockKey(r.z)).filter((k, i, a) => a.indexOf(k) !== i);
+            if (dup.length) return toast('มีไซส์ซ้ำกัน: ' + dup.join(', '), false);
+            const btn = document.getElementById('sh-save'); btn.disabled = true;
+            const stock = {}, poPrice = {};
+            act.forEach(r => { stock[stockKey(r.z)] = Math.max(0, r.n || 0); if (r.q != null) poPrice[stockKey(r.z)] = r.q; });
+            const data = {
+                name: name, category: SH.brand,
+                priceOptions: act.map(r => r.z.replace(/[,|]/g, ' ') + '|' + (r.p != null ? r.p : base)).join(','),
+                basePrice: base, prePrice: pre != null ? pre : null, poPrice: Object.keys(poPrice).length ? poPrice : null,
+                color: document.getElementById('sh-color').value.trim() || null,
+                description: document.getElementById('sh-desc').value.trim(),
+                currency: 'THB', retail: true, usesCup: false, preorder: true, stockOn: true, stock: stock,
+                modifierIds: SH.keep.modifierIds || '', hiddenChannels: SH.keep.hiddenChannels || ''
+            };
+            try {
+                data.image = await shThumb();
+                let id = SH.id;
+                if (id) await database.ref('menu_items/' + id).update(data);
+                else { data.timestamp = Date.now(); const ref = database.ref('menu_items').push(); id = ref.key; Object.keys(data).forEach(k => data[k] === null && delete data[k]); await ref.set(data); }
+                if (SH.photosDirty || !SH.id) {
+                    const n = SH.photos.length;
+                    await Promise.all([n ? database.ref('menu_photos/' + id).set({ p: SH.photos }) : database.ref('menu_photos/' + id).remove(), database.ref('menu_items/' + id + '/photoCount').set(n)]);
+                }
+                toast('บันทึก ' + SH.brand + ' ' + name + ' แล้ว');
+                if (thenCopy) {
+                    SH.id = null; SH.photos = []; SH.thumb = ''; SH.photosDirty = true; SH.cur = null; SH.dirty = false;
+                    SH.rows.forEach(r => r.n = 0);
+                    document.getElementById('sh-name').value = ''; document.getElementById('sh-color').value = '';
+                    document.getElementById('sh-title').textContent = '👟 เพิ่มรองเท้า (สำเนา)';
+                    shPics(); shDraw();
+                    document.querySelector('#shoe-overlay .modal-container').scrollTop = 0;
+                    setTimeout(() => document.getElementById('sh-name').focus(), 50);
+                    toast('📋 สำเนาพร้อม — แบรนด์ ไซส์ ราคา เหมือนเดิม · ใส่ชื่อรุ่น สี รูป สต็อกใหม่');
+                } else { SH.dirty = false; closeShoe(true); }
+            } catch (e) { toast('บันทึกไม่สำเร็จ: ' + e.message, false); }
+            btn.disabled = false;
+        }
+
+        /* ---------- 🔀 ย้ายรองเท้าเดิมเข้าหมวดแบรนด์ ---------- */
+        function guessBrand(name) {
+            const n = String(name || '').toUpperCase().trim();
+            if (/^(AIR\s+)?JORDAN\b|^AJ\s?\d|\bJORDAN\s*\d/.test(n)) return 'JORDAN';
+            if (/^NIKE\b/.test(n)) return 'NIKE';
+            if (/^(NEW\s*BALANCE|NB)\b/.test(n)) return 'NEW BALANCE';
+            if (/^ADIDAS\b/.test(n)) return 'ADIDAS';
+            if (/^ON\b|^ON[-\s]?CLOUD|\bCLOUD/.test(n)) return 'ON';
+            if (/^PUMA\b/.test(n)) return 'PUMA';
+            return '';
+        }
+        function openMoveShoes() {
+            const brands = shoeBrandCats().map(c => c.name);
+            if (!brands.length) return toast('ยังไม่มีหมวดแบรนด์ — ไปหน้า Categories กด "👟 สร้างหมวดแบรนด์รองเท้า" ก่อน', false);
+            const list = globalItems.filter(it => { const c = catByNameA(it.category); return c && (c.shoe || c.shop) && brands.indexOf(it.category) < 0; });
+            const opts = (sel) => '<option value="">— ไม่ย้าย —</option>' + brands.map(b => `<option${b === sel ? ' selected' : ''}>${esc(b)}</option>`).join('');
+            document.getElementById('mv-list').innerHTML = list.length ? list.map(it => `<div class="mv-row"><div style="flex:1"><b>${esc(it.name)}</b><div class="hint" style="margin:0">ตอนนี้: ${esc(it.category)}</div></div><select data-id="${esc(it.id)}">${opts(guessBrand(it.name))}</select></div>`).join('') : '<p class="hint">ไม่มีรองเท้าที่ต้องย้าย (ทุกคู่อยู่ในหมวดแบรนด์แล้ว)</p>';
+            document.getElementById('mv-go').hidden = !list.length;
+            document.getElementById('mv-overlay').style.display = 'flex';
+        }
+        function doMoveShoes() {
+            const upd = {}; let n = 0;
+            document.querySelectorAll('#mv-list select').forEach(s => { if (s.value) { upd['menu_items/' + s.dataset.id + '/category'] = s.value; n++; } });
+            if (!n) return toast('ยังไม่ได้เลือกแบรนด์', false);
+            database.ref().update(upd).then(() => { toast('ย้ายแล้ว ' + n + ' รายการ'); document.getElementById('mv-overlay').style.display = 'none'; }).catch(e => toast('ไม่สำเร็จ: ' + e.message, false));
         }
 
         /* ---------- ตั้งค่าแบบแยกหัวข้อ ---------- */

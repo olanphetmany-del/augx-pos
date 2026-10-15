@@ -264,6 +264,28 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .item .ph { width: 56px; height: 56px; border-radius: 10px; flex: none; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 20px; }
 .hero .loadpic { aspect-ratio: 1 / 1; width: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
 .badge.pre { background: var(--brand); color: var(--brand-ink); }
+/* ☕ / 👟 สลับร้าน + ไซส์รองเท้า */
+.grp { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-top: 14px; }
+.grp button { border: 0; background: none; border-radius: 9px; padding: 10px 6px; font-weight: 700; font-size: 15px; color: var(--muted); }
+.grp button[aria-pressed="true"] { background: var(--chip); color: var(--chip-ink); }
+.szsum { border: 1px solid var(--line); border-radius: 10px; padding: 2px 12px; margin-top: 12px; }
+.szsum div { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 14px; }
+.szsum div + div { border-top: 1px solid var(--line); }
+.szsum .k { font-size: 11.5px; font-weight: 700; border-radius: 5px; padding: 2px 7px; white-space: nowrap; }
+.szsum .k.in { background: var(--ok); color: #fff; } .szsum .k.po { background: var(--brand-soft); color: var(--brand); }
+.szsum .z { flex: 1; color: var(--muted); min-width: 0; }
+.szsum b { white-space: nowrap; }
+.zg { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; }
+.zc { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 9px; padding: 9px 0; font-weight: 600; font-size: 14.5px; }
+.zc.in { border-color: var(--ok); color: var(--ok); font-weight: 800; }
+.zc[aria-pressed="true"] { background: var(--chip); color: var(--chip-ink); border-color: var(--chip); }
+.zc[disabled] { opacity: .35; text-decoration: line-through; }
+.zleg { font-size: 12px; color: var(--muted); font-weight: 500; }
+.zleg i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-right: 4px; }
+.notice.warn { background: #fff3df; color: #8a5300; }
+@media (prefers-color-scheme: dark) { .notice.warn { background: #33280f; color: #f0b45a; } }
+.primary[disabled] { opacity: .45; }
+.item .clr { color: var(--muted); font-size: 12.5px; display: block; }
 .err-inline { color: var(--bad); font-size: 13.5px; }
 .apx { display: block; color: var(--muted); opacity: .75; font-weight: 400; font-size: 11.5px; }
 .trust { border: 1.5px solid var(--ink); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin: 10px 0; }
@@ -289,6 +311,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   <div class="closed" id="closed" hidden><h2 id="closed-title">ຂໍອະໄພ</h2><p id="closed-text"></p></div>
   <div class="banner" id="banner" hidden aria-label="ໂປຣໂມຊັ່ນ"><div class="slides" id="slides"></div><div class="dots" id="dots"></div></div>
   <div id="reorder" hidden></div>
+  <div class="grp" id="grp" hidden role="group" aria-label="ເລືອກຮ້ານ"><button type="button" data-grp="cafe" aria-pressed="true">☕ ຄາເຟ່</button><button type="button" data-grp="shop" aria-pressed="false">👟 SHOP</button></div>
   <nav class="tabs" id="tabs" aria-label="ໝວດເມນູ" hidden></nav>
   <div id="menu"></div>
 </main>
@@ -321,7 +344,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     greeting: 'ສະບາຍດີ ຕ້ອງການສັ່ງອໍເດີ້',
     closing: 'ລົບກວນທາງຮ້ານສະຫຼຸບຍອດ ແລະ ສົ່ງຄິວອາໃຫ້ແນ່ເດີ້ ຂໍຂອບໃຈ',
     closedText: 'ຕອນນີ້ຮ້ານຍັງບໍ່ເປີດຮັບອໍເດີ້ອອນລາຍ ກະລຸນາທັກ WhatsApp ຫາຮ້ານ',
-    payWindowMin: 10
+    payWindowMin: 10,
+    shopWa: ''
   };
   // จัดส่ง: ค่าประมาณ = base + perKm × กม. · ยอดถึง freeMin ร้านออกค่ารถให้ไม่เกิน freeCap · ส่งไม่เกิน maxKm
   var DLV = { enabled: false, base: 10000, perKm: 5000, freeMin: 180000, freeCap: 25000, maxKm: 5, lat: null, lng: null };
@@ -349,6 +373,15 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   var pendingLine = null, RAW = {}, CATS = {};
   function catOf(it) { return (it && CATS[it.category]) || {}; }
   function isShoe(it) { return !!catOf(it).shoe; }
+  function isShopIt(it) { return !!catOf(it).shop; }
+  // รองเท้าแบบใหม่: นับสต็อกรายไซส์ → เลือกไซส์จากตาราง
+  function shoeGrid(it) { return isShoe(it) && (RAW[it.id] || {}).stockOn === true && it.variants.length > 0 && it.variants[0].label !== ''; }
+  function preOf(it, v) { return AugustxMenu.prePriceOf(it, v); }
+  // ไซส์นี้ต้องสั่งจองไหม (ไม่มีของที่ร้าน)
+  function isPoVar(it, v) { return !!it.preorder && stockLeft(it, v) === 0; }
+  function sizeVal(s) { s = String(s); var c = s.slice(-1), n = parseFloat(s); return (isNaN(n) ? 9999 : n) + (c === '⅓' ? 1 / 3 : c === '⅔' ? 2 / 3 : 0); }
+  var GRP = 'cafe';
+  var PRE_WARN = 'ສິນຄ້າພຣີອໍເດີ ກະລຸນາສອບຖາມລາຄາກັບທາງຮ້ານກ່ອນສັ່ງ ເນື່ອງຈາກລາຄາອາດມີການປ່ຽນແປງຢູ່ຕະຫຼອດ ຂໍອະໄພໃນຄວາມບໍ່ສະດວກ';
   function sKey(v) { return String(v == null || v === '' ? 'one' : v).replace(/[.#$\/\[\]]/g, '_'); }
   // null = ไม่นับสต็อก · ตัวเลข = เหลือกี่ชิ้น
   function stockLeft(it, v) { var r = RAW[it.id] || {}; if (r.stockOn !== true) return null; return Math.max(0, Number((r.stock || {})[sKey(v)]) || 0); }
@@ -377,9 +410,10 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     MENU.items = MENU.items.filter(function (it) { return it.hiddenChannels.indexOf(CHANNEL) < 0; });
     MENU.categories = MENU.categories.filter(function (c) { return MENU.items.some(function (it) { return it.category === c; }); });
     if (!MENU.items.length) { closed('ຍັງບໍ່ມີເມນູ', 'ກະລຸນາທັກ WhatsApp ຫາຮ້ານ'); return startTrackFromHash(); }
-    cart = (store('augx-cart') || []).filter(function (l) { return MENU.byId[l.itemId] && AugustxMenu.unitPrice(MENU, l) != null; });
+    cart = (store('augx-cart') || []).filter(function (l) { var it = MENU.byId[l.itemId]; return it && AugustxMenu.unitPrice(MENU, l) != null && !(l.po && shoeGrid(it) && preOf(it, l.variant) == null); });
     cart.forEach(function (l) { l.unitPrice = AugustxMenu.unitPrice(MENU, l); });
     saved = store('augx-customer') || saved;
+    GRP = /[?&#]shop\b/.test(location.search + location.hash) ? 'shop' : (store('augx-grp') === 'shop' ? 'shop' : 'cafe');
     $('tabs').hidden = false;
     renderBanners(v[4] || {});
     renderMenu(); updateBar(); renderReorder();
@@ -436,6 +470,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     o.lines.forEach(function (l) {
       if (!MENU.byId[l.itemId]) { miss++; return; }
       var nl = { itemId: l.itemId, name: MENU.byId[l.itemId].name, variant: l.variant || '', options: l.options || [], note: l.note || '', qty: l.qty };
+      var rit = MENU.byId[l.itemId];
+      if (isPoVar(rit, nl.variant)) { nl.po = true; if (shoeGrid(rit) && preOf(rit, nl.variant) == null) { miss++; return; } }
       var p = AugustxMenu.unitPrice(MENU, nl); if (p == null) { miss++; return; }
       nl.unitPrice = p;
       var key = function (x) { return JSON.stringify([x.itemId, x.variant, (x.options || []).map(function (q) { return q.group + ':' + q.name; }).sort(), x.note]); };
@@ -462,29 +498,55 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   // ---------- เมนู ----------
   function minPrice(it) { return Math.min.apply(null, it.variants.map(function (v) { return v.price; })); }
   function hasImg(it) { return it.image && it.image !== 'images/bg.jpg'; }
-  function isSize(t) { return /^[0-9]+(\.[0-9]+)?$/.test(String(t)); }
+  function isSize(t) { return /^[0-9]+(\.[0-9]+)?[⅓⅔]?$/.test(String(t)); }
+  function catsOfGrp() {
+    var shopC = MENU.categories.filter(function (c) { return (CATS[c] || {}).shop; });
+    var cafeC = MENU.categories.filter(function (c) { return !(CATS[c] || {}).shop; });
+    var both = shopC.length && cafeC.length;
+    $('grp').hidden = !both;
+    if (!both) return MENU.categories;
+    document.querySelectorAll('#grp button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.grp === GRP)); });
+    return GRP === 'shop' ? shopC : cafeC;
+  }
   function renderMenu() {
-    $('tabs').innerHTML = MENU.categories.map(function (c, i) {
+    var cats = catsOfGrp();
+    $('tabs').innerHTML = cats.map(function (c, i) {
       return '<button class="tab" type="button" aria-pressed="' + (i === 0) + '" data-cat="' + i + '">' + esc(c || 'MENU') + '</button>';
     }).join('');
-    $('menu').innerHTML = MENU.categories.map(function (c, ci) {
+    $('menu').innerHTML = cats.map(function (c, ci) {
       return '<h2 class="section-h" id="sec-' + ci + '">' + esc(c || 'MENU') + '</h2><div class="list">' +
         MENU.items.filter(function (it) { return it.category === c; }).map(function (it) {
           var q = cart.reduce(function (s, l) { return s + (l.itemId === it.id ? l.qty : 0); }, 0);
           var prices = it.variants.map(function (v) { return v.price; });
           var multi = prices.some(function (x) { return x !== prices[0]; });
           var labels = it.variants.map(function (v) { return v.label; }).filter(Boolean);
-          var nums = labels.length && labels.every(isSize) ? labels.map(Number).sort(function (a, b) { return a - b; }) : null;
+          var nums = labels.length && labels.every(isSize) ? labels.slice().sort(function (a, b) { return sizeVal(a) - sizeVal(b); }) : null;
           var sub = nums ? 'ໄຊສ໌ ' + (nums.length > 2 ? nums[0] + '–' + nums[nums.length - 1] : nums.join(' · ')) : labels.join(' · ');
           var ready = it.variants.filter(function (v) { return stockLeft(it, v.label) > 0; }).length;
+          var priceHtml;
+          if (shoeGrid(it)) {
+            // รองเท้า: ราคาพร้อมส่ง → ราคาพรี → ສອບຖາມລາຄາ
+            var rp = it.variants.filter(function (v) { return stockLeft(it, v.label) > 0; }).map(function (v) { return v.price; });
+            var pp = it.preorder ? it.variants.filter(function (v) { return stockLeft(it, v.label) === 0; }).map(function (v) { return preOf(it, v.label); }).filter(function (x) { return x != null; }) : [];
+            var lo = rp.length ? Math.min.apply(null, rp) : pp.length ? Math.min.apply(null, pp) : null;
+            var many = rp.length ? rp.some(function (x) { return x !== rp[0]; }) : pp.some(function (x) { return x !== pp[0]; });
+            priceHtml = lo == null ? '<span class="price"><small style="display:inline;font-size:13px;color:var(--brand);font-weight:700">ສອບຖາມລາຄາ</small></span>'
+              : '<span class="price num">' + (many ? '<small>ເລີ່ມ</small>' : !rp.length ? '<small>ສັ່ງຈອງ</small>' : '') + money2(lo, itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(lo, 'THB')) + '</span>' : '') + '</span>';
+          } else priceHtml = '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + money2(minPrice(it), itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(minPrice(it), 'THB')) + '</span>' : '') + '</span>';
           return '<button class="item" type="button" data-id="' + esc(it.id) + '">' +
             (hasImg(it) ? '<img class="th" alt="" loading="lazy" src="' + esc(it.image) + '">' : '<span class="ph" aria-hidden="true">' + esc(it.name.charAt(0).toUpperCase()) + '</span>') +
-            '<span class="txt"><span class="en nm">' + esc(it.name.toUpperCase()) + (q ? '<span class="in-cart">' + q + '</span>' : '') + '</span>' +
-            ((sub || it.preorder || ready) ? '<span class="lo">' + (ready ? '<span class="stk">ພ້ອມສົ່ງ' + (it.variants.length > 1 ? ' ' + ready + ' ໄຊສ໌' : '') + '</span>' : '') + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '<span style="white-space:nowrap">' + esc(sub) + '</span></span>' : '') + '</span>' +
-            '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + money2(minPrice(it), itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(minPrice(it), 'THB')) + '</span>' : '') + '</span></button>';
+            '<span class="txt"><span class="en nm">' + esc(it.name.toUpperCase()) + (q ? '<span class="in-cart">' + q + '</span>' : '') + '</span>' + (it.color ? '<span class="clr">' + esc(it.color) + '</span>' : '') +
+            ((sub || it.preorder || ready) ? '<span class="lo">' + (ready ? '<span class="stk">ພ້ອມສົ່ງ' + (it.variants.length > 1 ? ' ' + ready + ' ໄຊສ໌' : '') + '</span>' : '') + (it.preorder && !(shoeGrid(it) && ready === it.variants.length) ? '<span class="badge pre">PRE-ORDER</span>' : '') + '<span style="white-space:nowrap">' + esc(sub) + '</span></span>' : '') + '</span>' +
+            priceHtml + '</button>';
         }).join('') + '</div>';
     }).join('');
   }
+  $('grp').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-grp]'); if (!b || b.dataset.grp === GRP) return;
+    GRP = b.dataset.grp; store('augx-grp', GRP); renderMenu();
+    var top = $('grp').getBoundingClientRect().top + window.scrollY - 8;
+    if (window.scrollY > top) window.scrollTo({ top: top });
+  });
   $('tabs').addEventListener('click', function (e) {
     var b = e.target.closest('.tab'); if (!b) return;
     document.querySelectorAll('.tab').forEach(function (t) { t.setAttribute('aria-pressed', String(t === b)); });
@@ -505,7 +567,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 
   // ---------- เลือกรายละเอียด (รูปใหญ่โหลดเฉพาะตอนเปิดเมนูนี้) ----------
   function openItem(it) {
-    draft = { itemId: it.id, variant: it.variants[0].label, sel: {}, note: '', qty: 1, gal: 0 };
+    draft = { itemId: it.id, variant: shoeGrid(it) && it.variants.length > 1 ? null : it.variants[0].label, sel: {}, note: '', qty: 1, gal: 0 };
     it.groups.forEach(function (g, gi) { draft.sel[gi] = []; });
     renderItem();
     if (it.photos > 0 && !photoCache[it.id]) {
@@ -520,6 +582,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var it = MENU.byId[draft.itemId], options = [];
     it.groups.forEach(function (g, gi) { (draft.sel[gi] || []).forEach(function (oi) { var o = g.options[oi]; options.push({ group: g.name, name: o.name, price: o.price }); }); });
     var l = { itemId: it.id, name: it.name, variant: draft.variant || '', options: options, note: draft.note, qty: draft.qty };
+    if (draft.variant != null && isPoVar(it, l.variant)) l.po = true;
     l.unitPrice = AugustxMenu.unitPrice(MENU, l) || 0;
     return l;
   }
@@ -537,9 +600,10 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var showHero = it.photos > 0 && (!pics || pics.length);
     h += showHero ? '<div class="sheet-head"><div><h2>' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</h2>' + (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + '</div></div>'
       : head(it.name.toUpperCase(), it.desc);
-    if (it.preorder) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ມັດຈຳ 50% ຫຼື ຈ່າຍເຕັມ · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ · ຮ້ານຈະຕິດຕໍ່ທາງ WhatsApp</div>';
+    if (it.preorder && !shoeGrid(it)) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ມັດຈຳ ຫຼື ຈ່າຍເຕັມ · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ · ຮ້ານຈະຕິດຕໍ່ທາງ WhatsApp</div>';
     if (itCur(it) === 'THB' && FXR.rate) h += '<p class="hint" style="margin:6px 0 0">ລາຄາເປັນເງິນບາດ · ຈ່າຍເປັນກີບໄດ້ຕາມເຣດມື້ນັ້ນ</p>';
-    if (it.variants.length > 1) {
+    if (shoeGrid(it)) h += shoeSizes(it);
+    else if (it.variants.length > 1) {
       var labs = it.variants.map(function (v) { return v.label; });
       var sizes = labs.every(isSize);
       h += '<div class="group"><h3>' + (sizes ? 'ໄຊສ໌' : 'ເລືອກແບບ') + ' <small>' + (sizes ? 'ລາຄາຕາມໄຊສ໌ · ' : '') + 'ເລືອກ 1</small></h3><div class="seg">' + it.variants.map(function (v, i) {
@@ -563,9 +627,11 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     });
     if (isShoe(it)) h += '<label class="f" for="cm">ຄວາມຍາວຕີນ (cm) <span class="hint">ບໍ່ບັງຄັບ · ວັດຈາກສົ້ນຕີນ ຫາ ປາຍນິ້ວໂປ້ · ຮ້ານຊ່ວຍແນະນຳໄຊສ໌</span><input class="in num" id="cm" type="number" inputmode="decimal" step="0.5" min="10" max="35" placeholder="ເຊັ່ນ 26.5" value="' + esc(draft.cm || '') + '"></label>';
     h += '<label class="f" for="note">ໝາຍເຫດ <span class="hint">' + (it.retail || isShoe(it) || catOf(it).shop ? 'ເຊັ່ນ ສີ' : 'ເຊັ່ນ ແຍກນ້ຳກ້ອນ, ນ້ຳກ້ອນໜ້ອຍ') + '</span><textarea class="in" id="note" rows="2" maxlength="100"></textarea></label>';
-    h += '<div class="qty"><button type="button" data-q="-1" aria-label="ລົດ">−</button><b class="num">' + draft.qty + '</b><button type="button" data-q="1" aria-label="ເພີ່ມ">+</button></div>';
+    if (!(shoeGrid(it) && (draft.variant == null || (isPoVar(it, draft.variant) && preOf(it, draft.variant) == null)))) h += '<div class="qty"><button type="button" data-q="-1" aria-label="ລົດ">−</button><b class="num">' + draft.qty + '</b><button type="button" data-q="1" aria-label="ເພີ່ມ">+</button></div>';
     h += '<div class="err" id="item-err"></div>';
-    h += '<button class="primary" type="button" data-act="add">ໃສ່ກະຕ່າ · <span class="num">' + money2(draftLine().unitPrice * draft.qty, itCur(it)) + '</span></button>';
+    if (shoeGrid(it) && draft.variant == null) h += '<button class="primary" type="button" disabled>ເລືອກໄຊສ໌</button>';
+    else if (shoeGrid(it) && isPoVar(it, draft.variant) && preOf(it, draft.variant) == null) h += '<button class="primary wa" type="button" data-act="ask">💬 ສອບຖາມລາຄາ · ໄຊສ໌ ' + esc(draft.variant) + '</button>';
+    else h += '<button class="primary" type="button" data-act="add">' + (shoeGrid(it) && isPoVar(it, draft.variant) ? 'ສັ່ງຈອງ · ໄຊສ໌ ' + esc(draft.variant) + ' · ' : shoeGrid(it) ? 'ໃສ່ກະຕ່າ · ໄຊສ໌ ' + esc(draft.variant) + ' · ' : 'ໃສ່ກະຕ່າ · ') + '<span class="num">' + money2(draftLine().unitPrice * draft.qty, itCur(it)) + '</span></button>';
     var open = !$('sheet').hidden;
     openSheet(h);
     $('note').value = draft.note;
@@ -579,6 +645,49 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         if ($('gcnt') && draft) $('gcnt').textContent = (draft.gal + 1) + ' / ' + pics.length;
       });
     }
+  }
+
+  // ---------- รองเท้า: สรุป 2 บรรทัด + ตารางไซส์ ----------
+  function range(a) { return a.length > 2 ? a[0] + '–' + a[a.length - 1] : a.join(', '); }
+  function priceRange(a, c) { if (!a.length) return ''; var lo = Math.min.apply(null, a), hi = Math.max.apply(null, a); return money2(lo, c) + (hi !== lo ? '–' + Number(hi).toLocaleString('en-US') : ''); }
+  function shoeSizes(it) {
+    var c = itCur(it), vs = it.variants.slice().sort(function (a, b) { return sizeVal(a.label) - sizeVal(b.label); });
+    var ready = vs.filter(function (v) { return stockLeft(it, v.label) > 0; });
+    var po = it.preorder ? vs.filter(function (v) { return stockLeft(it, v.label) === 0; }) : [];
+    var h = '<div class="szsum">';
+    if (ready.length) h += '<div><span class="k in">ພ້ອມສົ່ງ</span><span class="z">' + esc(ready.map(function (v) { return v.label; }).join(', ')) + '</span><b class="num">' + priceRange(ready.map(function (v) { return v.price; }), c) + '</b></div>';
+    if (po.length) {
+      var pp = po.map(function (v) { return preOf(it, v.label); }), known = pp.filter(function (x) { return x != null; });
+      h += '<div><span class="k po">ສັ່ງຈອງ</span><span class="z">' + esc(range(po.map(function (v) { return v.label; }))) + '</span><b class="num">' + (known.length === pp.length ? priceRange(known, c) : '<span style="color:var(--brand)">ສອບຖາມລາຄາ</span>') + '</b></div>';
+    }
+    if (!ready.length && !po.length) h += '<div><span class="z">ໝົດທຸກໄຊສ໌</span></div>';
+    h += '</div>';
+    h += '<div class="group"><h3>ເລືອກໄຊສ໌ (EU) <small class="zleg">' + (ready.length ? '<i></i>ພ້ອມສົ່ງ' : '') + '</small></h3><div class="zg">' + vs.map(function (v) {
+      var left = stockLeft(it, v.label), i = it.variants.indexOf(v);
+      return '<button class="zc' + (left > 0 ? ' in' : '') + '" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"' + (left === 0 && !it.preorder ? ' disabled' : '') + '>' + esc(v.label) + '</button>';
+    }).join('') + '</div></div>';
+    if (draft.variant != null && isPoVar(it, draft.variant)) {
+      h += '<div class="notice warn" style="margin-top:12px">⚠️ ' + PRE_WARN + '<br><span style="font-size:12.5px">ໄຊສ໌ ' + esc(draft.variant) + ' ເປັນ PRE-ORDER · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ</span></div>';
+    } else if (draft.variant != null) {
+      h += '<p class="hint" style="margin:10px 0 0;color:var(--ok);font-weight:700">✓ ໄຊສ໌ ' + esc(draft.variant) + ' ມີເຄື່ອງພ້ອມສົ່ງ</p>';
+    }
+    return h;
+  }
+  function waDigits(p) {
+    var d = String(p || '').replace(/[^0-9+]/g, '');
+    if (d.charAt(0) === '+') return d.slice(1);
+    if (/^0[689][0-9]{8}$/.test(d)) return '66' + d.slice(1);
+    if (/^0?20[0-9]{8}$/.test(d)) return '856' + d.replace(/^0/, '');
+    return d;
+  }
+  function askPrice() {
+    var it = MENU.byId[draft.itemId], cm = parseFloat(draft.cm);
+    var brand = it.category && it.name.toUpperCase().indexOf(String(it.category).toUpperCase()) !== 0 ? it.category + ' ' : '';
+    var lines = ['ສະບາຍດີ ຂໍສອບຖາມລາຄາ PRE-ORDER', '👟 ' + brand + it.name.toUpperCase() + (it.color ? ' (' + it.color + ')' : ''), 'ໄຊສ໌ ' + draft.variant + ' (EU)' + (draft.qty > 1 ? ' x' + draft.qty : '')];
+    if (cm > 0) lines.push('ຄວາມຍາວຕີນ ' + cm + ' cm');
+    if (draft.note) lines.push('ໝາຍເຫດ: ' + draft.note);
+    var num = waDigits(CFG.shopWa || CFG.waNumber);
+    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(lines.join('\n')), '_blank');
   }
 
   // สินค้าคนละสกุลเงิน (₭ / ฿) ต้องสั่งแยกบิล
@@ -607,12 +716,13 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     l.options.forEach(function (o) { (by[o.group] = by[o.group] || []).push(o.name); });
     return Object.keys(by).map(function (g) { return g + ': ' + by[g].join(', '); });
   }
+  function lineIsPo(l) { var it = MENU && MENU.byId[l.itemId]; if (!it || !it.preorder) return false; return l.po === true || stockLeft(it, l.variant) == null; }
   function varText(l) { return l.variant ? (isSize(l.variant) ? 'ໄຊສ໌ ' + l.variant : l.variant) : ''; }
   function openCart() {
     var h = head('ກະຕ່າຂອງທ່ານ', cartCount() + ' ລາຍການ') + '<div>' + cart.map(function (l, i) {
       var it = MENU.byId[l.itemId];
       var meta = [varText(l)].concat(optText(l)).filter(Boolean).join(' · ');
-      return '<div class="line"><div class="txt"><div class="en">' + esc(l.name.toUpperCase()) + (it && it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</div>' + (meta ? '<div class="meta">' + esc(meta) + '</div>' : '') +
+      return '<div class="line"><div class="txt"><div class="en">' + esc(l.name.toUpperCase()) + (lineIsPo(l) ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</div>' + (meta ? '<div class="meta">' + esc(meta) + '</div>' : '') +
         (l.note ? '<div class="meta">ໝາຍເຫດ: ' + esc(l.note) + '</div>' : '') + '</div><div class="r"><span class="num">' + money2(l.unitPrice * l.qty, cartCur()) + '</span>' +
         '<span class="mini"><button type="button" data-line="' + i + '" data-d="-1" aria-label="ລົດ">−</button><b class="num">' + l.qty + '</b><button type="button" data-line="' + i + '" data-d="1" aria-label="ເພີ່ມ">+</button></span></div></div>';
     }).join('') + '</div>';
@@ -720,7 +830,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var out = [CFG.greeting, 'ຊື່: ' + name, 'ເບີຕິດຕໍ່ WhatsApp: ' + phone, 'ເລກບິນ: ' + bill, ''];
     cart.forEach(function (l, i) {
       var it = MENU.byId[l.itemId];
-      out.push((i + 1) + '. ' + l.name.toUpperCase() + (l.variant ? ' (' + (isSize(l.variant) ? 'SIZE ' + l.variant : l.variant) + ')' : '') + (it && it.preorder ? ' [PRE-ORDER]' : '') + ' x' + l.qty);
+      out.push((i + 1) + '. ' + l.name.toUpperCase() + (l.variant ? ' (' + (isSize(l.variant) ? 'SIZE ' + l.variant : l.variant) + ')' : '') + (lineIsPo(l) ? ' [PRE-ORDER]' : '') + ' x' + l.qty);
       var opts = optText(l);
       if (l.note) opts.push('ໝາຍເຫດ: ' + l.note);
       if (opts.length) out.push('   ' + opts.join(' | '));
@@ -743,7 +853,9 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     var btn = document.querySelector('[data-act="confirm"]');
     if (btn) { btn.disabled = true; btn.textContent = 'ກຳລັງສົ່ງ…'; }
     var items = cart.map(function (l) {
-      return { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty, unitPrice: l.unitPrice };
+      var x = { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty, unitPrice: l.unitPrice };
+      if (l.po) x.po = true;
+      return x;
     });
     var tok = rnd(20, 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789');
     var dl = null;
@@ -1105,6 +1217,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       draft.scroll = $('sheet').scrollTop;
       var it = MENU.byId[draft.itemId];
       if (b.dataset.var) { draft.variant = it.variants[+b.dataset.var].label; return renderItem(); }
+      if (b.dataset.act === 'ask') { if (!draft.variant) return; return askPrice(); }
       if (b.dataset.g) {
         var gi = +b.dataset.g, oi = +b.dataset.o, g = it.groups[gi], cur = draft.sel[gi] || [];
         if (cur.indexOf(oi) >= 0) cur = cur.filter(function (x) { return x !== oi; });
@@ -1127,12 +1240,13 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
         var item = MENU.byId[draft.itemId];
         var miss = item.groups.filter(function (g, i) { return g.required && !(draft.sel[i] || []).length; });
         if (miss.length) { $('item-err').textContent = 'ກະລຸນາເລືອກ: ' + miss.map(function (g) { return g.name; }).join(', '); return; }
+        if (draft.variant == null) { $('item-err').textContent = 'ກະລຸນາເລືອກໄຊສ໌'; return; }
         if (stockLeft(item, draft.variant) === 0 && !item.preorder) { $('item-err').textContent = 'ແບບນີ້ໝົດແລ້ວ ກະລຸນາເລືອກແບບອື່ນ'; return; }
         var nl = draftLine();
         var cm = parseFloat(draft.cm);
         if (cm > 0) nl.note = (nl.note ? nl.note + ' · ' : '') + 'ຕີນ ' + cm + ' cm';
         if (cart.length && cartCur() !== itCur(item)) { pendingLine = nl; return mixSheet(item); }
-        var key = function (x) { return JSON.stringify([x.itemId, x.variant, x.options.map(function (o) { return o.group + ':' + o.name; }).sort(), x.note]); };
+        var key = function (x) { return JSON.stringify([x.itemId, x.variant, x.options.map(function (o) { return o.group + ':' + o.name; }).sort(), x.note, !!x.po]); };
         var same = cart.filter(function (x) { return key(x) === key(nl); })[0];
         if (same) same.qty = Math.min(50, same.qty + nl.qty); else cart.push(nl);
         saveCart(); closeSheet(); renderMenu(); updateBar(); toast('ໃສ່ກະຕ່າແລ້ວ');

@@ -118,6 +118,10 @@
       currency: raw.currency === 'THB' ? 'THB' : 'LAK', // ราคาตั้งเป็นบาท หรือ กีบ
       authentic: raw.authentic === true,  // รับประกันของแท้ (โชว์กล่อง "ເປັນຫຍັງໝັ້ນໃຈໄດ້")
       photos: Number(raw.photoCount || 0), // จำนวนรูปใหญ่ใน menu_photos/<id>
+      color: String(raw.color || ''),     // สี/รายละเอียดรุ่น (รองเท้า)
+      // ราคาพรีออเดอร์ (รองเท้า): ราคากลาง + ราคาเฉพาะเบอร์ · ว่าง = ສອບຖາມລາຄາ
+      prePrice: raw.prePrice != null && raw.prePrice !== '' && isFinite(Number(raw.prePrice)) ? Number(raw.prePrice) : null,
+      poPrice: raw.poPrice && typeof raw.poPrice === 'object' ? raw.poPrice : {},
       usesCup: raw.usesCup !== false,
       // ช่องทางที่ซ่อนเมนูนี้ เช่น "store,<partnerId>"
       hiddenChannels: String(raw.hiddenChannels || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean),
@@ -153,6 +157,15 @@
     return { items: items, categories: categories, byId: byId, groups: groups };
   }
 
+  function sizeKey(v) { return String(v == null || v === '' ? 'one' : v).replace(/[.#$\/\[\]]/g, '_'); }
+  // ราคาพรีออเดอร์ของไซส์นี้ (null = ยังไม่ตั้งราคา ต้องสอบถาม)
+  function prePriceOf(it, label) {
+    if (!it) return null;
+    var k = sizeKey(label), p = it.poPrice && it.poPrice[k];
+    if (p != null && p !== '' && isFinite(Number(p))) return Number(p);
+    return it.prePrice != null ? it.prePrice : null;
+  }
+
   // ราคาต่อหน่วยของ 1 รายการที่ลูกค้าเลือก คิดจากเมนูปัจจุบัน (ไม่เชื่อราคาที่ส่งมาจากมือถือลูกค้า)
   function unitPrice(menu, line) {
     var it = menu.byId[line.itemId];
@@ -160,6 +173,11 @@
     var v = it.variants.filter(function (x) { return x.label === (line.variant || ''); })[0];
     if (!v) { if (it.variants.length === 1 && !line.variant) v = it.variants[0]; else return null; }
     var total = v.price;
+    if (line.po === true && (it.prePrice != null || Object.keys(it.poPrice || {}).length)) {
+      var pp = prePriceOf(it, v.label);
+      if (pp == null) return null;
+      total = pp;
+    }
     for (var i = 0; i < (line.options || []).length; i++) {
       var o = line.options[i], found = null;
       for (var g = 0; g < it.groups.length && !found; g++) {
@@ -191,7 +209,7 @@
     return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
   }
 
-  var api = { buildMenu: buildMenu, parsePrices: parsePrices, parseOptions: parseOptions, unitPrice: unitPrice, priceRound: priceRound, money: money, FIELD: FIELD };
+  var api = { buildMenu: buildMenu, prePriceOf: prePriceOf, sizeKey: sizeKey, parsePrices: parsePrices, parseOptions: parseOptions, unitPrice: unitPrice, priceRound: priceRound, money: money, FIELD: FIELD };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.AugustxMenu = api;
 })(typeof window !== 'undefined' ? window : globalThis);
