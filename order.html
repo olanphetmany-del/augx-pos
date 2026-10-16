@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@500;600;700&family=Noto+Sans+Lao:wght@400;500;700&family=Noto+Sans+Thai:wght@400;600&display=swap">
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app-check.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="augustx-menu.js"></script>
 <style>
@@ -331,8 +332,11 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     apiKey: 'AIzaSyDAJUEFUWkieMGFxRIZ6vRwzLbXF31c_BM',
     authDomain: 'augx-d75c2.firebaseapp.com',
     databaseURL: 'https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app',
-    projectId: 'augx-d75c2'
+    projectId: 'augx-d75c2',
+    appId: '1:246689770554:web:9a7e24546ee36c2bf2d903'
   });
+  // กันบอทชั้น 3: Firebase App Check + reCAPTCHA v3 (ลูกค้าไม่ต้องติ๊กอะไร)
+  try { if (firebase.appCheck) firebase.appCheck().activate('6LeymfEtAAAAAF_Uu2ZWmZqQjddbzd3pTaAaGeb9', true); } catch (e) { console.warn('AppCheck', e); }
   var db = firebase.database();
 
   // ---------- ค่าตั้งต้น (แก้ได้ในหน้า Admin → ลูกค้าสั่งเองออนไลน์) ----------

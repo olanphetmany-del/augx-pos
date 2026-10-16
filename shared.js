@@ -21,9 +21,13 @@ const firebaseConfig = {
     authDomain: "augx-d75c2.firebaseapp.com",
     databaseURL: "https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "augx-d75c2",
-    storageBucket: "augx-d75c2.firebasestorage.app"
+    storageBucket: "augx-d75c2.firebasestorage.app",
+    appId: "1:246689770554:web:9a7e24546ee36c2bf2d903"
 };
-if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig);
+    // กันบอทชั้น 3: Firebase App Check + reCAPTCHA v3 (ลูกค้าไม่ต้องติ๊กอะไร)
+    try { if (firebase.appCheck) firebase.appCheck().activate('6LeymfEtAAAAAF_Uu2ZWmZqQjddbzd3pTaAaGeb9', true); } catch (e) { console.warn('AppCheck', e); }
+}
 const database = firebase.database();
 
 /* ---------- ฟังก์ชันช่วยทั่วไป ---------- */
