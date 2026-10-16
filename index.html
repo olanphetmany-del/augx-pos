@@ -345,7 +345,7 @@
         }
         function renderCategories() {
             let html = `<button class="cat-btn ${currentCategory === 'ALL' ? 'active' : ''}" data-cat="ALL" onclick="filterCategory(this.dataset.cat)">ທຸກເມນູ (All)</button>`;
-            globalCategories.forEach(c => { html += `<button class="cat-btn ${currentCategory === c.name ? 'active' : ''}" data-cat="${esc(c.name)}" onclick="filterCategory(this.dataset.cat)">${esc(c.name)}</button>`; });
+            globalCategories.filter(c => !c.shop).forEach(c => { html += `<button class="cat-btn ${currentCategory === c.name ? 'active' : ''}" data-cat="${esc(c.name)}" onclick="filterCategory(this.dataset.cat)">${esc(c.name)}</button>`; });
             document.getElementById('categories-container').innerHTML = html;
         }
         function filterCategory(n) { currentCategory = n; renderCategories(); renderMenuGrid(); }
