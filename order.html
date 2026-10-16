@@ -240,6 +240,15 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .beta { display: inline-block; vertical-align: 5px; margin-left: 6px; font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #7a4b00; background: #ffd66b; border-radius: 4px; padding: 1px 7px; }
 [hidden] { display: none !important; }
 .item.re { cursor: default; }
+.re-box { margin-top: 14px; opacity: .72; transition: opacity .2s; }
+.re-box[open] { opacity: 1; }
+.re-box summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.re-box summary::-webkit-details-marker { display: none; }
+.re-box summary small { font-weight: 500; font-size: 12px; }
+.re-box summary .chev { margin-left: auto; transition: transform .2s; font-size: 18px; }
+.re-box[open] summary .chev { transform: rotate(90deg); }
+.re-box .list { margin-top: 8px; }
+.re-box .item.re { padding: 8px 12px; }
 .mini-btn { flex: none; border: 1px solid var(--brand); color: var(--brand); background: var(--surface); border-radius: 999px; padding: 8px 12px; font-weight: 700; font-size: 13.5px; }
 .reason { margin-top: 8px; font-weight: 700; color: var(--bad); }
 /* ---------- แผนที่ปักหมุด ---------- */
@@ -497,12 +506,14 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
     if (!box) return;
     if (!h.length) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<h2 class="section-h">ສັ່ງຄືເກົ່າ <small>ອໍເດີຫຼ້າສຸດຂອງທ່ານ</small></h2><div class="list">' + h.map(function (o, i) {
+    var open = store('augx-re-open') === true;
+    box.innerHTML = '<details class="re-box"' + (open ? ' open' : '') + '><summary>🕘 ສັ່ງຄືເກົ່າ <small>' + h.length + ' ອໍເດີຫຼ້າສຸດ</small><span class="chev">›</span></summary><div class="list">' + h.map(function (o, i) {
       var names = o.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ');
       var d = new Date(o.at);
       return '<div class="item re"><span class="txt"><span class="en" style="font-size:15px">' + esc(names) + '</span><br><span class="lo">' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' · ' + money2(o.total, o.cur) + '</span></span>' +
         '<button class="mini-btn" type="button" data-re="' + i + '">ສັ່ງຄືເກົ່າ</button></div>';
-    }).join('') + '</div>';
+    }).join('') + '</div></details>';
+    box.querySelector('details').addEventListener('toggle', function (e) { store('augx-re-open', e.target.open); });
   }
 
   // ---------- เมนู ----------
