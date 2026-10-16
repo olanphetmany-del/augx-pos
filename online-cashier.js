@@ -147,6 +147,8 @@
             }
         });
     }
+    var histOpen = false;
+    function isDone(o) { return o.status === 'rejected' || !!o.poNo || (o.status === 'accepted' && finished(o) && o.paid === true); }
     function liveOnes() { return list().filter(function (o) { return o.status === 'accepted' && !finished(o); }); }
 
     function render() {
@@ -225,7 +227,9 @@
         var html = '<div class="axo-box"><div class="axo-head"><h3>🛵 ออร์เดอร์ลูกค้าสั่งเอง' + (MODE === 'shop' ? ' · 👟 SHOP' : '') + '</h3><button class="axo-x" data-a="close" style="border:0;border-radius:8px;padding:8px 12px;font-weight:bold;cursor:pointer">ปิด</button></div>' +
             '<div class="axo-acts" style="margin:0 0 6px">' + (Date.now() > muteUntil ? '<button class="axo-x" data-a="mute" style="color:#334155">🔇 ปิดเสียง 30 นาที</button>' : '<button class="axo-b" data-a="unmute">🔔 เปิดเสียง (ปิดถึง ' + timeHHMM(muteUntil) + ')</button>') +
             (newOnes().length > 1 ? '<button class="axo-x" data-a="rejectall">🗑️ ไม่รับออร์เดอร์ใหม่ทั้งหมด (' + newOnes().length + ')</button>' : '') + '</div>';
-        if (!all.length) html += '<p class="axo-sm" style="text-align:center;padding:24px 0">ยังไม่มีออร์เดอร์ออนไลน์ใน 36 ชั่วโมงที่ผ่านมา</p>';
+        // เสร็จแล้ว (พร้อมรับ/ส่งถึง + จ่ายแล้ว · ไม่รับ · ย้ายไปพรีออเดอร์) → เก็บไว้ใน "ประวัติ"
+        var hist = all.filter(isDone); all = all.filter(function (o) { return !isDone(o); });
+        if (!all.length) html += '<p class="axo-sm" style="text-align:center;padding:24px 0">' + (hist.length ? '✓ ไม่มีออร์เดอร์ค้าง · ดูออร์เดอร์ที่เสร็จแล้วใน "ประวัติ" ด้านล่าง' : 'ยังไม่มีออร์เดอร์ออนไลน์ใน 36 ชั่วโมงที่ผ่านมา') + '</p>';
         all.forEach(function (o) {
             var p = priced(o), isNew = o.status === 'new', stage = stageOf(o), dl = o.delivery, t = o.trackTok && tracks[o.trackTok], C = p.cur;
             var live = o.status === 'accepted' && !finished(o);
@@ -284,6 +288,18 @@
             if (o.trackTok) html += '<span class="axo-sm">หน้าติดตาม: <a target="_blank" rel="noopener" href="' + E(trackLink(o.trackTok)) + '">เปิดดู</a></span>';
             html += '</div></div>';
         });
+        if (hist.length) {
+            html += '<details class="axo-hist"' + (histOpen ? ' open' : '') + '><summary style="cursor:pointer;margin:16px 0 6px;font-size:15px;font-weight:bold;color:#64748b">📜 ประวัติ · เสร็จแล้ว (' + hist.length + ')</summary>';
+            hist.forEach(function (o) {
+                var p = priced(o), stage = stageOf(o);
+                html += '<div class="axo-card done" style="padding:8px 12px"><div class="axo-row"><div><b>' + E(o.id) + '</b> ' +
+                    (o.status === 'rejected' ? '<span class="axo-pill rejected">ไม่รับ</span>' : o.poNo ? '<span class="axo-pill paid">📦 ' + E(o.poNo) + '</span>' : '<span class="axo-pill paid">✓ ' + E(STAGE_TH[stage] || stage) + '</span>') +
+                    (o.delivery ? ' <span class="axo-pill dlv">🛵</span>' : '') + (o.orderNo ? ' <span class="axo-sm">บิล #' + E(o.orderNo) + '</span>' : '') + '</div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
+                    '<div class="axo-sm">' + E(o.name) + ' · ' + E(p.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ')) + ' · <b>' + MC(p.total, p.cur) + '</b>' +
+                    (o.trackTok ? ' · <a target="_blank" rel="noopener" href="' + E(trackLink(o.trackTok)) + '">ติดตาม</a>' : '') + '</div></div>';
+            });
+            html += '</details>';
+        }
         if (exp.length) {
             html += '<h3 style="margin:16px 0 4px;font-size:15px;color:#64748b">⏰ หมดเวลา (' + exp.length + ') · ดึงกลับมาทำได้ภายใน 24 ชม. หลังจากนั้นระบบลบเอง</h3>';
             exp.forEach(function (o) {
@@ -294,6 +310,7 @@
             });
         }
         overlay.innerHTML = html + '</div>';
+        var hd = overlay.querySelector('.axo-hist'); if (hd) hd.addEventListener('toggle', function () { histOpen = hd.open; });
         overlay.scrollTop = keepScroll;
     }
 

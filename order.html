@@ -464,9 +464,14 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       var x = SLIDES[+b.dataset.i], act = x.action || (x.category ? 'cat' : 'none');
       if (act === 'link' && /^https?:\/\//i.test(x.url || '')) { window.open(x.url, '_blank', 'noopener'); return; }
       if (act === 'item' && x.itemId && MENU.byId[x.itemId]) { openItem(MENU.byId[x.itemId]); return; }
-      if (act === 'cat') {
-        var ci = MENU.categories.indexOf(x.category);
+      if (act === 'shop' || act === 'cat') {
+        // หมวดของร้าน SHOP → สลับไป 👟 SHOP ก่อน แล้วค่อยเลื่อนไปหมวดนั้น
+        var want = act === 'shop' ? 'shop' : ((CATS[x.category] || {}).shop ? 'shop' : 'cafe');
+        if (!$('grp').hidden && want !== GRP) { GRP = want; store('augx-grp', GRP); renderMenu(); }
+        if (act === 'shop') { var top = $('grp').getBoundingClientRect().top + window.scrollY - 8; window.scrollTo({ top: top, behavior: 'smooth' }); return; }
+        var ci = catsOfGrp().indexOf(x.category);
         if (ci >= 0) { var t = document.querySelector('.tab[data-cat="' + ci + '"]'); if (t) t.click(); }
+        else if (want === 'shop' && !$('grp').hidden) { var tp = $('grp').getBoundingClientRect().top + window.scrollY - 8; window.scrollTo({ top: tp, behavior: 'smooth' }); }
       }
     });
     if (SLIDES.length > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(function () {

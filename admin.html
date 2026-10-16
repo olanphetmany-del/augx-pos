@@ -578,7 +578,7 @@
                         <label>รูป<input type="file" id="bn-file" accept="image/*" onchange="onBannerPicked(this)" style="width:100%;margin-top:4px;"></label>
                         <label>หัวข้อ (ไม่บังคับ)<input type="text" id="bn-title" maxlength="40" placeholder="AIR JORDAN 1 LOW" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
                         <label>ข้อความรอง (ไม่บังคับ)<input type="text" id="bn-sub" maxlength="60" placeholder="ມີຂອງພ້ອມສົ່ງ" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
-                        <label>กดป้ายแล้ว<select id="bn-act" onchange="bnActUI()" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="none">ไม่ไปไหน</option><option value="cat">ไปหมวด</option><option value="item">เปิดสินค้า</option><option value="link">เปิดลิงก์ (Facebook / เว็บอื่น)</option></select></label>
+                        <label>กดป้ายแล้ว<select id="bn-act" onchange="bnActUI()" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="none">ไม่ไปไหน</option><option value="cat">ไปหมวด</option><option value="shop">👟 ไปหน้า SHOP (ทุกแบรนด์)</option><option value="item">เปิดสินค้า</option><option value="link">เปิดลิงก์ (Facebook / เว็บอื่น)</option></select></label>
                         <label id="bn-cat-wrap" hidden>หมวด<select id="bn-cat" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="">— เลือกหมวด —</option></select></label>
                         <label id="bn-item-wrap" hidden>สินค้า<select id="bn-item" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"><option value="">— เลือกสินค้า —</option></select></label>
                         <label id="bn-url-wrap" hidden>ลิงก์<input type="url" id="bn-url" placeholder="https://www.facebook.com/..." style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;margin-top:4px;"></label>
@@ -808,9 +808,11 @@
             receiptInit();
             database.ref('settings/online').on('value', snap => {
                 const v = snap.val() || {}; lastOnline = v; lastDelivery = v.delivery || {};
-                if (!setDirty['online-settings']) fillOnlineSettings(v);
-                if (!setDirty['delivery-settings']) fillDeliverySettings(lastDelivery);
-            });
+                // ครั้งแรกเติมค่าเสมอ (กันเบราว์เซอร์เติมช่องอัตโนมัติแล้วระบบเข้าใจว่ากำลังแก้ → ช่องว่างหมด)
+                const first = !onlineLoaded; onlineLoaded = true;
+                if (first || !setDirty['online-settings']) { fillOnlineSettings(v); markDirty('online-settings', false); }
+                if (first || !setDirty['delivery-settings']) { fillDeliverySettings(lastDelivery); markDirty('delivery-settings', false); }
+            }, e => toast('โหลดตั้งค่าออนไลน์ไม่ได้: ' + e.message, false));
             cleanupOldTracks();
             fxInit(() => { if (!setDirty['currency-settings']) fillCurrencySettings(); if (reportOrders.length) renderReport(); });
             database.ref('settings/preorder').on('value', snap => { lastPo = snap.val() || {}; if (!setDirty['preorder-settings']) fillPreorderSettings(lastPo); });
@@ -999,6 +1001,7 @@
             document.getElementById('on-link').innerText = onlineLink();
         }
         function saveOnlineSettings() {
+            if (!onlineLoaded) return toast('ยังโหลดค่าเดิมไม่เสร็จ รอสักครู่แล้วลองใหม่', false);
             const wa = waNumber(document.getElementById('on-wa').value);
             const prefix = document.getElementById('on-prefix').value.trim().toUpperCase();
             if (!wa || wa.length < 10) return toast('เบอร์ WhatsApp ไม่ถูกต้อง', false);
@@ -1528,7 +1531,7 @@
 
         /* ---------- ตั้งค่าแบบแยกหัวข้อ ---------- */
         const setDirty = {};
-        let lastOnline = {}, lastDelivery = {};
+        let lastOnline = {}, lastDelivery = {}, onlineLoaded = false;
         function markDirty(sec, on) {
             setDirty[sec] = on;
             const box = document.getElementById(sec); if (!box) return;
@@ -1725,7 +1728,8 @@
         function bannerAct(b) { return b.action || (b.category ? 'cat' : 'none'); }
         function bannerActText(b) {
             const a = bannerAct(b);
-            if (a === 'cat') return 'กดแล้วไปหมวด ' + (b.category || '-');
+            if (a === 'shop') return 'กดแล้วไปหน้า 👟 SHOP';
+            if (a === 'cat') { const used = globalItems.some(it => it.category === b.category); return 'กดแล้วไปหมวด ' + (b.category || '-') + (used ? '' : ' ⚠️ หมวดนี้ไม่มีสินค้าแล้ว กดแล้วลูกค้าจะไม่ไปไหน'); }
             if (a === 'item') { const it = globalItems.find(x => x.id === b.itemId); return 'กดแล้วเปิดสินค้า ' + (it ? it.name : '(ไม่พบสินค้า)'); }
             if (a === 'link') return 'กดแล้วเปิดลิงก์ ' + (b.url || '');
             return 'กดแล้วไม่ไปไหน';
