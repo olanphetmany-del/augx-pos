@@ -9,16 +9,16 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <link rel="manifest" href="shop.webmanifest">
-<meta name="theme-color" content="#4c1d95">
+<meta name="theme-color" content="#0b3f93">
 <link rel="apple-touch-icon" href="icon-shop-192.png">
 <style>
 /* หน้า SHOP: หัว · เนื้อหา (เลื่อนได้) · แถบแท็บล่างจอ — ใช้บนมือถือแนวตั้งเป็นหลัก */
-:root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f4f5f9; --card:#fff; --violet:#5b21b6; --violet2:#4c1d95; --green:#689f38; --red:#ef4444; --blue:#1a365d; }
+:root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f4f5f9; --card:#fff; --violet:#0b4db3; --violet2:#0b3f93; --green:#689f38; --red:#ef4444; --blue:#1a365d; }
 * { box-sizing: border-box; font-family: 'Noto Sans Thai','Noto Sans Lao',system-ui,sans-serif; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--ink); display: flex; flex-direction: column; overflow: hidden; }
 [hidden] { display: none !important; }
-header { flex: none; background: var(--violet2); color: #fff; display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px)); flex-wrap: wrap; }
+header { flex: none; background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%); color: #fff; display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px)); flex-wrap: wrap; }
 header h1 { margin: 0; font-size: 18px; flex: 1; min-width: 0; letter-spacing: .5px; }
 .top-controls { display: flex; gap: 6px; flex-wrap: wrap; }
 .top-btn { background: rgba(255,255,255,.16); color: #fff; border: 0; border-radius: 8px; padding: 8px 10px; font-weight: bold; font-size: 13px; text-decoration: none; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
@@ -44,7 +44,7 @@ h2 { font-size: 16px; color: var(--violet2); margin: 14px 0 8px; }
 .cart { position: sticky; bottom: -24px; background: #fff; border: 2px solid var(--violet); border-radius: 14px; padding: 12px; margin-top: 12px; box-shadow: 0 -4px 14px rgba(0,0,0,.08); }
 .ln { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
 .ln:last-child { border-bottom: 0; }
-.qty { display: flex; gap: 6px; align-items: center; } .qty button { width: 30px; height: 30px; border: 0; border-radius: 8px; background: #ede9fe; font-weight: bold; font-size: 16px; cursor: pointer; }
+.qty { display: flex; gap: 6px; align-items: center; } .qty button { width: 30px; height: 30px; border: 0; border-radius: 8px; background: #e8f0fd; font-weight: bold; font-size: 16px; cursor: pointer; }
 .tot { display: flex; justify-content: space-between; align-items: baseline; font-size: 20px; font-weight: bold; color: var(--violet2); margin-top: 6px; }
 .ap { font-size: 12px; color: #94a3b8; text-align: right; }
 .btn { border: 0; border-radius: 10px; padding: 13px 14px; font-weight: bold; font-size: 15px; color: #fff; background: var(--violet); cursor: pointer; width: 100%; margin-top: 8px; }
@@ -64,6 +64,9 @@ table.t th, table.t td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 table.t th { background: #f8fafc; font-size: 12px; color: var(--muted); }
 .empty { text-align: center; color: var(--muted); padding: 30px 0; }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,1,0&display=block">
+<link rel="stylesheet" href="theme7.css">
+<style>nav.tabs button span .mi { font-size: 1em; margin: 0; vertical-align: 0; } nav.tabs button.on span { color: var(--violet); }</style>
 </head>
 <body>
 <header>
@@ -247,7 +250,7 @@ function drawRep(list, start) {
   h += '<h2>เงินที่ได้รับ (ไว้นับเงิน)</h2><table class="t"><tr><th></th><th>₭ กีบ</th><th>฿ บาท</th></tr><tr><td>💵 เงินสด</td><td>' + money(t.lakC) + '</td><td>' + baht(t.thbC) + '</td></tr><tr><td>📱 โอน</td><td>' + money(t.lakT) + '</td><td>' + baht(t.thbT) + '</td></tr></table>';
   if (refs.length) h += '<div class="warn">↩ คืนเงินพรีออเดอร์ ' + refs.length + ' รายการ · −' + money(refLak) + '</div>';
   h += '<h2>บิลล่าสุด</h2>' + (paid.length ? '<table class="t"><tr><th>บิล</th><th>รายการ</th><th>ยอด</th><th></th></tr>' + paid.sort(function (a, b) { return b.timestamp - a.timestamp; }).slice(0, 60).map(function (o) {
-    return '<tr><td>#' + esc(o.orderNo) + '<div class="sm">' + timeHHMM(o.timestamp) + '</div></td><td>' + esc(arr(o.items).map(function (c) { return c.name + (c.variant ? ' ' + c.variant : ''); }).join(', ')) + '</td><td>' + billAmt(o) + '</td><td><button class="top-btn" style="background:#ede9fe;color:#4c1d95" type="button" data-pr="' + esc(o.id) + '">🖨️</button></td></tr>';
+    return '<tr><td>#' + esc(o.orderNo) + '<div class="sm">' + timeHHMM(o.timestamp) + '</div></td><td>' + esc(arr(o.items).map(function (c) { return c.name + (c.variant ? ' ' + c.variant : ''); }).join(', ')) + '</td><td>' + billAmt(o) + '</td><td><button class="top-btn" style="background:#e8f0fd;color:#0b3f93" type="button" data-pr="' + esc(o.id) + '">🖨️</button></td></tr>';
   }).join('') + '</table>' : '<div class="empty">ยังไม่มียอดในช่วงนี้</div>');
   var el = document.getElementById('rep'); el.innerHTML = h; el._list = paid;
 }
@@ -273,5 +276,6 @@ startApp('staff', boot);
 <script>window.AXO_MODE = 'shop'; window.AXPO_MODE = 'shop';</script>
 <script src="online-cashier.js"></script>
 <script src="preorder.js"></script>
+<script src="theme7.js"></script>
 </body>
 </html>

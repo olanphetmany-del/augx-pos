@@ -681,7 +681,7 @@
                 </div>
                 <div class="sh-sec">
                     <div class="sh-st"><span><span class="sh-n">2</span>ชื่อรุ่น & รูป</span></div>
-                    <label class="sh-f">ชื่อรุ่น</label><input type="text" id="sh-name" placeholder="เช่น DUNK LOW TEAM GOLD" oninput="SH.dirty=true">
+                    <label class="sh-f">ชื่อรุ่น</label><input type="text" id="sh-name" placeholder="เช่น NIKE DUNK LOW TEAM GOLD" oninput="SH.dirty=true;shNameGuess(this.value)">
                     <label class="sh-f">สี (ไม่บังคับ)</label><input type="text" id="sh-color" placeholder="เช่น White / Team Gold" oninput="SH.dirty=true">
                     <label class="sh-f">รูป (สูงสุด 4 · ตัดเป็นสี่เหลี่ยมจัตุรัสให้เอง · รูปแรก = รูปปก)</label>
                     <div class="sh-pics" id="sh-pics"></div>
@@ -702,7 +702,7 @@
                         <button type="button" class="sh-chip sm" onclick="shCut('hi')">✕ ลบเบอร์ใหญ่ (&gt;45)</button>
                         <button type="button" class="sh-chip sm" onclick="shRestore()">↺ เปิดทุกเบอร์</button>
                     </div>
-                    <div style="display:flex;gap:6px;margin-bottom:8px"><input type="text" id="sh-addz" placeholder="เพิ่มเบอร์ เช่น 35, 47, 48, 42 2/3" onkeydown="if(event.key==='Enter')shAddSize()"><button type="button" class="sh-chip on" style="white-space:nowrap" onclick="shAddSize()">＋ เพิ่ม</button></div>
+                    <div style="display:flex;gap:6px;margin-bottom:8px"><input type="text" id="sh-addz" placeholder="เพิ่มเบอร์ เช่น 35, 47-48, 42 2/3" onkeydown="if(event.key==='Enter')shAddSize()"><button type="button" class="sh-chip on" style="white-space:nowrap" onclick="shAddSize()">＋ เพิ่ม</button></div>
                     <div id="sh-sizes"></div>
                     <div class="hint">แตะเบอร์เพื่อแก้สต็อก/ราคา · <span style="color:#1f8a4c;font-weight:bold">เขียว = มีของ (พร้อมส่ง)</span> · <span style="color:#b06a00;font-weight:bold">PRE</span> = ไม่มีของ ลูกค้าสั่งจองได้ · ขีดม่วงใต้ = ราคาเฉพาะเบอร์ · ขายคู่สุดท้ายแล้วเบอร์นั้นกลับเป็น PRE เอง</div>
                     <div class="sh-sum" id="sh-sum"></div>
@@ -1350,6 +1350,18 @@
                 ['sh-name', 'sh-color', 'sh-desc', 'sh-base', 'sh-pre'].forEach(k => document.getElementById(k).value = '');
                 pickShoeBrand(brands[0].name, true);
             }
+            // รองเท้าที่ยังไม่อยู่หมวดแบรนด์ → เดาแบรนด์จากชื่อรุ่น
+            if (it && !SH.brand) {
+                const g = guessBrand(it.name), gc = g && catByNameA(g);
+                if (gc && catSizes(gc).length) {
+                    const anyGood = SH.rows.some(r => r.on && /^\d/.test(r.z));
+                    catSizes(gc).forEach(z => { if (!SH.rows.some(r => r.z === z)) SH.rows.push({ z: z, on: !anyGood, n: 0, p: null, q: null }); });
+                    SH.rows.sort((a, b) => sizeVal(a.z) - sizeVal(b.z));
+                    SH.brand = g; SH.dirty = true;
+                    setTimeout(() => toast('เดาแบรนด์จากชื่อรุ่น: ' + g + ' · ถ้าไม่ใช่ แตะแบรนด์อื่นได้'), 400);
+                }
+            }
+            SH.brandTouched = !!(it && SH.brand);
             if (copy && it) SH.photosDirty = true;
             document.getElementById('sh-title').textContent = SH.id ? '👟 แก้ไขรองเท้า' : copy ? '👟 เพิ่มรองเท้า (สำเนา)' : '👟 เพิ่มรองเท้า';
             shBrands(); shPics(); shDraw();
@@ -1378,7 +1390,7 @@
             shBrands(); shDraw();
         }
         function shBrands() {
-            document.getElementById('sh-brands').innerHTML = shoeBrandCats().map(c => `<button type="button" class="sh-chip${c.name === SH.brand ? ' on' : ''}" data-b="${esc(c.name)}" onclick="pickShoeBrand(this.dataset.b)">${esc(c.name)}</button>`).join('');
+            document.getElementById('sh-brands').innerHTML = shoeBrandCats().map(c => `<button type="button" class="sh-chip${c.name === SH.brand ? ' on' : ''}" data-b="${esc(c.name)}" onclick="SH.brandTouched=true;pickShoeBrand(this.dataset.b)">${esc(c.name)}</button>`).join('');
         }
         function shPics() {
             let h = '';
@@ -1429,6 +1441,12 @@
             if (!act.length) s += 'ยังไม่ได้เปิดขายไซส์ไหน';
             document.getElementById('sh-sum').innerHTML = s;
         }
+        // พิมพ์ชื่อรุ่นที่ขึ้นต้นด้วยแบรนด์ → เลือกแบรนด์ให้เอง (ถ้ายังไม่ได้แตะเลือกแบรนด์เอง)
+        function shNameGuess(v) {
+            if (SH.brandTouched) return;
+            const g = guessBrand(v), gc = g && catByNameA(g);
+            if (gc && catSizes(gc).length && g !== SH.brand) { pickShoeBrand(g); toast('เลือกแบรนด์ ' + g + ' ให้แล้ว'); }
+        }
         function shPick(i) { SH.cur = SH.cur === i ? null : i; shDraw(); }
         function shSt(i, d) { SH.rows[i].n = Math.max(0, SH.rows[i].n + d); SH.dirty = true; shDraw(); }
         function shOv(i, k, v) { const n = parseFloat(v); SH.rows[i][k] = isNaN(n) ? null : n; SH.dirty = true; shDraw(true); }
@@ -1437,7 +1455,20 @@
         function shRestore() { SH.rows.forEach(r => r.on = true); SH.cur = null; SH.dirty = true; shDraw(); }
         function shAddSize() {
             const el = document.getElementById('sh-addz');
-            const list = el.value.split(',').map(normSize).filter(Boolean);
+            // รองรับช่วงเบอร์ เช่น 35-46 → เติมทุกเบอร์ในตารางของแบรนด์ (ไม่มีตาราง = ทุก 0.5)
+            const chart = SH.brand ? catSizes(catByNameA(SH.brand)) : [];
+            const list = [];
+            el.value.split(',').map(s => s.trim()).filter(Boolean).forEach(tok => {
+                const m = tok.match(/^(\d+(?:\.\d+)?)\s*[-–~]\s*(\d+(?:\.\d+)?)$/);
+                if (!m) { list.push(normSize(tok)); return; }
+                let a = parseFloat(m[1]), b = parseFloat(m[2]); if (a > b) [a, b] = [b, a];
+                if (!chart.length) { for (let v = a; v <= b + 1e-6; v += 0.5) list.push(String(Math.round(v * 10) / 10)); return; }
+                // ในช่วงของตาราง = ใช้เบอร์ตามตารางแบรนด์ · เกินตาราง (เช่น 47, 48) = เติมเบอร์เต็ม
+                chart.filter(z => sizeVal(z) >= a - 1e-6 && sizeVal(z) <= b + 1e-6).forEach(z => list.push(z));
+                const lo = sizeVal(chart[0]), hi = sizeVal(chart[chart.length - 1]);
+                for (let v = Math.ceil(a); v <= b + 1e-6; v++) if (v < lo - 1e-6 || v > hi + 1e-6) list.push(String(v));
+                [a, b].forEach(v => { if ((v < lo - 1e-6 || v > hi + 1e-6) && list.indexOf(String(v)) < 0) list.push(String(v)); });
+            });
             if (!list.length) return;
             for (const z of list) {
                 if (sizeVal(z) === 9999) return toast('ใส่เบอร์เป็นตัวเลข เช่น 47 หรือ 42 2/3', false);
