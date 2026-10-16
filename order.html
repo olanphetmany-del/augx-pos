@@ -303,6 +303,19 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .policy { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
 .policy b { display: block; } .policy ol { margin: 4px 0 0; padding-left: 20px; }
 </style>
+<style>
+/* รอบ 7: ให้เข้าชุดกับแคชเชียร์ */
+header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !important; }
+.grp { border-radius: 14px; }
+.grp button[aria-pressed="true"] { background: linear-gradient(100deg, #0b4db3, #2f7de0) !important; color: #fff !important; }
+.item { border-radius: 16px !important; }
+.item .th, .item .ph { border-radius: 12px !important; }
+.bar button, #bar-btn { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !important; border-radius: 16px !important; box-shadow: 0 8px 20px rgba(11,77,179,.3); }
+.primary:not(.wa) { background: linear-gradient(100deg, #0b4db3, #2f7de0) !important; border-radius: 14px !important; }
+.primary.wa { border-radius: 14px !important; }
+.tab[aria-pressed="true"] { background: #0b4db3 !important; border-color: #0b4db3 !important; color: #fff !important; }
+.opt, .zc { border-radius: 12px !important; }
+</style>
 </head>
 <body>
 <header class="band">
@@ -311,7 +324,7 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
       <div class="logo">AUGX.</div>
       <div class="logo-sub">AUGUSTX HOME COFFEE</div>
     </div>
-    <span class="beta" id="beta-tag" hidden>BETA</span>
+    <div data-i18n-slot style="display:flex;gap:8px;align-items:center"><span class="beta" id="beta-tag" hidden>BETA</span></div>
   </div>
 </header>
 
@@ -1316,5 +1329,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   });
 })();
 </script>
+<script>window.I18N_SET = "cust";</script>
+<script src="i18n-dict.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

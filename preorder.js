@@ -113,27 +113,27 @@
     var CSS = '' +
         '.axp-ov{position:fixed;inset:0;background:#f4f6f8;z-index:2600;display:none;flex-direction:column;height:100vh;height:100dvh;font-family:inherit}' +
         '.axp-head{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e0e0e0}' +
-        '.axp-head h3{flex:1;margin:0;color:#1a365d;font-size:1.1rem;min-width:0}' +
+        '.axp-head h3{flex:1;margin:0;color:#0b4db3;font-size:1.1rem;min-width:0}' +
         '.axp-body{flex:1;min-height:0;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}.axp-in{max-width:760px;margin:0 auto}' +
         '.axp-foot{flex-shrink:0;display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #e0e0e0;flex-wrap:wrap}' +
-        '.axp-b{border:0;border-radius:10px;padding:13px 14px;font-weight:bold;font-size:14.5px;cursor:pointer;font-family:inherit;color:#fff;background:#1a365d;line-height:1.25}' +
+        '.axp-b{border:0;border-radius:10px;padding:13px 14px;font-weight:bold;font-size:14.5px;cursor:pointer;font-family:inherit;color:#fff;background:#0b4db3;line-height:1.25}' +
         '.axp-b:disabled{opacity:.45;cursor:not-allowed}.axp-b.g{background:#689f38}.axp-b.o{background:#ea580c}.axp-b.r{background:#ef4444}.axp-b.gr{background:#64748b}.axp-b.w{background:#128c4a}.axp-b.l{background:#e2e8f0;color:#334155}.axp-b.big{flex:1}' +
-        '.axp-back{background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:9px 12px;font-weight:bold;color:#1a365d;cursor:pointer;font-family:inherit}' +
-        '.axp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.axp-tab{border:1px solid #cbd5e1;background:#fff;border-radius:99px;padding:8px 14px;font-weight:bold;cursor:pointer;color:#1a365d;font-family:inherit}.axp-tab.on{background:#1a365d;color:#fff;border-color:#1a365d}' +
+        '.axp-back{background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:9px 12px;font-weight:bold;color:#0b4db3;cursor:pointer;font-family:inherit}' +
+        '.axp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.axp-tab{border:1px solid #cbd5e1;background:#fff;border-radius:99px;padding:8px 14px;font-weight:bold;cursor:pointer;color:#0b4db3;font-family:inherit}.axp-tab.on{background:#0b4db3;color:#fff;border-color:#0b4db3}' +
         '.axp-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer}.axp-card.red{border:2px solid #ef4444}.axp-card.orange{border:2px solid #f59e0b}.axp-card.yellow{border:2px solid #eab308}' +
-        '.axp-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.axp-sm{font-size:12.5px;color:#64748b}.axp-no{font-weight:bold;color:#1a365d;font-size:15px}' +
+        '.axp-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.axp-sm{font-size:12.5px;color:#64748b}.axp-no{font-weight:bold;color:#0b4db3;font-size:15px}' +
         '.axp-pill{display:inline-block;font-size:11.5px;font-weight:bold;border-radius:99px;padding:2px 8px;margin-left:4px;background:#e2e8f0;color:#334155}' +
         '.axp-pill.new{background:#fef3c7;color:#92400e}.axp-pill.ordered,.axp-pill.shipping{background:#dbeafe;color:#1e3a8a}.axp-pill.arrived{background:#dcfce7;color:#166534}.axp-pill.picked{background:#e2e8f0;color:#334155}.axp-pill.refunded,.axp-pill.noshow{background:#fee2e2;color:#991b1b}' +
         '.axp-al{font-size:12.5px;margin-top:6px;font-weight:bold}.axp-al.red{color:#b91c1c}.axp-al.orange{color:#c2410c}.axp-al.yellow{color:#a16207}' +
         '.axp-in label{display:block;font-weight:bold;font-size:13px;color:#555;margin:12px 0 5px}' +
         '.axp-in input,.axp-in select,.axp-in textarea{width:100%;padding:12px 10px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;background:#fff;font-family:inherit;box-sizing:border-box}' +
         '.axp-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.axp-3{display:grid;grid-template-columns:2fr 1fr;gap:10px}' +
-        '.axp-seg{display:flex;gap:8px;flex-wrap:wrap}.axp-seg button{flex:1;min-width:110px;padding:13px 8px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;font-weight:bold;font-size:14px;color:#1a365d;cursor:pointer;font-family:inherit;line-height:1.3}.axp-seg button.on{background:#1a365d;color:#fff;border-color:#1a365d}' +
+        '.axp-seg{display:flex;gap:8px;flex-wrap:wrap}.axp-seg button{flex:1;min-width:110px;padding:13px 8px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;font-weight:bold;font-size:14px;color:#0b4db3;cursor:pointer;font-family:inherit;line-height:1.3}.axp-seg button.on{background:#0b4db3;color:#fff;border-color:#0b4db3}' +
         '.axp-box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:12px}' +
-        '.axp-tot{display:flex;justify-content:space-between;align-items:baseline;font-size:1.35rem;font-weight:bold;color:#1a365d;padding:8px 0 2px}.axp-tot small{font-size:.85rem;color:#64748b}' +
+        '.axp-tot{display:flex;justify-content:space-between;align-items:baseline;font-size:1.35rem;font-weight:bold;color:#0b4db3;padding:8px 0 2px}.axp-tot small{font-size:.85rem;color:#64748b}' +
         '.axp-ap{font-size:12px;color:#94a3b8;text-align:right}.axp-hint{font-size:12.5px;color:#64748b;margin-top:6px}.axp-warn{background:#fef2f2;color:#b91c1c;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:bold;margin:8px 0}' +
         '.axp-ok{background:#f0fdf4;color:#166534;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}' +
-        '.axp-tl{display:flex;gap:4px;margin:10px 0 4px}.axp-tl div{flex:1;text-align:center;font-size:11px;color:#94a3b8;border-top:4px solid #e2e8f0;padding-top:5px}.axp-tl div.on{color:#1a365d;border-color:#689f38;font-weight:bold}' +
+        '.axp-tl{display:flex;gap:4px;margin:10px 0 4px}.axp-tl div{flex:1;text-align:center;font-size:11px;color:#94a3b8;border-top:4px solid #e2e8f0;padding-top:5px}.axp-tl div.on{color:#0b4db3;border-color:#689f38;font-weight:bold}' +
         '.axp-li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed #e2e8f0;font-size:14px}.axp-li:last-child{border-bottom:0}' +
         '.axp-tick{font-size:3rem;color:#689f38;text-align:center;line-height:1}' +
         '.axp-chk{display:flex!important;align-items:center;gap:8px;font-weight:normal!important}.axp-chk input{width:auto!important}';
@@ -364,7 +364,7 @@
     }
     function payBoxHtml(amt) {
         var P = A.pay, d = payDue(amt), thb = P.cur === 'THB';
-        var h = '<div class="axp-box"><b>รับเงินครั้งนี้</b> <span id="axp-amt" style="float:right;font-weight:bold;color:#1a365d">' + M(amt, P.cur) + '</span>';
+        var h = '<div class="axp-box"><b>รับเงินครั้งนี้</b> <span id="axp-amt" style="float:right;font-weight:bold;color:#0b4db3">' + M(amt, P.cur) + '</span>';
         if (thb) {
             h += '<label>เรทวันนี้ (กีบ ต่อ 1 บาท) · จำเป็น</label><input data-p="rate" type="number" inputmode="numeric" min="0" value="' + E(P.rate) + '" placeholder="เช่น 650">' +
                 '<div class="axp-hint">' + (FX.rate ? 'เรทที่ตั้งใน Admin: ' + FX.rate + (fxStale() ? ' · <b style="color:#b91c1c">เก่ากว่า 1 วัน</b>' : '') : 'ยังไม่ได้ตั้งเรทใน Admin') + '</div>' +
@@ -514,7 +514,7 @@
         setHead('✓ เรียบร้อย', false);
         main('<div class="axp-box" style="text-align:center"><div class="axp-tick">✓</div><div style="font-weight:bold;color:#689f38;font-size:1.1rem">' + E(D.title) + '</div>' +
             '<div class="axp-no" style="font-size:1.4rem;margin-top:6px">' + E(p.no || '') + '</div><div class="axp-sm">บิล #' + E(D.bill.orderNo) + ' · ' + E(p.customerName || '') + '</div>' +
-            '<div style="font-size:1.6rem;font-weight:bold;color:#1a365d;margin-top:8px">' + (D.bill.currency === 'THB' ? M(D.bill.payAmount, D.bill.payCurrency) : money(D.bill.total)) + '</div>' +
+            '<div style="font-size:1.6rem;font-weight:bold;color:#0b4db3;margin-top:8px">' + (D.bill.currency === 'THB' ? M(D.bill.payAmount, D.bill.payCurrency) : money(D.bill.total)) + '</div>' +
             (D.bill.paymentMethod === 'cash' && D.bill.change ? '<div style="color:#689f38;font-weight:bold">เงินทอน ' + M(D.bill.change, D.bill.currency === 'THB' ? D.bill.payCurrency : 'LAK') + '</div>' : '') + '</div>' +
             '<div class="axp-hint" style="text-align:center">ส่งให้ลูกค้าทาง WhatsApp เป็นข้อความได้เลย (มีเงื่อนไข + ลิงก์ติดตาม) หรือพิมพ์ใบ 58mm</div>');
         foot('<button class="axp-b" data-a="done-print">🖨️ พิมพ์ใบ</button><button class="axp-b gr" data-a="done-share">📤 PDF</button><button class="axp-b w big" data-a="done-wa">💬 ส่ง WhatsApp</button><button class="axp-b g" data-a="done-ok">เสร็จ</button>');

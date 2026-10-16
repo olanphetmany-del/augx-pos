@@ -7,13 +7,14 @@
         '🛒': 'shopping_cart', '🛵': 'two_wheeler', '👟': 'steps', '📦': 'inventory_2', '📜': 'history',
         '🔔': 'notifications', '🔇': 'notifications_off', '🍽️': 'restaurant', '🍽': 'restaurant', '🥡': 'takeout_dining',
         '🏷️': 'sell', '🏷': 'sell', '📅': 'calendar_month', '🔥': 'local_fire_department', '💵': 'payments',
-        '☕': 'local_cafe', '⏸': 'pause_circle', '⏸️': 'pause_circle', '📝': 'edit_note', '💳': 'credit_card', '🖨️': 'print', '🖨': 'print'
+        '☕': 'local_cafe', '⏸': 'pause_circle', '⏸️': 'pause_circle', '📝': 'edit_note', '💳': 'credit_card', '🖨️': 'print', '🖨': 'print', '📊': 'bar_chart', '🪑': 'chair', '👥': 'group', '🛍️': 'shopping_bag', '🛍': 'shopping_bag', '📂': 'folder', '⭐': 'star', '🖼️': 'image', '🖼': 'image', '💱': 'currency_exchange', '🔐': 'lock'
     };
     var KEYS = Object.keys(MAP).sort(function (a, b) { return b.length - a.length; });
     // ปุ่มที่จะเปลี่ยนไอคอน · tile = ปุ่มพื้นขาว (ไอคอนอยู่ในกล่องฟ้า)
     var TARGETS = [
         ['body > header .top-btn, body > header h1, nav.tabs button > span, .pos-header .top-btn, .kitchen-header .top-btn, .kitchen-header h1, .cart-bar > span, .ctl-btns .big, .sh-foot .big, .action-btn', false],
-        ['.tab-btn, #cart-ctl .seg button, .cart-header > span:first-child', true]
+        ['.tab-btn, #cart-ctl .seg button, .cart-header > span:first-child', true],
+        ['#m-home button > span, .sidebar .nav-item', false]
     ];
     function firstText(el) {
         for (var n = el.firstChild; n; n = n.nextSibling) {
