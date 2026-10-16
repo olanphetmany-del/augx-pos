@@ -2386,74 +2386,94 @@ function stkData(bill, line, k, n, cfg) {
     cfg = cfg || stickerCfg();
     var del = bill.source && bill.source !== 'store';
     var name = '';
-    if (del) name = bill.source + (bill.appOrderNo ? ' ' + bill.appOrderNo : '');
+    if (del) name = bill.appOrderNo ? String(bill.appOrderNo) : '';
     else if (cfg.showName) name = bill.customerName || (cfg.nameFallback === 'table' && bill.table ? 'โต๊ะ ' + bill.table : '');
     return {
         no: bill.orderNo, k: k, n: n, name: name,
         item: line.name || '', details: lineDetails(line), note: line.note || '',
-        type: cfg.showType ? (del ? 'Delivery' : (bill.orderType || '')) : '',
+        type: cfg.showType ? (del ? String(bill.source) : (bill.orderType || '')) : '',
         time: cfg.showTime ? timeHHMM(Date.now()) : ''
     };
 }
 function stkQr(url) {
     var q = new QRLib.QRCode(-1, QRLib.ECL.L); q.addData(url); q.make(); return q;
 }
-// วาดสติกเกอร์ลง ctx ที่ตำแหน่ง (x0,y0) ขนาด d.w x d.h
+function stkLS(c, px) { try { c.letterSpacing = px + 'px'; } catch (e) {} }
+// วาดสติกเกอร์ลง ctx ที่ตำแหน่ง (x0,y0) ขนาด d.w x d.h — แบบ A3 (ตัวใหญ่เต็มแผ่น + ป้ายดำประเภทออเดอร์)
 function stkPaint(c, d, data, cfg, x0, y0) {
     c.save(); c.translate(x0, y0);
     c.fillStyle = '#fff'; c.fillRect(0, 0, d.w, d.h); c.fillStyle = '#000'; c.textBaseline = 'top'; c.textAlign = 'left';
-    var s = Math.min(d.w / 480, d.h / 320), pad = Math.round(14 * s);
-    var footH = Math.round(40 * s), fy = d.h - pad - footH;
-    var hasQr = !!(cfg.qrOn && cfg.qrUrl);
-    // หัว: เลขออร์เดอร์ + ลำดับแก้ว
-    var y = pad;
-    c.font = 'bold ' + Math.round(58 * s) + 'px ' + STK_FONT; c.textAlign = 'left'; c.fillText('#' + data.no, pad, y);
-    c.font = 'bold ' + Math.round(50 * s) + 'px ' + STK_FONT; c.textAlign = 'right'; c.fillText(data.k + '/' + data.n, d.w - pad, y + 4 * s); c.textAlign = 'left';
-    y += Math.round(64 * s);
-    var headBottom = y;
-    // QR (ขวา ใต้หัว)
-    var textW = d.w - 2 * pad;
+    var s = Math.min(d.w / 480, d.h / 320), pad = Math.round(14 * s), W = d.w - 2 * pad, R = d.w - pad, B = d.h - pad;
+    var F = function (px, w) { c.font = (w || '') + ' ' + Math.round(px) + 'px ' + STK_FONT; };
+    // ---- ล่าง: QR ขวา, เวลา + ชื่อร้าน ซ้าย ----
+    var hasQr = !!(cfg.qrOn && cfg.qrUrl), qx = d.w, qTop = d.h;
     if (hasQr) {
         try {
-            var q = stkQr(cfg.qrUrl), cnt = q.getModuleCount(), labelH = cfg.qrLabel ? Math.round(26 * s) : 0;
-            var maxBox = Math.min(Math.round(cfg.qrSizeMm * d.k), fy - headBottom - labelH - 4);
-            var mod = Math.floor(maxBox / (cnt + 4));
+            var q = stkQr(cfg.qrUrl), cnt = q.getModuleCount(), labelH = cfg.qrLabel ? Math.round(22 * s) : 0;
+            var maxBox = Math.min(Math.round(cfg.qrSizeMm * d.k), Math.round(104 * s));
+            var mod = Math.floor(maxBox / (cnt + 2));
             if (mod >= 2) {
-                var box = mod * (cnt + 4), qx = d.w - pad - box, qy = headBottom;
-                c.fillStyle = '#fff'; c.fillRect(qx, qy, box, box); c.fillStyle = '#000';
-                for (var r = 0; r < cnt; r++) for (var cc = 0; cc < cnt; cc++) if (q.isDark(r, cc)) c.fillRect(qx + (cc + 2) * mod, qy + (r + 2) * mod, mod, mod);
-                if (cfg.qrLabel) { c.font = Math.round(22 * s) + 'px ' + STK_FONT; c.textAlign = 'center'; var lb = stkFit(c, cfg.qrLabel, box + pad, Math.round(22 * s), 14, ''); c.font = lb.px + 'px ' + STK_FONT; c.fillText(lb.text, qx + box / 2, qy + box + 2); c.textAlign = 'left'; }
-                textW = qx - 2 * pad;
-            }
-        } catch (e) { /* QR ใส่ไม่ได้ ข้ามไป */ }
+                var box = mod * (cnt + 2), qy = B - labelH - box; qx = R - box;
+                for (var r = 0; r < cnt; r++) for (var cc = 0; cc < cnt; cc++) if (q.isDark(r, cc)) c.fillRect(qx + (cc + 1) * mod, qy + (r + 1) * mod, mod, mod);
+                if (cfg.qrLabel) { var lb = stkFit(c, cfg.qrLabel, box + pad, Math.round(18 * s), 12, ''); F(lb.px); c.textAlign = 'center'; c.fillText(lb.text, qx + box / 2, B - labelH + 2); c.textAlign = 'left'; }
+                qTop = qy;
+            } else qx = d.w;
+        } catch (e) { qx = d.w; }
     }
-    // ชื่อลูกค้า / แอป
-    if (data.name) {
-        var f = stkFit(c, data.name, textW, Math.round(46 * s), Math.round(26 * s), 'bold');
-        c.font = 'bold ' + f.px + 'px ' + STK_FONT; c.fillText(f.text, pad, y); y += Math.round(f.px * 1.25);
+    var botW = (qx < d.w ? qx - pad : R) - pad;
+    var hasShop = cfg.showShop && cfg.shopText;
+    var shopPx = Math.round(28 * s), metaPx = Math.round(25 * s);
+    var yShop = B - shopPx, yMeta = hasShop ? yShop - Math.round(metaPx * 1.25) : B - metaPx;
+    var useTypePill = !!data.type;
+    var meta = [useTypePill && data.n ? data.k + '/' + data.n : '', data.time].filter(Boolean).join('  ·  ');
+    if (hasShop) { stkLS(c, Math.round(4 * s)); var sh = stkFit(c, String(cfg.shopText).toUpperCase(), botW, shopPx, 14, 'bold'); F(sh.px, 'bold'); c.fillText(sh.text, pad, yShop); stkLS(c, 0); }
+    if (meta) { var mt = stkFit(c, meta, botW, metaPx, 14, '600'); F(mt.px, '600'); c.fillText(mt.text, pad, yMeta); }
+    var bottomTop = (meta ? yMeta : (hasShop ? yShop : B)) - Math.round(8 * s);
+    // ---- บน: เลขคิว + ป้ายดำ ----
+    var y = pad;
+    var noTxt = '#' + data.no, noPx = Math.round(70 * s);
+    F(noPx, 'bold'); var noW = c.measureText(noTxt).width;
+    var pill = useTypePill ? String(data.type).toUpperCase() : (data.n ? data.k + '/' + data.n : '');
+    if (pill) {
+        var pPx = Math.round(26 * s), pPad = Math.round(12 * s), pH = Math.round(pPx * 1.55);
+        stkLS(c, Math.round(2 * s));
+        var pf = stkFit(c, pill, W - noW - 3 * pad - 2 * pPad, pPx, 12, 'bold'); F(pf.px, 'bold');
+        var pw = c.measureText(pf.text).width + 2 * pPad, px0 = R - pw, py0 = y + Math.round((noPx * 0.86 - pH) / 2);
+        c.beginPath(); if (c.roundRect) c.roundRect(px0, py0, pw, pH, Math.round(9 * s)); else c.rect(px0, py0, pw, pH); c.fill();
+        c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(pf.text, px0 + pPad, py0 + pH / 2 + 1); c.textBaseline = 'top'; c.fillStyle = '#000';
+        stkLS(c, 0);
     }
-    // ชื่อเมนู
-    var it = stkFit(c, data.item, textW, Math.round(40 * s), Math.round(24 * s), 'bold');
-    c.font = 'bold ' + it.px + 'px ' + STK_FONT; c.fillText(it.text, pad, y); y += Math.round(it.px * 1.25);
-    // ไซส์ + ตัวเลือก + หมายเหตุ
-    var lh = Math.round(34 * s);
-    c.font = Math.round(30 * s) + 'px ' + STK_FONT;
-    var lines = [];
-    if (data.details) stkWrap(c, data.details, textW, 2, ' | ').forEach(function (l) { lines.push(l); });
-    if (data.note) stkWrap(c, '* ' + data.note, textW, 2).forEach(function (l) { lines.push(l); });
-    lines.forEach(function (l) { if (y + lh <= fy) { c.fillText(l, pad, y); y += lh; } });
-    // ท้าย
-    c.fillRect(pad, fy, d.w - 2 * pad, Math.max(2, Math.round(3 * s)));
-    c.font = Math.round(26 * s) + 'px ' + STK_FONT;
-    var left = [data.type, data.time].filter(Boolean).join('  ·  ');
-    c.fillText(left, pad, fy + Math.round(8 * s));
-    if (cfg.showShop && cfg.shopText) {
-        var lw = c.measureText(left).width, sh = stkFit(c, cfg.shopText, d.w - 2 * pad - lw - pad, Math.round(26 * s), 16, '');
-        c.font = sh.px + 'px ' + STK_FONT; c.textAlign = 'right'; c.fillText(sh.text, d.w - pad, fy + Math.round(8 * s)); c.textAlign = 'left';
+    F(noPx, 'bold'); c.fillText(noTxt, pad - Math.round(2 * s), y);
+    y += Math.round(noPx * 0.98);
+    // ชื่อลูกค้า / เลขออร์เดอร์แอป
+    if (data.name) { var nf = stkFit(c, data.name, W, Math.round(30 * s), Math.round(20 * s), 'bold'); F(nf.px, 'bold'); c.fillText(nf.text, pad, y); y += Math.round(nf.px * 1.2); }
+    // ---- ชื่อเมนู (ใหญ่สุด ยาวได้ 2 บรรทัด) ----
+    var rowW = function (yy, hh) { return (yy + hh > qTop) ? qx - 2 * pad : W; };
+    var big = Math.round(74 * s), minOne = Math.round(44 * s);
+    var it = stkFit(c, data.item, W, big, minOne, 'bold');
+    var itemLines;
+    if (it.text !== data.item) {
+        var p2 = Math.round(40 * s); F(p2, 'bold');
+        itemLines = stkWrap(c, data.item, W, 2); it.px = p2;
+    } else itemLines = [it.text];
+    F(it.px, 'bold');
+    var ilh = Math.round(it.px * 1.08);
+    itemLines.forEach(function (l) { c.fillText(l, pad - Math.round(1 * s), y); y += ilh; });
+    y += Math.round(6 * s);
+    // ---- ตัวเลือก + หมายเหตุ (มีแถบดำนำหน้า) ----
+    var bar = Math.max(3, Math.round(6 * s)), ix = pad + bar + Math.round(10 * s), lines = [], oPx, olh;
+    var sizes = [30, 26, 22];
+    for (var si = 0; si < sizes.length; si++) {
+        oPx = Math.round(sizes[si] * s); olh = Math.round(oPx * 1.28); F(oPx, '600'); lines = [];
+        var ow = rowW(y, olh) - (ix - pad);
+        if (data.details) stkWrap(c, data.details.split(' | ').join('  ·  '), ow, 2, '  ·  ').forEach(function (l) { lines.push(l.replace(/\s*·\s*$/, '')); });
+        if (data.note) stkWrap(c, '* ' + data.note, ow, 2).forEach(function (l) { lines.push(l); });
+        if (y + lines.length * olh <= bottomTop + Math.round(6 * s)) break;
     }
-    if (cfg.paper === 'receipt') { /* เส้นประสำหรับตัด/ฉีก */
-        for (var dx = 0; dx < d.w; dx += 20) c.fillRect(dx, d.h - 4, 12, 2);
-    }
+    var y0b = y, drawn = 0;
+    lines.forEach(function (l) { if (y + olh <= bottomTop + Math.round(6 * s)) { c.fillText(l, ix, y + Math.round(2 * s)); y += olh; drawn++; } });
+    if (drawn) c.fillRect(pad, y0b, bar, y - y0b);
+    if (cfg.paper === 'receipt') { for (var dx = 0; dx < d.w; dx += 20) c.fillRect(dx, d.h - 4, 12, 2); }
     c.restore();
 }
 function stkRuler(c, cw, h, k) {
@@ -2523,6 +2543,14 @@ function stkBytes(data, cfg) {
         return stkEscJobs(Uint8Array.of(0x1B, 0x40, 0x1D, 0x4C, mg & 255, mg >> 8), stkBits(k, thr, false), cw / 8, ch, stkPost(cfg), cfg, gm);
     }
     var hd = stkHead(cfg, d);
+    if (m === 'esc') { /* เติมขอบขาว + โหมดประหยัดข้อมูล (½ = ลดแนวตั้ง, ¼ = ลดทั้งสองแนว เครื่องขยายกลับเองด้วย GS v 0 m=1/2/3) */
+        var sv2 = Number(cfg.dataSave) || 0, gx = sv2 >= 2 ? 2 : 1, gy = sv2 >= 1 ? 2 : 1;
+        var pw = Math.ceil(hd / gx / 8) * 8, ph = Math.ceil(d.h / gy);
+        k = document.createElement('canvas'); k.width = pw; k.height = ph; c = k.getContext('2d');
+        c.fillStyle = '#fff'; c.fillRect(0, 0, pw, ph); c.scale(1 / gx, 1 / gy);
+        if (ruler) stkRuler(c, hd, d.h, d.k); else stkPaint(c, d, data, cfg, d.ox, d.oy);
+        return stkEscJobs(Uint8Array.of(0x1B, 0x40), stkBits(k, thr, false), pw / 8, ph, stkPost(cfg), cfg, (gx === 2 ? 1 : 0) + (gy === 2 ? 2 : 0));
+    }
     k = document.createElement('canvas'); k.width = hd; k.height = d.h; c = k.getContext('2d');
     c.fillStyle = '#fff'; c.fillRect(0, 0, hd, d.h);
     if (ruler) stkRuler(c, hd, d.h, d.k); else stkPaint(c, d, data, cfg, d.ox, d.oy);
@@ -2531,12 +2559,25 @@ function stkBytes(data, cfg) {
     return stkEscJobs(Uint8Array.of(0x1B, 0x40), bits, bw, d.h, stkPost(cfg), cfg);
 }
 // ส่งทีละใบ เว้นช่วงให้ RawBT รับทันทีละงาน
+var STK_JOB_MAX = 28000, STK_JOB_GAP = 5000;
 function stkSendAll(list, cfg) {
-    if (true) { /* รวมทุกใบเป็นงานเดียว (RawBT ต้องใช้เวลาต่อเครื่อง ~5 วินาทีต่องาน จึงไม่ส่งแยกชิ้น) */
-        var parts = [];
-        list.forEach(function (it) { stkBytes(it === 'RULER' ? null : it, cfg).forEach(function (b) { parts.push(b); }); });
-        if (cfg.paper === 'receipt') parts.push(Uint8Array.of(0x1B, 0x64, 4)); /* เลื่อนกระดาษพ้นแท่นฉีก */
-        window.location.href = 'rawbt:base64,' + stkB64(stkCat(parts));
+    if (true) {
+        /* RawBT ใช้เวลาต่อเครื่อง ~5 วินาทีต่องาน และเครื่องสติกเกอร์รับข้อมูลก้อนใหญ่ไม่ทัน (ใบแรกเพี้ยน)
+           → รวมหลายใบเป็นงานเดียวได้ไม่เกิน STK_JOB_MAX ไบต์ ที่เหลือส่งเป็นงานถัดไป เว้น 5 วินาที */
+        var per = list.map(function (it) { return stkCat(stkBytes(it === 'RULER' ? null : it, cfg)); });
+        var jobs = [], cur = [], size = 0, max = cfg.paper === 'receipt' ? 1e9 : STK_JOB_MAX;
+        per.forEach(function (b) {
+            if (cur.length && size + b.length > max) { jobs.push(cur); cur = []; size = 0; }
+            cur.push(b); size += b.length;
+        });
+        if (cur.length) jobs.push(cur);
+        if (cfg.paper === 'receipt') jobs[jobs.length - 1].push(Uint8Array.of(0x1B, 0x64, 4)); /* เลื่อนกระดาษพ้นแท่นฉีก */
+        var ji = 0;
+        (function go() {
+            if (ji >= jobs.length) return;
+            window.location.href = 'rawbt:base64,' + stkB64(stkCat(jobs[ji++]));
+            if (ji < jobs.length) setTimeout(go, STK_JOB_GAP);
+        })();
         return;
     }
     var i = 0, delay = Math.max(100, Number(cfg.chunkDelay) || 600);
