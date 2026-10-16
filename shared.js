@@ -2559,7 +2559,7 @@ function stkBytes(data, cfg) {
     return stkEscJobs(Uint8Array.of(0x1B, 0x40), bits, bw, d.h, stkPost(cfg), cfg);
 }
 // ส่งทีละใบ เว้นช่วงให้ RawBT รับทันทีละงาน
-var STK_JOB_MAX = 28000, STK_JOB_GAP = 5000;
+var STK_JOB_MAX = 1, STK_JOB_GAP = 5000;   // 1 = ส่งทีละใบเสมอ (เครื่อง DP30S รับ 2 ใบติดกันไม่ทัน ใบแรกเพี้ยน ใบที่สองหาย)
 function stkSendAll(list, cfg) {
     if (true) {
         /* RawBT ใช้เวลาต่อเครื่อง ~5 วินาทีต่องาน และเครื่องสติกเกอร์รับข้อมูลก้อนใหญ่ไม่ทัน (ใบแรกเพี้ยน)
