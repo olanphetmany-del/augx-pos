@@ -1,0 +1,56 @@
+name: Tests
+
+# Runs on every push to any branch (including files uploaded through the
+# GitHub web UI straight to main) and on pull requests. GitHub emails the
+# person who pushed if the run fails.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Actions are pinned to commit SHAs; the comment shows the release tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run tests with coverage
+        run: npx vitest run --coverage --coverage.reporter=text --coverage.reporter=html --coverage.reporter=json-summary
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e '
+              const s = require("./coverage/coverage-summary.json");
+              const pct = (m) => m.pct.toFixed(1) + "%";
+              const rows = Object.entries(s).map(([f, m]) =>
+                "| " + (f === "total" ? "**All files**" : f.replace(process.cwd() + "/", "")) +
+                " | " + pct(m.statements) + " | " + pct(m.branches) + " | " + pct(m.functions) + " | " + pct(m.lines) + " |");
+              console.log(["## Coverage", "", "| File | Stmts | Branch | Funcs | Lines |", "|---|---|---|---|---|", ...rows].join("\n"));
+            ' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
