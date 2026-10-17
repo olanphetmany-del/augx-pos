@@ -691,6 +691,14 @@
         <div class="modal-container">
             <div class="sh-bar"><span id="sh-title">👟 เพิ่มรองเท้า</span><button type="button" onclick="closeShoe()" aria-label="ปิด">×</button></div>
             <div class="sh-body">
+                <div class="sh-sec" id="sh-imp-sec" style="border-style:dashed">
+                    <div class="sh-st"><span>📥 วางข้อมูลจาก Claude</span><button type="button" class="sh-chip sm" onclick="shImpToggle()">เปิด/ปิด</button></div>
+                    <div id="sh-imp-box" style="display:none">
+                        <textarea id="sh-imp" rows="5" placeholder='วางข้อมูลที่ Claude ให้ (ขึ้นต้นด้วย { ... })' style="width:100%;font:12px monospace;padding:8px;border:1px solid #e3dfd8;border-radius:10px;box-sizing:border-box"></textarea>
+                        <div style="display:flex;gap:6px;margin-top:6px"><button type="button" class="sh-chip on" onclick="shImport()">✓ ใส่ข้อมูลลงฟอร์ม</button><button type="button" class="sh-chip sm" onclick="document.getElementById('sh-imp').value=''">ล้าง</button></div>
+                        <div class="hint">ใส่ให้: แบรนด์ ชื่อรุ่น สี ราคา ไซส์ที่ขาย สต็อก คำอธิบาย · รูปยังต้องกด ＋ อัปโหลดเอง · ตรวจแล้วค่อยกด 💾</div>
+                    </div>
+                </div>
                 <div class="sh-sec">
                     <div class="sh-st"><span><span class="sh-n">1</span>แบรนด์</span><small>ไซส์ขึ้นเองตามแบรนด์</small></div>
                     <div class="sh-chips" id="sh-brands"></div>
@@ -1548,6 +1556,41 @@
                 } else { SH.dirty = false; closeShoe(true); }
             } catch (e) { toast('บันทึกไม่สำเร็จ: ' + e.message, false); }
             btn.disabled = false;
+        }
+
+        /* ---------- 📥 วางข้อมูลรองเท้าจาก Claude (JSON) ----------
+           { "brand":"NIKE", "name":"...", "color":"...", "code":"...", "desc":"...",
+             "price":4200, "pre_price":null, "sizes":["36","36.5",...], "stock":{"42":1} } */
+        function shImpToggle() { const b = document.getElementById('sh-imp-box'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; if (b.style.display === 'block') document.getElementById('sh-imp').focus(); }
+        function shImport() {
+            let raw = document.getElementById('sh-imp').value.trim().replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
+            const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
+            if (a < 0 || b < a) return toast('ไม่พบข้อมูล { ... }', false);
+            let d; try { d = JSON.parse(raw.slice(a, b + 1)); } catch (e) { return toast('อ่านข้อมูลไม่ได้: ' + e.message, false); }
+            const brand = String(d.brand || '').toUpperCase().trim();
+            const cat = shoeBrandCats().find(c => c.name.toUpperCase() === brand);
+            if (!cat) return toast('ไม่มีหมวดแบรนด์ "' + brand + '" — สร้างที่หน้า Categories ก่อน', false);
+            pickShoeBrand(cat.name, true);
+            const want = (Array.isArray(d.sizes) ? d.sizes : String(d.sizes || '').split(',')).map(normSize).filter(Boolean);
+            const stock = d.stock || {};
+            if (want.length) {
+                SH.rows.forEach(r => r.on = want.indexOf(r.z) >= 0);
+                want.forEach(z => { if (sizeVal(z) !== 9999 && !SH.rows.some(r => r.z === z)) SH.rows.push({ z: z, on: true, n: 0, p: null, q: null, add: true }); });
+                SH.rows.sort((x, y) => sizeVal(x.z) - sizeVal(y.z));
+            }
+            SH.rows.forEach(r => { const v = stock[r.z] != null ? stock[r.z] : stock[stockKey(r.z)]; r.n = Math.max(0, Number(v) || 0); });
+            const set = (id, v) => { if (v != null && v !== '') document.getElementById(id).value = v; };
+            set('sh-name', String(d.name || '').trim());
+            set('sh-color', String(d.color || '').trim());
+            const desc = [d.code ? 'Style: ' + d.code : '', d.desc || ''].filter(Boolean).join(' · ').slice(0, 120);
+            set('sh-desc', desc);
+            document.getElementById('sh-base').value = Number(d.price) > 0 ? Number(d.price) : '';
+            document.getElementById('sh-pre').value = Number(d.pre_price) > 0 ? Number(d.pre_price) : '';
+            SH.cur = null; SH.dirty = true; SH.brandTouched = true;
+            shBrands(); shDraw();
+            document.getElementById('sh-imp-box').style.display = 'none';
+            const miss = Number(d.price) > 0 ? '' : ' · ⚠️ ยังไม่มีราคาหน้าร้าน ใส่ก่อนกดบันทึก';
+            toast('ใส่ข้อมูลแล้ว: ' + cat.name + ' ' + (d.name || '') + ' (' + SH.rows.filter(r => r.on).length + ' ไซส์)' + miss, !miss);
         }
 
         /* ---------- 🔀 ย้ายรองเท้าเดิมเข้าหมวดแบรนด์ ---------- */
