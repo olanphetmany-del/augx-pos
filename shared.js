@@ -23,7 +23,19 @@ const firebaseConfig = {
     projectId: "augx-d75c2",
     storageBucket: "augx-d75c2.firebasestorage.app"
 };
-if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+if (window.AUGX_APP_NAME) {
+    /* หน้านี้ใช้การล็อกอินแยกของตัวเอง (เช่น Admin) — ไม่ปนกับบัญชีที่ล็อกอินในหน้าแคชเชียร์บนเครื่องเดียวกัน */
+    (function (N) {
+        var app = firebase.apps.filter(function (a) { return a.name === N; })[0] || firebase.initializeApp(firebaseConfig, N);
+        ['auth', 'database'].forEach(function (k) {
+            var o = firebase[k]; if (typeof o !== 'function') return;
+            var f = function (a) { return o(a || app); };
+            Object.getOwnPropertyNames(o).forEach(function (p) { if (!(p in f)) try { f[p] = o[p]; } catch (e) {} });
+            try { f.Auth = o.Auth; f.EmailAuthProvider = o.EmailAuthProvider; } catch (e) {}
+            firebase[k] = f;
+        });
+    })(window.AUGX_APP_NAME);
+} else if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
 const database = firebase.database();
 
 /* ---------- ฟังก์ชันช่วยทั่วไป ---------- */
