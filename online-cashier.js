@@ -305,7 +305,7 @@
             exp.forEach(function (o) {
                 var p = priced(o);
                 html += '<div class="axo-card done"><div class="axo-row"><div><b>' + E(o.id) + '</b> <span class="axo-pill rejected">หมดเวลา</span></div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
-                    '<div class="axo-sm">' + E(o.name) + ' · 📞 ' + E(o.phone) + ' · ' + p.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') + ' · ' + MC(p.total, p.cur) + '</div>' +
+                    '<div class="axo-sm">' + E(o.name) + ' · 📞 ' + E(o.phone) + ' · ' + E(p.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ')) + ' · ' + MC(p.total, p.cur) + '</div>' +
                     '<div class="axo-acts"><button class="axo-g" data-a="revive" data-id="' + E(o.id) + '">↩ ดึงกลับมาทำ</button><span class="axo-sm">ลูกค้าโอนมาช้า หรือร้านลืมกด → ดึงกลับ เลขบิลเดิม</span></div></div>';
             });
         }
