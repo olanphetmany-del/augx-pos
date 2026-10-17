@@ -12,7 +12,7 @@ export default defineConfig({
             // Only the standalone .js files can be measured; logic inlined in the
             // .html pages is invisible to coverage until it is extracted.
             include: ['*.js'],
-            exclude: ['i18n-dict.js', 'vitest.config.js'],
+            exclude: ['i18n-dict.js', '*.config.js'],
             reporter: ['text-summary', 'text', 'html'],
         },
     },

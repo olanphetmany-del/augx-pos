@@ -1,0 +1,90 @@
+// ESLint for the app's classic browser scripts and the inline <script>s in the
+// HTML pages. Deliberately limited to rules that catch real breakage (typo'd
+// names, unreachable code, duplicate keys), not style. Duplicate let/const
+// are parse errors, so no-redeclare (which only adds harmless var cases) is off.
+//
+// The pages share one global scope across files, so every top-level name any
+// app script declares is treated as a known global. scripts/check-pages.js
+// separately checks the per-page load order and collisions.
+import { readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as espree from 'espree';
+import globals from 'globals';
+import html from 'eslint-plugin-html';
+
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const APP_FILES = readdirSync(ROOT).filter((f) => /\.(js|html)$/.test(f) && !/^(eslint|vitest)\.config\.js$/.test(f));
+
+function appGlobals() {
+    const names = {};
+    for (const file of APP_FILES) {
+        const text = readFileSync(path.join(ROOT, file), 'utf8');
+        const chunks = file.endsWith('.html')
+            ? [...text.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1])
+            : [text];
+        for (const code of chunks) {
+            for (const m of code.matchAll(/\b(?:window|root)\.([A-Za-z_$][\w$]*)\s*=(?!=)/g)) names[m[1]] = 'writable';
+            let ast;
+            try { ast = espree.parse(code, { ecmaVersion: 'latest', sourceType: 'script' }); } catch { continue; } // reported by the lint itself
+            for (const node of ast.body) {
+                if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') names[node.id.name] = 'writable';
+                if (node.type === 'VariableDeclaration') for (const d of node.declarations) if (d.id.type === 'Identifier') names[d.id.name] = 'writable';
+            }
+        }
+    }
+    return names;
+}
+
+const breakageRules = {
+    'no-undef': 'error',
+    'no-dupe-keys': 'error',
+    'no-dupe-args': 'error',
+    'no-dupe-class-members': 'error',
+    'no-dupe-else-if': 'error',
+    'no-duplicate-case': 'error',
+    'no-unreachable': 'warn',
+    'no-const-assign': 'error',
+    'no-func-assign': 'error',
+    'no-import-assign': 'error',
+    'no-self-assign': 'error',
+    'no-unsafe-finally': 'error',
+    'no-unsafe-negation': 'error',
+    'use-isnan': 'error',
+    'valid-typeof': 'error',
+    'getter-return': 'error',
+    'no-setter-return': 'error',
+};
+
+export default [
+    {
+        ignores: ['node_modules/**', 'coverage/**', 'i18n-dict.js'],
+    },
+    {
+        files: ['*.js', '*.html'],
+        ignores: ['*.config.js'],
+        plugins: { html },
+        languageOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'script',
+            globals: {
+                ...globals.browser,
+                firebase: 'readonly', // Firebase v8 SDK from gstatic
+                L: 'readonly', // Leaflet, loaded at runtime by order.html
+                module: 'readonly', // UMD export check in augustx-menu.js
+                onReceiptSettings: 'readonly', // optional hook called by shared.js:610; no page defines it today
+                ...appGlobals(),
+            },
+        },
+        rules: breakageRules,
+    },
+    {
+        files: ['*.config.js', 'scripts/**/*.js', 'tests/**/*.js'],
+        languageOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+            globals: { ...globals.node },
+        },
+        rules: breakageRules,
+    },
+];

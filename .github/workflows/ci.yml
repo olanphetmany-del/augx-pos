@@ -1,8 +1,8 @@
-name: Tests
+name: CI
 
 # Runs on every push to any branch (including files uploaded through the
 # GitHub web UI straight to main) and on pull requests. GitHub emails the
-# person who pushed if the run fails.
+# person who pushed if a run fails.
 on:
   push:
   pull_request:
@@ -12,27 +12,41 @@ permissions:
   contents: read
 
 concurrency:
-  group: tests-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
+  # Fast static checks: would any page break on load?
+  checks:
+    name: Page check + lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       # Actions are pinned to commit SHAs; the comment shows the release tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
-
       - run: npm ci
+      - name: Page check (missing files, syntax errors, global collisions, broken handlers)
+        run: npm run check:pages
+      - name: ESLint (undefined names, duplicate keys, unreachable code)
+        run: npm run lint
 
+  unit:
+    name: Unit tests + coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
       - name: Run tests with coverage
         run: npx vitest run --coverage --coverage.reporter=text --coverage.reporter=html --coverage.reporter=json-summary
-
       - name: Coverage summary
         if: always()
         run: |
@@ -46,7 +60,6 @@ jobs:
               console.log(["## Coverage", "", "| File | Stmts | Branch | Funcs | Lines |", "|---|---|---|---|---|", ...rows].join("\n"));
             ' >> "$GITHUB_STEP_SUMMARY"
           fi
-
       - name: Upload HTML coverage report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -54,3 +67,4 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 14
+
