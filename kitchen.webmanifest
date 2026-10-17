@@ -1,8 +1,9 @@
 {
+  "id": "./kitchen.html",
   "name": "AUGUSTX Kitchen",
   "short_name": "Kitchen",
   "start_url": "./kitchen.html",
-  "scope": "./",
+  "scope": "./kitchen",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#ffffff",
