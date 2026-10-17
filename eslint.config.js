@@ -14,7 +14,7 @@ import globals from 'globals';
 import html from 'eslint-plugin-html';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const APP_FILES = readdirSync(ROOT).filter((f) => /\.(js|html)$/.test(f) && !/^(eslint|vitest)\.config\.js$/.test(f));
+const APP_FILES = readdirSync(ROOT).filter((f) => /\.(js|html)$/.test(f) && !/^(eslint|vitest|playwright)\.config\.js$/.test(f));
 
 function appGlobals() {
     const names = {};
@@ -58,7 +58,7 @@ const breakageRules = {
 
 export default [
     {
-        ignores: ['node_modules/**', 'coverage/**', 'i18n-dict.js'],
+        ignores: ['node_modules/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'i18n-dict.js'],
     },
     {
         files: ['*.js', '*.html'],
@@ -86,5 +86,14 @@ export default [
             globals: { ...globals.node },
         },
         rules: breakageRules,
+    },
+    {
+        // Playwright specs pass callbacks that run in the page.
+        files: ['tests/e2e/**/*.js'],
+        languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    },
+    {
+        files: ['tests/e2e/fake-firebase.js'],
+        languageOptions: { sourceType: 'script', globals: { ...globals.browser } },
     },
 ];
