@@ -215,7 +215,7 @@
                     <button class="top-btn badge-btn" onclick="openPanel('open')">📋 บิลที่เปิดอยู่ <span class="cnt" id="open-cnt">0</span></button>
                     <button class="top-btn badge-btn" onclick="openPanel('today')">🧾 บิลวันนี้</button>
                     <a href="kitchen.html" class="top-btn kitchen">👨‍🍳 จอครัว</a>
-                    <a href="admin.html" class="top-btn">⚙️ Admin</a>
+                    <a href="admin.html" onclick="return axTab('admin.html', 'augx-admin')" class="top-btn">⚙️ Admin</a>
                 </div>
             </div>
 
@@ -985,5 +985,7 @@ document.addEventListener('click',function f(){document.removeEventListener('cli
     <script src="theme7.js"></script>
 <script src="i18n-dict.js"></script>
 <script src="i18n.js"></script>
+<script>/* ตั้งชื่อแท็บแคชเชียร์ ให้หน้า Admin (แท็บแยก) กลับมาที่แท็บนี้ ไม่เปิดแคชเชียร์ซ้อน */try { window.name = 'augx-cashier'; } catch (e) {}
+function axTab(url, name) { /* เปิดหน้าในแท็บชื่อ name ถ้ามีอยู่แล้วแค่สลับไป ไม่โหลดใหม่ (ตะกร้าที่ค้างไม่หาย) */ var w = null; try { w = window.open('', name); } catch (e) {} if (!w) { location.href = url; return false; } try { if (!w.location.href || w.location.href === 'about:blank') w.location.href = url; } catch (e) { w.location.href = url; } try { w.focus(); } catch (e) {} return false; }</script>
 </body>
 </html>

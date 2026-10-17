@@ -220,7 +220,7 @@
             <li class="nav-item" onclick="switchTab('tab-settings', this)">⚙️ Features & Settings</li>
         </ul>
         <div class="sidebar-footer">
-            <a href="index.html" class="back-btn" style="background:var(--green);">🛒 ไปหน้า Cashier</a>
+            <a href="index.html" onclick="return axTab('index.html', 'augx-cashier')" class="back-btn" style="background:var(--green);">🛒 ไปหน้า Cashier</a>
             <a href="kitchen.html" class="back-btn" style="background:var(--orange);">👨‍🍳 ไปหน้าจอครัว</a>
             <div id="axp-slot" style="margin-top:8px;"></div>
         </div>
@@ -2106,7 +2106,7 @@
             function goHome() { document.body.classList.add('m-home'); document.getElementById('m-title').textContent = 'AUGUSTX ADMIN'; window.scrollTo(0, 0); }
             home.addEventListener('click', e => {
                 const b = e.target.closest('button'); if (!b) return;
-                if (b.dataset.go) { location.href = b.dataset.go; return; }
+                if (b.dataset.go) { if (b.dataset.go === 'index.html') axTab('index.html', 'augx-cashier'); else location.href = b.dataset.go; return; }
                 if (b.dataset.axpo) { if (window.AXPO) AXPO.open(); return; }
                 const li = Array.from(document.querySelectorAll('.nav-item')).find(x => (x.getAttribute('onclick') || '').indexOf(b.dataset.tab) >= 0);
                 switchTab(b.dataset.tab, li);
@@ -2122,5 +2122,6 @@
     <script src="theme7.js"></script>
     <script src="i18n-dict.js"></script>
     <script src="i18n.js"></script>
+<script>function axTab(url, name) { /* เปิดหน้าในแท็บชื่อ name ถ้ามีอยู่แล้วแค่สลับไป ไม่โหลดใหม่ (ตะกร้าที่ค้างไม่หาย) */ var w = null; try { w = window.open('', name); } catch (e) {} if (!w) { location.href = url; return false; } try { if (!w.location.href || w.location.href === 'about:blank') w.location.href = url; } catch (e) { w.location.href = url; } try { w.focus(); } catch (e) {} return false; }</script>
 </body>
 </html>
