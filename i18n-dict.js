@@ -6,3 +6,7 @@ window.I18N_DICT.cust.push(["🧪 ໂໝດທົດລອງ · ອໍເດີ
 
 /* หน้าแรก index.html → หน้าร้าน */
 window.I18N_DICT.cust.push(["AUGX · ເປີດໜ້າຮ້ານ", "AUGX · เปิดหน้าร้าน", "AUGX · Open the shop"]);
+
+/* ลิงก์สินค้า + QR (Admin) */
+window.I18N_DICT.staff.push(["คัดลอกลิงก์สินค้า", "ສຳເນົາລິ້ງສິນຄ້າ", "Copy product link"], ["QR ของสินค้า", "QR ຂອງສິນຄ້າ", "Product QR"], ["คัดลอกลิงก์สินค้าแล้ว · วางในโพสต์หรือแชตได้เลย", "ສຳເນົາລິ້ງສິນຄ້າແລ້ວ · ວາງໃນໂພສ ຫຼື ແຊັດໄດ້ເລີຍ", "Product link copied · paste it into a post or chat"], ["คัดลอกลิงก์นี้", "ສຳເນົາລິ້ງນີ້", "Copy this link"], ["ดาวน์โหลดรูป QR", "ດາວໂຫຼດຮູບ QR", "Download QR image"], ["คัดลอกลิงก์", "ສຳເນົາລິ້ງ", "Copy link"], ["ลูกค้าสแกนแล้วเปิดหน้าสินค้านี้ทันที · พิมพ์ติดตู้โชว์ หรือใส่ในรูป Story ได้", "ລູກຄ້າສະແກນແລ້ວເປີດໜ້າສິນຄ້ານີ້ທັນທີ · ພິມຕິດຕູ້ໂຊ ຫຼື ໃສ່ໃນຮູບ Story ໄດ້", "Customers scan it to open this product right away · print it for the display or add it to a Story"]);
+window.I18N_DICT.cust.push(["ສະແກນເພື່ອເລືອກໄຊສ໌ ແລະ ສັ່ງ", "สแกนเพื่อเลือกไซส์และสั่ง", "Scan to pick a size and order"], ["ສະແກນເພື່ອສັ່ງ", "สแกนเพื่อสั่ง", "Scan to order"]);

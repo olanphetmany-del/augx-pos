@@ -450,9 +450,15 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     cart.forEach(function (l) { l.unitPrice = AugustxMenu.unitPrice(MENU, l); });
     saved = store('augx-customer') || saved;
     GRP = /[?&#]shop\b/.test(location.search + location.hash) ? 'shop' : (store('augx-grp') === 'shop' ? 'shop' : 'cafe');
+    // ลิงก์สินค้า ?p=<รหัสสินค้า> (คัดลอกจาก Admin) → เปิดหน้าสินค้านั้นทันที · ไม่มี/ปิดขาย = หน้าร้านปกติ
+    var pm = /[?&]p=([^&#]+)/.exec(location.search), deepIt = null;
+    if (pm) { try { deepIt = MENU.byId[decodeURIComponent(pm[1])] || null; } catch (e) { deepIt = null; } }
+    if (deepIt && (deepIt.available === false || MENU.items.indexOf(deepIt) < 0)) deepIt = null;
+    if (deepIt) GRP = (CATS[deepIt.category] || {}).shop ? 'shop' : 'cafe';
     $('tabs').hidden = false;
     renderBanners(v[4] || {});
     renderMenu(); updateBar(); renderReorder();
+    if (deepIt && !/#t=/.test(location.hash)) openItem(deepIt);
     startTrackFromHash();
   });
   function closed(title, text) {
