@@ -1,9 +1,9 @@
 {
-  "id": "./index.html",
+  "id": "./cashier.html",
   "name": "AUGUSTX Cashier",
   "short_name": "Cashier",
-  "start_url": "./index.html",
-  "scope": "./index",
+  "start_url": "./cashier.html",
+  "scope": "./cashier",
   "display": "fullscreen",
   "orientation": "any",
   "background_color": "#ffffff",

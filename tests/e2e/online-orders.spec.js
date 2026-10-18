@@ -27,7 +27,7 @@ test.describe('online orders panel', () => {
     test.use({ db: dbWithHostileOrders() });
 
     test('SEC-1: customer-supplied names are shown as text, never run as HTML', async ({ page, errors }) => {
-        await page.goto('index.html');
+        await page.goto('cashier.html');
         await page.locator('.axo-btn').click();
         const panel = page.locator('.axo-ov');
         await expect(panel).toBeVisible();

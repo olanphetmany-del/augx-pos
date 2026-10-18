@@ -7,7 +7,7 @@ const loginOverlay = (page) => page.locator('#login-overlay');
 
 test.describe('staff pages, signed out', () => {
     test.use({ user: null });
-    for (const p of ['index.html', 'kitchen.html', 'shop.html', 'admin.html']) {
+    for (const p of ['cashier.html', 'kitchen.html', 'shop.html', 'admin.html']) {
         test(`${p} shows the login form`, async ({ page, errors }) => {
             await page.goto(p);
             await expect(page.locator('#login-email')).toBeVisible();
@@ -18,8 +18,8 @@ test.describe('staff pages, signed out', () => {
 });
 
 test.describe('staff pages, signed in', () => {
-    test('cashier (index.html) shows the menu', async ({ page, errors }) => {
-        await page.goto('index.html');
+    test('cashier (cashier.html) shows the menu', async ({ page, errors }) => {
+        await page.goto('cashier.html');
         await expect(loginOverlay(page)).toBeHidden();
         await expect(page.getByText('Smoke Latte').first()).toBeVisible();
         await expect(page.getByText('Smoke Tea').first()).toBeVisible();
@@ -64,6 +64,15 @@ test.describe('staff pages, signed in', () => {
 
 test.describe('customer ordering (order.html)', () => {
     test.use({ user: null });
+
+    test('the site root opens the customer storefront and keeps ?shop and #t=', async ({ page, errors }) => {
+        await page.goto('index.html?shop#t=abc');
+        await expect(page).toHaveURL(/\/order\.html\?shop#t=abc$/);
+        await page.goto('./');
+        await expect(page).toHaveURL(/\/order\.html$/);
+        await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        expect(errors).toEqual([]);
+    });
 
     test('shows the menu', async ({ page, errors }) => {
         await page.goto('order.html');
