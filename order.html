@@ -570,7 +570,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
             var lo = rp.length ? Math.min.apply(null, rp) : pp.length ? Math.min.apply(null, pp) : null;
             var many = rp.length ? rp.some(function (x) { return x !== rp[0]; }) : pp.some(function (x) { return x !== pp[0]; });
             priceHtml = lo == null ? '<span class="price"><small style="display:inline;font-size:13px;color:var(--brand);font-weight:700">ສອບຖາມລາຄາ</small></span>'
-              : '<span class="price num">' + (many ? '<small>ເລີ່ມ</small>' : !rp.length ? '<small>ສັ່ງຈອງ</small>' : '') + money2(lo, itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(lo, 'THB')) + '</span>' : '') + '</span>';
+              : '<span class="price num">' + (!rp.length && it.preFrom ? '<small>ເລີ່ມຕົ້ນ</small>' : many ? '<small>ເລີ່ມ</small>' : !rp.length ? '<small>ສັ່ງຈອງ</small>' : '') + money2(lo, itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(lo, 'THB')) + '</span>' : '') + '</span>';
           } else priceHtml = '<span class="price num">' + (multi ? '<small>ເລີ່ມ</small>' : '') + money2(minPrice(it), itCur(it)) + (itCur(it) === 'THB' && FXR.rate ? '<span class="apx">≈ ' + kip(lakOf(minPrice(it), 'THB')) + '</span>' : '') + '</span>';
           return '<button class="item" type="button" data-id="' + esc(it.id) + '">' +
             (hasImg(it) ? '<img class="th" alt="" loading="lazy" src="' + esc(it.image) + '">' : '<span class="ph" aria-hidden="true">' + esc(it.name.charAt(0).toUpperCase()) + '</span>') +
@@ -697,7 +697,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     if (ready.length) h += '<div><span class="k in">ພ້ອມສົ່ງ</span><span class="z">' + esc(ready.map(function (v) { return v.label; }).join(', ')) + '</span><b class="num">' + priceRange(ready.map(function (v) { return v.price; }), c) + '</b></div>';
     if (po.length) {
       var pp = po.map(function (v) { return preOf(it, v.label); }), known = pp.filter(function (x) { return x != null; });
-      h += '<div><span class="k po">ສັ່ງຈອງ</span><span class="z">' + esc(range(po.map(function (v) { return v.label; }))) + '</span><b class="num">' + (known.length === pp.length ? priceRange(known, c) : '<span style="color:var(--brand)">ສອບຖາມລາຄາ</span>') + '</b></div>';
+      h += '<div><span class="k po">ສັ່ງຈອງ</span><span class="z">' + esc(range(po.map(function (v) { return v.label; }))) + '</span><b class="num">' + (known.length === pp.length ? (it.preFrom ? '<small style="font-weight:600">ເລີ່ມຕົ້ນ</small> ' + money2(Math.min.apply(null, known), c) : priceRange(known, c)) : '<span style="color:var(--brand)">ສອບຖາມລາຄາ</span>') + '</b></div>';
     }
     if (!ready.length && !po.length) h += '<div><span class="z">ໝົດທຸກໄຊສ໌</span></div>';
     h += '</div>';
@@ -706,7 +706,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
       return '<button class="zc' + (left > 0 ? ' in' : '') + '" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"' + (left === 0 && !it.preorder ? ' disabled' : '') + '>' + esc(v.label) + '</button>';
     }).join('') + '</div></div>';
     if (draft.variant != null && isPoVar(it, draft.variant)) {
-      h += '<div class="notice warn" style="margin-top:12px">⚠️ ' + PRE_WARN + '<br><span style="font-size:12.5px">ໄຊສ໌ ' + esc(draft.variant) + ' ເປັນ PRE-ORDER · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ</span></div>';
+      h += '<div class="notice warn" style="margin-top:12px">⚠️ ' + PRE_WARN + '<br><span style="font-size:12.5px">ໄຊສ໌ ' + esc(draft.variant) + ' ເປັນ PRE-ORDER · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ</span>' + (it.preFrom ? '<br><b style="font-size:12.5px">ລາຄາເລີ່ມຕົ້ນ · ທາງຮ້ານຈະແຈ້ງລາຄາຈິງກ່ອນຢືນຢັນອໍເດີ</b>' : '') + '</div>';
     } else if (draft.variant != null) {
       h += '<p class="hint" style="margin:10px 0 0;color:var(--ok);font-weight:700">✓ ໄຊສ໌ ' + esc(draft.variant) + ' ມີເຄື່ອງພ້ອມສົ່ງ</p>';
     }
@@ -872,6 +872,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
       out.push((i + 1) + '. ' + l.name.toUpperCase() + (l.variant ? ' (' + (isSize(l.variant) ? 'SIZE ' + l.variant : l.variant) + ')' : '') + (lineIsPo(l) ? ' [PRE-ORDER]' : '') + ' x' + l.qty);
       var opts = optText(l);
       if (l.note) opts.push('ໝາຍເຫດ: ' + l.note);
+      if (lineIsPo(l) && it && it.preFrom) opts.push('ລາຄາເລີ່ມຕົ້ນ (ລໍຖ້າຮ້ານແຈ້ງລາຄາຈິງ)');
       if (opts.length) out.push('   ' + opts.join(' | '));
     });
     out.push('', 'ລວມ: ' + money2(cartTotal(), cartCur()) + (approx(cartTotal(), cartCur()) ? ' (' + approx(cartTotal(), cartCur()) + ')' : ''), '');

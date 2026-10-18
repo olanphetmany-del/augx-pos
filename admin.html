@@ -1352,9 +1352,10 @@
                 const cat = catByNameA(it.category);
                 SH.brand = cat && catSizes(cat).length ? it.category : '';
                 const prices = parsePrices(it.priceOptions);
-                const base = it.basePrice != null ? Number(it.basePrice) : (prices.length ? mode(prices.map(p => p.price)) : null);
+                const poOnly = it.preFrom === true && it.basePrice == null; /* มีแค่ราคา PRE (ເລີ່ມຕົ້ນ) ไม่มีราคาหน้าร้าน */
+                const base = poOnly ? null : it.basePrice != null ? Number(it.basePrice) : (prices.length ? mode(prices.map(p => p.price)) : null);
                 const st = it.stock || {}, po = it.poPrice || {};
-                SH.rows = prices.map(p => ({ z: normSize(p.label) || p.label, on: true, n: copy ? 0 : Math.max(0, Number(st[stockKey(p.label)]) || 0), p: shoeIsOverride(p.price, base) ? p.price : null, q: po[stockKey(p.label)] != null ? Number(po[stockKey(p.label)]) : null }));
+                SH.rows = prices.map(p => ({ z: normSize(p.label) || p.label, on: true, n: copy ? 0 : Math.max(0, Number(st[stockKey(p.label)]) || 0), p: poOnly ? (it.prePrice != null && Number(p.price) !== Number(it.prePrice) ? p.price : null) : shoeIsOverride(p.price, base) ? p.price : null, q: po[stockKey(p.label)] != null ? Number(po[stockKey(p.label)]) : null }));
                 // แบบเดิมที่ไม่ใช่เบอร์ (เช่น "36-45EU Pre-order") → ปิดไว้ แล้วเปิดตารางไซส์ของแบรนด์แทน
                 const okSize = z => /^\d+(\.\d+)?[⅓⅔]?$/.test(z);
                 const bad = SH.rows.filter(r => !okSize(r.z));
@@ -1517,9 +1518,11 @@
             const act = SH.rows.filter(r => r.on);
             if (!SH.brand) return toast('เลือกแบรนด์ก่อน', false);
             if (!name) return toast('ใส่ชื่อรุ่น', false);
-            if (base == null || base <= 0) return toast('ใส่ราคาหน้าร้าน', false);
+            if (base != null && base <= 0) return toast('ราคาหน้าร้านต้องมากกว่า 0 (หรือเว้นว่าง ถ้ามีแค่ราคา PRE)', false);
+            if (base == null && !(pre > 0)) return toast('ใส่ราคาหน้าร้าน หรือราคา PRE-ORDER อย่างน้อย 1 ช่อง', false);
             if (!act.length) return toast('ต้องเปิดขายอย่างน้อย 1 ไซส์', false);
             if (pre != null && pre <= 0) return toast('ราคา PRE ต้องมากกว่า 0 (หรือเว้นว่าง)', false);
+            if (base == null) { const noP = act.filter(r => (r.n || 0) > 0 && r.p == null).map(r => r.z); if (noP.length) return toast('ไซส์ ' + noP.join(', ') + ' มีสต็อก แต่ยังไม่มีราคาพร้อมส่ง · ใส่ราคาหน้าร้าน หรือราคาเฉพาะเบอร์ก่อน', false); }
             const dup = SH.rows.map(r => stockKey(r.z)).filter((k, i, a) => a.indexOf(k) !== i);
             if (dup.length) return toast('มีไซส์ซ้ำกัน: ' + dup.join(', '), false);
             const btn = document.getElementById('sh-save'); btn.disabled = true;
@@ -1527,8 +1530,8 @@
             act.forEach(r => { stock[stockKey(r.z)] = Math.max(0, r.n || 0); if (r.q != null) poPrice[stockKey(r.z)] = r.q; });
             const data = {
                 name: name, category: SH.brand,
-                priceOptions: act.map(r => r.z.replace(/[,|]/g, ' ') + '|' + (r.p != null ? r.p : base)).join(','),
-                basePrice: base, prePrice: pre != null ? pre : null, poPrice: Object.keys(poPrice).length ? poPrice : null,
+                priceOptions: act.map(r => r.z.replace(/[,|]/g, ' ') + '|' + (r.p != null ? r.p : base != null ? base : pre)).join(','),
+                basePrice: base, prePrice: pre != null ? pre : null, preFrom: base == null ? true : null, poPrice: Object.keys(poPrice).length ? poPrice : null,
                 color: document.getElementById('sh-color').value.trim() || null,
                 description: document.getElementById('sh-desc').value.trim(),
                 currency: 'THB', retail: true, usesCup: false, preorder: true, stockOn: true, stock: stock,

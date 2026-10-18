@@ -122,6 +122,7 @@
       // ราคาพรีออเดอร์ (รองเท้า): ราคากลาง + ราคาเฉพาะเบอร์ · ว่าง = ສອບຖາມລາຄາ
       prePrice: raw.prePrice != null && raw.prePrice !== '' && isFinite(Number(raw.prePrice)) ? Number(raw.prePrice) : null,
       poPrice: raw.poPrice && typeof raw.poPrice === 'object' ? raw.poPrice : {},
+      preFrom: raw.preFrom === true,      // ราคา PRE เป็นราคาเริ่มต้น (ເລີ່ມຕົ້ນ) ราคาจริงแจ้งก่อนยืนยัน
       usesCup: raw.usesCup !== false,
       // ช่องทางที่ซ่อนเมนูนี้ เช่น "store,<partnerId>"
       hiddenChannels: String(raw.hiddenChannels || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean),
