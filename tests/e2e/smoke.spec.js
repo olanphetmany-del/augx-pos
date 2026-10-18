@@ -1,0 +1,86 @@
+// Smoke tests: every page loads against a fake Firebase without JavaScript
+// errors and shows the seeded data. Catches broken uploads, missing files and
+// script-order problems before customers or staff do.
+import { test, expect, OWNER, STAFF, seedData } from './fixtures.js';
+
+const loginOverlay = (page) => page.locator('#login-overlay');
+
+test.describe('staff pages, signed out', () => {
+    test.use({ user: null });
+    for (const p of ['index.html', 'kitchen.html', 'shop.html', 'admin.html']) {
+        test(`${p} shows the login form`, async ({ page, errors }) => {
+            await page.goto(p);
+            await expect(page.locator('#login-email')).toBeVisible();
+            await expect(page.locator('#login-btn')).toBeVisible();
+            expect(errors).toEqual([]);
+        });
+    }
+});
+
+test.describe('staff pages, signed in', () => {
+    test('cashier (index.html) shows the menu', async ({ page, errors }) => {
+        await page.goto('index.html');
+        await expect(loginOverlay(page)).toBeHidden();
+        await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        await expect(page.getByText('Smoke Tea').first()).toBeVisible();
+        expect(errors).toEqual([]);
+    });
+
+    test('kitchen shows the pending ticket', async ({ page, errors }) => {
+        await page.goto('kitchen.html');
+        await expect(loginOverlay(page)).toBeHidden();
+        await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        expect(errors).toEqual([]);
+    });
+
+    test('shop shows shop items on the sell tab', async ({ page, errors }) => {
+        await page.goto('shop.html');
+        await expect(loginOverlay(page)).toBeHidden();
+        await page.locator('#tabs button[data-v="sell"]').click();
+        await expect(page.locator('#v-sell').getByText('Smoke Dunk').first()).toBeVisible();
+        expect(errors).toEqual([]);
+    });
+
+    test.describe('admin as owner', () => {
+        test.use({ user: OWNER });
+        test('admin.html loads', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            await expect(loginOverlay(page)).toBeHidden();
+            await expect(page.locator('body')).toContainText('Smoke Latte');
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('admin as non-owner', () => {
+        test.use({ user: STAFF });
+        test('admin.html refuses staff accounts', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            await expect(page.locator('#login-msg')).toContainText('ไม่มีสิทธิ์');
+            await expect(page.locator('#login-logout')).toBeVisible();
+            expect(errors).toEqual([]);
+        });
+    });
+});
+
+test.describe('customer ordering (order.html)', () => {
+    test.use({ user: null });
+
+    test('shows the menu', async ({ page, errors }) => {
+        await page.goto('order.html');
+        await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        await expect(page.getByText('Smoke Tea').first()).toBeVisible();
+        expect(errors).toEqual([]);
+    });
+
+    test.describe('when online ordering is disabled', () => {
+        const db = seedData();
+        db.settings.online.enabled = false;
+        test.use({ db });
+        test('shows the closed message instead of the menu', async ({ page, errors }) => {
+            await page.goto('order.html');
+            await expect(page.locator('#loading')).toBeHidden();
+            await expect(page.getByText('Smoke Latte')).toHaveCount(0);
+            expect(errors).toEqual([]);
+        });
+    });
+});

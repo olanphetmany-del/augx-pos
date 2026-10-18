@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+test-results/
+playwright-report/
+
+# Never commit local secrets (the repo is public)
+.env
+.env.*
+
+.DS_Store
+*.log

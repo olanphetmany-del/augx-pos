@@ -1,0 +1,27 @@
+{
+  "name": "augx-pos",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "check:pages": "node scripts/check-pages.js",
+    "check": "npm run check:pages && npm run lint && npm test && npm run test:e2e",
+    "serve": "node scripts/serve.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@vitest/coverage-v8": "5.0.3",
+    "eslint": "10.12.0",
+    "eslint-plugin-html": "8.2.1",
+    "espree": "11.2.0",
+    "globals": "17.13.0",
+    "vitest": "5.0.3"
+  }
+}

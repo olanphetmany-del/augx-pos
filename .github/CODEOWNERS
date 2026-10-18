@@ -1,0 +1,3 @@
+# Every pull request automatically requests a review from both maintainers
+# (GitHub skips whoever opened the PR).
+* @olanphetmany-del @foozao
