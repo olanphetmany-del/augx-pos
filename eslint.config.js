@@ -56,6 +56,18 @@ const breakageRules = {
     'no-setter-return': 'error',
 };
 
+// Warnings only (reported, never fail CI) for the app's own code.
+const appWarnings = {
+    // `.catch(() => {})` hides failed database writes (e.g. stock updates).
+    'no-restricted-syntax': ['warn', {
+        selector: "CallExpression[callee.property.name='catch'] > :matches(FunctionExpression, ArrowFunctionExpression)[body.type='BlockStatement'][body.body.length=0]",
+        message: 'Promise error silently ignored. Log it or tell the user, unless failure really is harmless.',
+    }],
+    // Local leftovers only: top-level functions are often called from onclick=
+    // attributes the rule can't see. `exports` is the bundled QR library's.
+    'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^exports$' }],
+};
+
 export default [
     {
         ignores: ['node_modules/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'i18n-dict.js'],
@@ -76,7 +88,7 @@ export default [
                 ...appGlobals(),
             },
         },
-        rules: breakageRules,
+        rules: { ...breakageRules, ...appWarnings },
     },
     {
         files: ['*.config.js', 'scripts/**/*.js', 'tests/**/*.js'],
