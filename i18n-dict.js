@@ -3,3 +3,6 @@ window.I18N_DICT = {"staff":[["บิลที่เปิดอยู่","ບ�
 
 /* 🧪 โหมดทดลองหน้าลูกค้า (order.html?test) */
 window.I18N_DICT.cust.push(["🧪 ໂໝດທົດລອງ · ອໍເດີນີ້ບໍ່ແມ່ນອໍເດີຈິງ · ເປີດລິ້ງໃໝ່ = ເລີ່ມໃໝ່ທັງໝົດ", "🧪 โหมดทดลอง · ออเดอร์นี้ไม่ใช่ออเดอร์จริง · เปิดลิงก์ใหม่ = เริ่มใหม่ทั้งหมด", "🧪 Test mode · this is not a real order · reopening the link starts over"]);
+
+/* หน้าแรก index.html → หน้าร้าน */
+window.I18N_DICT.cust.push(["AUGX · ເປີດໜ້າຮ້ານ", "AUGX · เปิดหน้าร้าน", "AUGX · Open the shop"]);
