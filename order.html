@@ -103,6 +103,7 @@ main { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 0 
 .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .sheet-head h2 { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: .03em; line-height: 1.1; margin: 0; text-wrap: balance; }
 .sheet-head p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.sharebtn { display: inline-flex; width: auto; max-width: max-content; align-items: center; gap: 6px; margin: 8px 0 0; padding: 6px 14px; border: 1px solid var(--line); border-radius: 99px; background: transparent; color: var(--brand); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .x { border: 0; background: var(--bg); border-radius: 999px; width: 36px; height: 36px; font-size: 20px; line-height: 1; flex: none; }
 
 .group h3 { margin: 0 0 8px; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; }
@@ -545,6 +546,19 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
   }
 
   // ---------- เมนู ----------
+  // ↗ ลูกค้าแชร์สินค้า: ลิงก์ <เว็บ>/?p=<รหัส> → เพื่อนกดแล้วเปิดหน้าสินค้านี้ทันที
+  function itemUrl(it) { return location.origin + location.pathname.replace(/[^/]*$/, '') + '?p=' + encodeURIComponent(it.id); }
+  function shareItem(it) {
+    var url = itemUrl(it), price = shoeGrid(it) ? '' : ' · ' + money2(minPrice(it), itCur(it));
+    var text = it.name.toUpperCase() + (it.color ? ' (' + it.color + ')' : '') + price + ' · AUGUSTX';
+    var copy = function () {
+      var ok = function () { toast('ສຳເນົາລິ້ງແລ້ວ · ວາງສົ່ງໃຫ້ໝູ່ໄດ້ເລີຍ'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text + '\n' + url).then(ok, function () { window.prompt('ສຳເນົາລິ້ງນີ້', url); });
+      else window.prompt('ສຳເນົາລິ້ງນີ້', url);
+    };
+    if (navigator.share) navigator.share({ title: it.name, text: text, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); });
+    else copy();
+  }
   function minPrice(it) { return Math.min.apply(null, it.variants.map(function (v) { return v.price; })); }
   function hasImg(it) { return it.image && it.image !== 'images/bg.jpg'; }
   function isSize(t) { return /^[0-9]+(\.[0-9]+)?[⅓⅔]?$/.test(String(t)); }
@@ -649,6 +663,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     var showHero = it.photos > 0 && (!pics || pics.length);
     h += showHero ? '<div class="sheet-head"><div><h2>' + esc(it.name.toUpperCase()) + (it.preorder ? '<span class="badge pre">PRE-ORDER</span>' : '') + '</h2>' + (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + '</div></div>'
       : head(it.name.toUpperCase(), it.desc);
+    h += '<button class="sharebtn" type="button" data-act="share">↗ ແຊຣ໌ສິນຄ້ານີ້</button>';
     if (it.preorder && !shoeGrid(it)) h += '<div class="notice"><b>ສິນຄ້າສັ່ງຈອງ (PRE-ORDER)</b><br>ມັດຈຳ ຫຼື ຈ່າຍເຕັມ · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ · ຮ້ານຈະຕິດຕໍ່ທາງ WhatsApp</div>';
     if (itCur(it) === 'THB' && FXR.rate) h += '<p class="hint" style="margin:6px 0 0">ລາຄາເປັນເງິນບາດ · ຈ່າຍເປັນກີບໄດ້ຕາມເຣດມື້ນັ້ນ</p>';
     if (shoeGrid(it)) h += shoeSizes(it);
@@ -1276,6 +1291,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
       var it = MENU.byId[draft.itemId];
       if (b.dataset.var) { draft.variant = it.variants[+b.dataset.var].label; return renderItem(); }
       if (b.dataset.act === 'ask') { if (!draft.variant) return; return askPrice(); }
+      if (b.dataset.act === 'share') return shareItem(it);
       if (b.dataset.g) {
         var gi = +b.dataset.g, oi = +b.dataset.o, g = it.groups[gi], cur = draft.sel[gi] || [];
         if (cur.indexOf(oi) >= 0) cur = cur.filter(function (x) { return x !== oi; });
