@@ -318,6 +318,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
 </style>
 </head>
 <body>
+<div id="testbar" hidden style="background:#f59e0b;color:#1f1300;text-align:center;font-weight:700;font-size:13px;padding:7px 12px;line-height:1.35">🧪 ໂໝດທົດລອງ · ອໍເດີນີ້ບໍ່ແມ່ນອໍເດີຈິງ · ເປີດລິ້ງໃໝ່ = ເລີ່ມໃໝ່ທັງໝົດ</div>
 <header class="band">
   <div class="band-inner">
     <div>
@@ -375,10 +376,13 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
   var TEMP_LO = { HOT: 'ຮ້ອນ', ICED: 'ເຢັນ', FRAPPE: 'ປັ່ນ' };
   var SPOTS = { gate: 'ປະຕູໃຫຍ່ / ທາງເຂົ້າ', guard: 'ປ້ອມຍາມ', other: 'ອື່ນໆ' };
 
+  // 🧪 โหมดทดลอง (order.html?test): ไม่จำอะไรในเครื่อง เปิดใหม่ = เริ่มใหม่ · ออเดอร์ติดป้าย TEST · ไม่ต้องส่ง WhatsApp
+  var TEST = /[?&]test(?:[=&]|$)/.test(location.search), MEM = {};
+  if (TEST) { var tb = document.getElementById('testbar'); if (tb) tb.hidden = false; }
   var MENU = null, cart = [], draft = null, lastMsg = '', saved = { name: '', phone: '' };
   var ship = { mode: 'pickup', ll: null, km: null, spot: 'gate', spotText: '', place: '', err: '' };
   // จำจุดส่งล่าสุดไว้ในมือถือลูกค้า สั่งครั้งหน้าไม่ต้องปักใหม่
-  (function () { var o = null; try { o = JSON.parse(localStorage.getItem('augx-ship')); } catch (e) {} if (o && o.ll) { ship.ll = o.ll; ship.place = o.place || ''; ship.spot = o.spot || 'gate'; ship.spotText = o.spotText || ''; } })();
+  (function () { var o = null; try { if (!TEST) o = JSON.parse(localStorage.getItem('augx-ship')); } catch (e) {} if (o && o.ll) { ship.ll = o.ll; ship.place = o.place || ''; ship.spot = o.spot || 'gate'; ship.spotText = o.spotText || ''; } })();
   var photoCache = {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -418,7 +422,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
   // null = ไม่นับสต็อก · ตัวเลข = เหลือกี่ชิ้น
   function stockLeft(it, v) { var r = RAW[it.id] || {}; if (r.stockOn !== true) return null; return Math.max(0, Number((r.stock || {})[sKey(v)]) || 0); }
   function winMs() { var m = Number(CFG.payWindowMin); return (m > 0 ? m : 10) * 60000; }
-  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); if (v === null) return localStorage.removeItem(k); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  function store(k, v) { if (TEST) { if (v === undefined) return MEM[k] === undefined ? null : JSON.parse(MEM[k]); if (v === null) delete MEM[k]; else MEM[k] = JSON.stringify(v); return; } try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); if (v === null) return localStorage.removeItem(k); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
   function toast(t) { var el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el); setTimeout(function () { el.remove(); }, 2400); }
   function num(v, d) { var n = Number(v); return isFinite(n) && v !== '' && v != null ? n : d; }
 
@@ -902,13 +906,14 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     if (ship.mode === 'delivery') {
       var q = quote(ship.km, cartLak());
       dl = { km: Math.round(ship.km * 100) / 100, lat: Math.round(ship.ll[0] * 1e5) / 1e5, lng: Math.round(ship.ll[1] * 1e5) / 1e5, place: ship.place.trim(), spot: ship.place.trim() + ' · ' + spotLabel(), estFee: q.fee, free: cartLak() >= DLV.freeMin, freeCap: DLV.freeCap };
-      try { localStorage.setItem('augx-ship', JSON.stringify({ ll: ship.ll, place: ship.place.trim(), spot: ship.spot, spotText: ship.spotText })); } catch (e) {}
+      if (!TEST) try { localStorage.setItem('augx-ship', JSON.stringify({ ll: ship.ll, place: ship.place.trim(), spot: ship.spot, spotText: ship.spotText })); } catch (e) {}
     }
     var bill; lastShop = cartIsShop();
     return nextBillNo().then(function (b) {
       bill = b;
       var o = { name: name, phone: phone, items: items, total: cartTotal(), status: 'new', trackTok: tok, createdAt: firebase.database.ServerValue.TIMESTAMP };
       if (dl) o.delivery = dl;
+      if (TEST) o.test = true;
       if (cartCur() === 'THB') o.cur = 'THB';
       // กันสั่งรัว: เบอร์เดียวกันสั่งได้ 1 ครั้งต่อ 2 นาที (กฎ Firebase ตรวจ throttle/<เบอร์>)
       var up = {}; up['online_orders/' + bill] = o; up['throttle/' + phone] = firebase.database.ServerValue.TIMESTAMP;
@@ -921,12 +926,13 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
       if (dl) t.delivery = { km: dl.km, spot: dl.spot, estFee: dl.estFee, free: dl.free, freeCap: dl.freeCap };
       if (cartCur() === 'THB') t.cur = 'THB';
       if (lastShop) t.shop = true;
+      if (TEST) t.test = true;
       return db.ref('order_track/' + tok).set(t).then(function () { return true; }, function () { return false; });
     }).then(function (tracked) {
       if (tracked) { store('augx-track', { tok: tok, bill: bill }); }
       saveHistory(bill);
       lastMsg = buildMessage(name, phone, bill, tracked ? tok : '');
-      openDone(bill, lastMsg, tracked ? tok : '');
+      if (TEST && tracked) { closeSheet(); showTrack(tok); } else openDone(bill, lastMsg, tracked ? tok : '');
       cart = []; saveCart(); renderMenu(); updateBar(); renderReorder();
     }).catch(function (e) {
       var denied = e && /permission|PERMISSION/.test(String(e.code || e.message || ''));
