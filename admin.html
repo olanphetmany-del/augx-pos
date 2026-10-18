@@ -1138,6 +1138,54 @@
         }
 
         /* ---------- สินค้า ---------- */
+        /* ---------- 🔗 ลิงก์สินค้า + QR (ลูกค้ากดแล้วเปิดหน้าสินค้านั้นทันที: <เว็บ>/?p=<รหัส>) ---------- */
+        function itemLink(id) { return location.origin + location.pathname.replace(/[^/]*$/, '') + '?p=' + encodeURIComponent(id); }
+        function copyText(t, okMsg) {
+            const done = () => toast(okMsg);
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => prompt('คัดลอกลิงก์นี้', t));
+            else prompt('คัดลอกลิงก์นี้', t);
+        }
+        function copyItemLink(id) { copyText(itemLink(id), 'คัดลอกลิงก์สินค้าแล้ว · วางในโพสต์หรือแชตได้เลย'); }
+        function itemQrCard(it, url) {
+            const W = 720, H = 1000, c = document.createElement('canvas'); c.width = W; c.height = H;
+            const g = c.getContext('2d'), F = '"Noto Sans Lao","Noto Sans Thai","Leelawadee UI",Tahoma,Arial,sans-serif';
+            g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H); g.fillStyle = '#0e1626'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+            const fit = (t, px, w, max) => { g.font = w + ' ' + px + 'px ' + F; while (px > 18 && g.measureText(t).width > max) { px -= 2; g.font = w + ' ' + px + 'px ' + F; } return px; };
+            g.font = '800 56px ' + F; try { g.letterSpacing = '12px'; } catch (e) {} g.fillText('AUGUSTX', W / 2 + 6, 110); try { g.letterSpacing = '0px'; } catch (e) {}
+            g.fillStyle = '#6e7684'; g.font = '600 26px ' + F; g.fillText('SHOP & PRE-ORDER', W / 2, 150);
+            const q = new QRLib.QRCode(-1, QRLib.ECL.M); q.addData(url); q.make();
+            const n = q.getModuleCount(), box = 500, m = Math.floor(box / (n + 2)), sz = m * (n + 2), x0 = (W - sz) / 2, y0 = 190;
+            g.fillStyle = '#0e1626';
+            for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(x0 + (k + 1) * m, y0 + (r + 1) * m, m, m);
+            let y = y0 + sz + 70;
+            const name = String(it.name || '').toUpperCase();
+            g.fillStyle = '#0e1626'; fit(name, 44, '800', W - 80); g.fillText(name, W / 2, y); y += 46;
+            if (it.color) { g.fillStyle = '#6e7684'; fit(it.color, 28, '600', W - 80); g.fillText(it.color, W / 2, y); }
+            const shoe = isShoeCat(it.category), cta = shoe ? 'ສະແກນເພື່ອເລືອກໄຊສ໌ ແລະ ສັ່ງ' : 'ສະແກນເພື່ອສັ່ງ';
+            const bw = W - 120, bh = 84, bx = 60, by = H - 150;
+            g.fillStyle = '#0b4db3'; if (g.roundRect) { g.beginPath(); g.roundRect(bx, by, bw, bh, 42); g.fill(); } else g.fillRect(bx, by, bw, bh);
+            g.fillStyle = '#ffffff'; fit(cta, 32, '700', bw - 40); g.textBaseline = 'middle'; g.fillText(cta, W / 2, by + bh / 2 + 2);
+            return c;
+        }
+        function showItemQr(id) {
+            const it = globalItems.find(x => x.id === id); if (!it) return;
+            const url = itemLink(id), card = itemQrCard(it, url), png = card.toDataURL('image/png');
+            let ov = document.getElementById('qr-item-ov');
+            if (!ov) { ov = document.createElement('div'); ov.id = 'qr-item-ov'; ov.className = 'modal-overlay'; ov.addEventListener('click', e => { if (e.target === ov) ov.style.display = 'none'; }); document.body.appendChild(ov); }
+            const safe = String(it.name || 'item').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'item';
+            ov.innerHTML = '<div class="modal-container" style="max-width:420px;text-align:center">' +
+                '<h3 style="margin:0 0 10px">QR · ' + esc(it.name) + '</h3>' +
+                '<img alt="" src="' + png + '" style="width:100%;max-width:340px;border:1px solid #e5e7eb;border-radius:12px">' +
+                '<div style="font-size:12px;color:#64748b;word-break:break-all;margin:8px 0">' + esc(url) + '</div>' +
+                '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+                '<a class="btn btn-blue" download="AUGUSTX-QR-' + esc(safe) + '.png" href="' + png + '">⬇️ ดาวน์โหลดรูป QR</a>' +
+                '<button class="btn btn-gray" type="button" id="qr-item-copy">🔗 คัดลอกลิงก์</button>' +
+                '<button class="btn btn-gray" type="button" id="qr-item-close">ปิด</button></div>' +
+                '<p style="font-size:12px;color:#64748b;margin:10px 0 0">ลูกค้าสแกนแล้วเปิดหน้าสินค้านี้ทันที · พิมพ์ติดตู้โชว์ หรือใส่ในรูป Story ได้</p></div>';
+            ov.style.display = 'flex';
+            document.getElementById('qr-item-copy').onclick = () => copyItemLink(id);
+            document.getElementById('qr-item-close').onclick = () => { ov.style.display = 'none'; };
+        }
         function renderItemListTable() {
             const f = document.getElementById('filter-category-select').value || 'ALL';
             const hideShoe = document.getElementById('filter-hide-shoe').checked;
@@ -1150,7 +1198,7 @@
                 const hiddenNames = channelNames(item.hiddenChannels);
                 const chanTxt = hiddenNames ? 'ซ่อนใน: ' + esc(hiddenNames) : 'ทุกช่องทาง';
                 const mods = String(item.modifierIds || '').split(',').filter(Boolean).map(id => globalModifiers.find(m => m.id === id)).filter(Boolean).map(m => esc(m.name)).join(', ') || '-';
-                html += `<tr><td>${i + 1}</td><td><img class="thumb" src="${esc(item.image || 'images/bg.jpg')}"></td><td>${esc(item.category)}</td><td><strong>${esc(item.name)}</strong></td><td class="wrap">${priceTxt}</td><td class="wrap">${mods}</td><td class="wrap">${chanTxt}</td><td><div class="actions-cell">${isShoeCat(item.category) ? `<button class="btn btn-sm" style="background:#6b3fa0" data-id="${esc(item.id)}" onclick="openShoe(this.dataset.id)">👟 แก้ไข</button><button class="btn btn-gray btn-sm" title="ทำสำเนา" data-id="${esc(item.id)}" onclick="openShoe(this.dataset.id, true)">📋</button>` : `<button class="btn btn-blue btn-sm" data-id="${esc(item.id)}" onclick="openItemModalForEdit(this.dataset.id)">แก้ไข</button>`}${delBtn('menu_items/' + item.id, item.name)}</div></td></tr>`;
+                html += `<tr><td>${i + 1}</td><td><img class="thumb" src="${esc(item.image || 'images/bg.jpg')}"></td><td>${esc(item.category)}</td><td><strong>${esc(item.name)}</strong></td><td class="wrap">${priceTxt}</td><td class="wrap">${mods}</td><td class="wrap">${chanTxt}</td><td><div class="actions-cell">${isShoeCat(item.category) ? `<button class="btn btn-sm" style="background:#6b3fa0" data-id="${esc(item.id)}" onclick="openShoe(this.dataset.id)">👟 แก้ไข</button><button class="btn btn-gray btn-sm" title="ทำสำเนา" data-id="${esc(item.id)}" onclick="openShoe(this.dataset.id, true)">📋</button>` : `<button class="btn btn-blue btn-sm" data-id="${esc(item.id)}" onclick="openItemModalForEdit(this.dataset.id)">แก้ไข</button>`}<button class="btn btn-gray btn-sm" title="คัดลอกลิงก์สินค้า" data-id="${esc(item.id)}" onclick="copyItemLink(this.dataset.id)">🔗</button><button class="btn btn-gray btn-sm" title="QR ของสินค้า" data-id="${esc(item.id)}" onclick="showItemQr(this.dataset.id)">QR</button>${delBtn('menu_items/' + item.id, item.name)}</div></td></tr>`;
             });
             document.getElementById('menu-table-body').innerHTML = html || emptyRow(8, 'ไม่มีสินค้า');
             document.getElementById('item-count-badge').innerText = '(' + list.length + ')';
