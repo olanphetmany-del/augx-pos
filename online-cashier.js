@@ -238,6 +238,7 @@
                 '<div class="axo-row"><div><b style="font-size:15px">' + E(o.id) + '</b> <span class="axo-pill ' + E(o.status) + '">' + ({ new: 'ใหม่', accepted: 'รับแล้ว', rejected: 'ไม่รับ' }[o.status] || E(o.status)) + '</span>' +
                 (o.status === 'accepted' ? '<span class="axo-pill ' + (o.paid ? 'paid">จ่ายแล้ว' : 'unpaid">ยังไม่จ่าย') + '</span><span class="axo-pill st">' + E(STAGE_TH[stage] || stage) + '</span>' : '') +
                 (dl ? '<span class="axo-pill dlv">🛵 จัดส่ง</span>' : '') +
+                (o.test ? '<span class="axo-pill" style="background:#f59e0b;color:#1f1300">🧪 TEST ไม่นับยอด</span>' : '') +
                 (o.orderNo ? ' <span class="axo-sm">บิล #' + E(o.orderNo) + '</span>' : '') + '</div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
                 '<div style="margin:4px 0 8px"><b>' + E(o.name) + '</b> <span class="axo-sm">📞 ' + E(o.phone) + '</span></div>' +
                 (isNew ? '<div class="axo-warn" style="display:flex;justify-content:space-between;align-items:center;gap:8px">⏱ ลูกค้ามีเวลาโอนอีก <b>' + mmss(left) + '</b> (หมดเวลาแล้วระบบยกเลิกเอง)<button class="axo-b" data-a="extend" data-id="' + E(o.id) + '" style="border:0;border-radius:8px;padding:6px 10px;font-weight:bold;cursor:pointer">+10 นาที</button></div>' : '');
@@ -270,14 +271,14 @@
             html += '<div class="axo-acts"><a class="axo-w" target="_blank" rel="noopener" href="' + E(replyLink(o, p.total, C)) + '">💬 ตอบลูกค้าทาง WhatsApp</a>';
             if (isNew) {
                 if (p.missing.length) html += '<span class="axo-sm" style="align-self:center">มีรายการที่ไม่มีในเมนูแล้ว ให้คีย์เองที่หน้าแคชเชียร์ แล้วกด "ไม่รับ"</span>';
-                else if (!p.normal.length) html += p.po.length > 1 ? '<button class="axo-b" data-a="podone" data-id="' + E(o.id) + '">✓ เปิดใบพรีออเดอร์ครบแล้ว (ปิดออร์เดอร์นี้)</button>' : '';
+                else if (!p.normal.length && !o.test) html += p.po.length > 1 ? '<button class="axo-b" data-a="podone" data-id="' + E(o.id) + '">✓ เปิดใบพรีออเดอร์ครบแล้ว (ปิดออร์เดอร์นี้)</button>' : '';
                 else html += (C === 'THB' ? '' : '<button class="axo-g" data-a="paid" data-id="' + E(o.id) + '">' + (MODE === 'shop' ? '✅ รับเงินโอนแล้ว' : '✅ รับเงินโอนแล้ว → เข้าครัว') + '</button>') + '<button class="axo-b" data-a="unpaid" data-id="' + E(o.id) + '">' + (MODE === 'shop' ? 'รับออร์เดอร์ (ยังไม่จ่าย)' : 'เข้าครัว (ยังไม่จ่าย)') + (p.po.length ? ' · เฉพาะรายการที่ไม่ใช่พรีออเดอร์' : '') + '</button>';
                 html += '<button class="axo-x" data-a="reject" data-id="' + E(o.id) + '">✕ ไม่รับ</button><button class="axo-x" data-a="block" data-id="' + E(o.id) + '">🚫 บล็อกเบอร์นี้</button>';
                 if (rejecting[o.id]) html += '<div style="flex-basis:100%;margin-top:4px"><b>เหตุผลที่ไม่รับ</b> <span class="axo-sm">(ลูกค้าเห็นเป็นภาษาลาว · "อื่นๆ" ไม่แสดงเหตุผล)</span></div>' +
                     REJECT_REASONS.map(function (r) { return '<button class="axo-x" data-a="rejectwhy" data-r="' + E(r) + '" data-id="' + E(o.id) + '">' + E(r) + '</button>'; }).join('') +
                     '<button class="axo-b" data-a="rejectback" data-id="' + E(o.id) + '">กลับ</button>';
             } else if (live) {
-                if (!o.paid && o.billId && C !== 'THB') html += '<button class="axo-g" data-a="pay" data-id="' + E(o.id) + '">💰 รับเงินโอนแล้ว</button>';
+                if (!o.paid && (o.billId || o.test) && C !== 'THB') html += '<button class="axo-g" data-a="pay" data-id="' + E(o.id) + '">💰 รับเงินโอนแล้ว</button>';
                 if (dl) {
                     if (stage !== 'delivering') {
                         html += '<input type="number" inputmode="numeric" min="0" placeholder="ค่ารถจริง" data-fee="' + E(o.id) + '" value="' + E(feeDraft[o.id] || '') + '">' +
@@ -363,6 +364,7 @@
         }
         if (a === 'paid' || a === 'unpaid') return accept(id, a === 'paid', b);
         if (a === 'po') {
+            if (o.test) return say('🧪 ออเดอร์ทดลอง เปิดใบพรีออเดอร์จริงไม่ได้', false);
             var pp = priced(o), ln = pp.lines[+b.dataset.i]; if (!ln || !window.AXPO) return;
             var only = pp.lines.length === 1;   // ออร์เดอร์มีแค่สินค้าพรีออเดอร์ชิ้นเดียว → ใช้ลิงก์ติดตามเดิมของลูกค้าต่อ
             closePanel();
@@ -401,6 +403,11 @@
         if (p.missing.length) return say('มีรายการที่ไม่มีในเมนูแล้ว', false);
         busy[id] = true; b.disabled = true; b.textContent = 'กำลังส่ง…';
         try {
+            if (o.test) { /* 🧪 ออเดอร์ทดลอง: ไม่เปิดบิล ไม่เข้าครัว ไม่ตัดสต็อก ไม่นับยอด · แค่เดินสถานะให้หน้าลูกค้าดู */
+                await database.ref('online_orders/' + id).update({ status: 'accepted', paid: !!paid && p.cur !== 'THB', handledAt: Date.now() });
+                await setTrack(o, { status: 'accepted', paid: !!paid && p.cur !== 'THB', total: p.normalTotal });
+                return say('🧪 ออเดอร์ทดลอง ' + id + ' รับแล้ว (ไม่เปิดบิล ไม่นับยอดขาย)');
+            }
             if (!p.normal.length) return say('ออร์เดอร์นี้มีแต่สินค้าพรีออเดอร์ ให้กด "เปิดใบพรีออเดอร์"', false);
             var mk = function (l) {
                 var it = menu && menu.byId[l.itemId];
@@ -437,7 +444,9 @@
 
     async function payLater(id, b) {
         var o = orders[id];
-        if (!o || !o.billId || o.paid) return;
+        if (!o || o.paid) return;
+        if (o.test && !o.billId) { await database.ref('online_orders/' + id + '/paid').set(true); await setTrack(o, { paid: true }); return say('🧪 ออเดอร์ทดลอง: บันทึกรับเงินแล้ว (ไม่นับยอด)'); }
+        if (!o.billId) return;
         busy[id] = true; b.disabled = true; b.textContent = 'กำลังบันทึก…';
         try {
             var ids = arrOf(o.billIds).length ? arrOf(o.billIds) : [o.billId];
