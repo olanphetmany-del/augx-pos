@@ -18,5 +18,5 @@ live shop, and every page uses one production Firebase database.
   string needs Thai, Lao and English in `i18n-dict.js`.
 - Reply to people in the language they write in.
 - Commit messages and code names in English. Code comments: match the file.
-- PR titles and descriptions in Thai and English, with the same content in
-  both. Thai always comes first.
+- PR titles and descriptions in Lao, Thai and English, in that order, with
+  the same content in all three. English is the version of record.
