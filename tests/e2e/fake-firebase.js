@@ -3,6 +3,8 @@
 // surface this app uses. Configure before page scripts run via:
 //   window.__FAKE_DB   initial database contents (plain JSON tree)
 //   window.__FAKE_USER signed-in user ({ uid, email }) or null
+//   window.__FAKE_SERVER_OFFSET  server clock minus this device's clock, in ms
+//                      (.info/serverTimeOffset; default 0)
 // Every write is recorded in window.__FAKE_WRITES for assertions.
 (function () {
     'use strict';
@@ -18,6 +20,7 @@
     function clone(v) { return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
     function getAt(path) {
         if (path === '.info/connected') return true;
+        if (path === '.info/serverTimeOffset') return window.__FAKE_SERVER_OFFSET || 0;
         var node = data;
         var p = parts(path);
         for (var i = 0; i < p.length; i++) {
