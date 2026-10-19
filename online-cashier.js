@@ -133,17 +133,18 @@
             });
     }
     function newOnes() { return list().filter(function (o) { return o.status === 'new' && Date.now() <= deadline(o); }); }
-    function expiredOnes() { return list().filter(function (o) { return o.status === 'expired' || (o.status === 'new' && Date.now() > deadline(o)); }); }
-    // หมดเวลา: ยังไม่มีใครกดรับเกินเวลาที่ตั้ง → "หมดเวลา" (ดึงกลับมาทำได้ใน 24 ชม.) · เกิน 24 ชม. → ลบทิ้ง
+    // หมดเวลา: ยังไม่มีใครกดรับเกินเวลาที่ตั้ง → "หมดเวลา" (ดึงกลับมาทำได้ใน 24 ชม.) · เกิน 24 ชม. → ซ่อนจากรายการ แต่เก็บข้อมูล + หน้าติดตามไว้ (BUG-22)
+    // (ลูกค้าที่โอนแล้วแต่ร้านพลาด ยังมีหลักฐานให้ตรวจ)
+    function expiredOnes() {
+        var now = Date.now();
+        return list().filter(function (o) { return (o.status === 'expired' || (o.status === 'new' && now > deadline(o))) && now - (o.createdAt || 0) <= 24 * 3600000; });
+    }
     function sweep() {
         var now = Date.now();
         list().forEach(function (o) {
             if (o.status === 'new' && now > deadline(o)) {
                 database.ref('online_orders/' + o.id).update({ status: 'expired', expiredAt: now }).catch(function () {});
                 setTrack(o, { status: 'expired' });
-            } else if (o.status === 'expired' && now - (o.createdAt || 0) > 24 * 3600000) {
-                var upd = {}; upd['online_orders/' + o.id] = null; if (o.trackTok) upd['order_track/' + o.trackTok] = null;
-                database.ref().update(upd).catch(function () {});
             }
         });
     }
@@ -302,7 +303,7 @@
             html += '</details>';
         }
         if (exp.length) {
-            html += '<h3 style="margin:16px 0 4px;font-size:15px;color:#64748b">⏰ หมดเวลา (' + exp.length + ') · ดึงกลับมาทำได้ภายใน 24 ชม. หลังจากนั้นระบบลบเอง</h3>';
+            html += '<h3 style="margin:16px 0 4px;font-size:15px;color:#64748b">⏰ หมดเวลา (' + exp.length + ') · ดึงกลับมาทำได้ภายใน 24 ชม. หลังจากนั้นซ่อนจากรายการ (ข้อมูลยังเก็บไว้)</h3>';
             exp.forEach(function (o) {
                 var p = priced(o);
                 html += '<div class="axo-card done"><div class="axo-row"><div><b>' + E(o.id) + '</b> <span class="axo-pill rejected">หมดเวลา</span></div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
