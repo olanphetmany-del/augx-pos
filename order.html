@@ -410,6 +410,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
   };
   // จัดส่ง: ค่าประมาณ = base + perKm × กม. · ยอดถึง freeMin ร้านออกค่ารถให้ไม่เกิน freeCap · ส่งไม่เกิน maxKm
   var DLV = { enabled: false, base: 10000, perKm: 5000, freeMin: 180000, freeCap: 25000, maxKm: 5, lat: null, lng: null };
+  var CFG0 = JSON.parse(JSON.stringify(CFG)), DLV0 = JSON.parse(JSON.stringify(DLV));
   var CHANNEL = 'online';
   var TEMP_LO = { HOT: 'ຮ້ອນ', ICED: 'ເຢັນ', FRAPPE: 'ປັ່ນ' };
   var SPOTS = { gate: 'ປະຕູໃຫຍ່ / ທາງເຂົ້າ', guard: 'ປ້ອມຍາມ', other: 'ອື່ນໆ' };
@@ -471,15 +472,9 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     FXR.rate = num((v[5] || {}).rate, 0);
     RAW = v[1] || {}; CATS = {};
     Object.keys(v[3] || {}).forEach(function (k) { var c = v[3][k]; if (c && c.name) CATS[c.name] = c; });
-    Object.keys(CFG).forEach(function (k) { if (s[k] !== undefined && s[k] !== '') CFG[k] = s[k]; });
-    var d = s.delivery || {};
-    DLV.enabled = d.enabled === true;
-    ['base', 'perKm', 'freeMin', 'freeCap', 'maxKm'].forEach(function (k) { DLV[k] = num(d[k], DLV[k]); });
-    DLV.lat = num(d.lat, null); DLV.lng = num(d.lng, null);
-    if (DLV.lat == null || DLV.lng == null) DLV.enabled = false;
-    $('beta-tag').hidden = CFG.beta === false;
+    applySettings(s);
     $('loading').hidden = true;
-    if (CFG.enabled === false) { closed('ຂໍອະໄພ', CFG.closedText); return startTrackFromHash(); }
+    if (CFG.enabled === false) { closed('ຂໍອະໄພ', CFG.closedText); watchSettings(false); return startTrackFromHash(); }
     MENU = AugustxMenu.buildMenu(v[1] || {}, v[2] || {}, v[3] || {});
     MENU.items = MENU.items.filter(function (it) { return it.hiddenChannels.indexOf(CHANNEL) < 0; });
     MENU.categories = MENU.categories.filter(function (c) { return MENU.items.some(function (it) { return it.category === c; }); });
@@ -497,11 +492,39 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     renderBanners(v[4] || {});
     renderMenu(); updateBar(); renderReorder();
     if (deepIt && !/#t=/.test(location.hash)) openItem(deepIt);
+    watchSettings(true);
     startTrackFromHash();
   });
   function closed(title, text) {
     $('loading').hidden = true;
     $('closed').hidden = false; $('closed-title').textContent = title; $('closed-text').textContent = text;
+  }
+  // ตั้งค่าจาก Admin (settings/online) → CFG + DLV · ค่าที่ไม่ได้ตั้ง = ค่าตั้งต้น
+  function applySettings(s) {
+    Object.keys(CFG0).forEach(function (k) { CFG[k] = s[k] !== undefined && s[k] !== '' ? s[k] : CFG0[k]; });
+    var d = s.delivery || {};
+    DLV.enabled = d.enabled === true;
+    ['base', 'perKm', 'freeMin', 'freeCap', 'maxKm'].forEach(function (k) { DLV[k] = num(d[k], DLV0[k]); });
+    DLV.lat = num(d.lat, null); DLV.lng = num(d.lng, null);
+    if (DLV.lat == null || DLV.lng == null) DLV.enabled = false;
+    $('beta-tag').hidden = CFG.beta === false;
+  }
+  // อัปเดตสดขณะเปิดหน้าอยู่ (BUG-24): ร้านปิดรับออร์เดอร์ → ซ่อนเมนู โชว์ข้อความปิด (ตะกร้ายังเก็บไว้ในเครื่อง)
+  // · ร้านเปิดอีกครั้ง → โหลดหน้าใหม่ · เปลี่ยนเบอร์ WhatsApp ฯลฯ → ใช้ค่าใหม่ทันที
+  function watchSettings(open) {
+    db.ref('settings/online').on('value', function (snap) {
+      var s = snap.val() || {};
+      if (!open && s.enabled !== false) return location.reload();
+      applySettings(s);
+      if (open && s.enabled === false) { open = false; closeShop(); }
+    }, function (e) { console.warn('settings/online:', e && e.message); });
+  }
+  // ซ่อนหน้าร้าน + ปิดหน้าต่างสินค้า/ตะกร้าที่เปิดค้าง (ยกเว้นหน้าส่ง WhatsApp หลังสั่ง ที่ลูกค้ายังต้องใช้)
+  function closeShop() {
+    if (!$('sheet').hidden && !$('wa-go')) closeSheet();
+    ['banner', 'reorder', 'grp', 'tabs', 'bar'].forEach(function (id) { $(id).hidden = true; });
+    $('menu').innerHTML = '';
+    closed('ຂໍອະໄພ', CFG.closedText);
   }
 
   // ---------- ป้ายโฆษณา (ตั้งใน Admin) ----------
@@ -954,6 +977,13 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
   function submit(name, phone) {
     var btn = document.querySelector('[data-act="confirm"]');
     if (btn) { btn.disabled = true; btn.textContent = 'ກຳລັງສົ່ງ…'; }
+    // ตรวจซ้ำก่อนส่ง: ร้านอาจปิดรับออร์เดอร์หลังจากลูกค้าเปิดหน้านี้ (BUG-24) · อ่านไม่ได้ = ลองส่งตามปกติ
+    return db.ref('settings/online/enabled').once('value').then(function (s) { return s.val() !== false; }, function () { return true; }).then(function (open) {
+      if (open) return send(name, phone);
+      closeSheet(); closeShop();
+    });
+  }
+  function send(name, phone) {
     var items = cart.map(function (l) {
       var x = { itemId: l.itemId, name: l.name, variant: l.variant, options: l.options, note: l.note || '', qty: l.qty, unitPrice: l.unitPrice };
       if (l.po) x.po = true;
