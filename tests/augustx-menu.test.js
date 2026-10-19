@@ -74,6 +74,18 @@ describe('buildMenu', () => {
         expect(m.byId.latte.groups[1].single).toBe(false);
         expect(m.byId.shoe.currency).toBe('THB');
     });
+
+    test('preFrom: PRE-ORDER-only shoes keep the "starting price" flag (PR #2)', () => {
+        const m = M.buildMenu({
+            poOnly: { name: 'PO Only', category: 'Shoes', priceOptions: '41|4200,42|4200', prePrice: 4200, preFrom: true, preorder: true, currency: 'THB' },
+            normal: { name: 'Normal', category: 'Shoes', priceOptions: '41|3500', prePrice: 3000, preorder: true, currency: 'THB' },
+            junk: { name: 'Junk', category: 'Shoes', priceOptions: '41|3500', preFrom: 'yes' },
+        }, {}, {});
+        expect(m.byId.poOnly.preFrom).toBe(true);
+        expect(m.byId.normal.preFrom).toBe(false);
+        expect(m.byId.junk.preFrom).toBe(false); // only a real `true` counts
+        expect(M.unitPrice(m, { itemId: 'poOnly', variant: '42', po: true, qty: 1 })).toBe(4200);
+    });
 });
 
 describe('unitPrice', () => {
