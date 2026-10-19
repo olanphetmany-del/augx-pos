@@ -1,0 +1,27 @@
+{
+  "id": "./order.html",
+  "name": "AUGUSTX",
+  "short_name": "AUGUSTX",
+  "description": "ສັ່ງກາເຟ ແລະ ເກີບແທ້ PRE-ORDER ອອນລາຍ",
+  "lang": "lo",
+  "start_url": "./order.html",
+  "scope": "./order",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b111c",
+  "theme_color": "#0b4db3",
+  "icons": [
+    {
+      "src": "icon-order-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-order-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

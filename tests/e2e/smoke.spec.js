@@ -81,6 +81,31 @@ test.describe('customer ordering (order.html)', () => {
         expect(errors).toEqual([]);
     });
 
+    test('is installable as its own app and offers the install bar', async ({ page, errors }) => {
+        await page.goto('order.html');
+        await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        const res = await page.request.get('order.webmanifest');
+        const m = await res.json();
+        expect(m.start_url).toBe('./order.html');
+        expect(m.scope).toBe('./order');
+        expect(m.display).toBe('standalone');
+        for (const icon of m.icons) expect((await page.request.get(icon.src)).ok()).toBe(true);
+        await expect(page.locator('#appbar')).toBeHidden();
+        await page.evaluate(() => {
+            const e = new Event('beforeinstallprompt');
+            e.prompt = () => {};
+            e.userChoice = Promise.resolve({ outcome: 'dismissed' });
+            window.dispatchEvent(e);
+        });
+        await expect(page.locator('#appbar')).toBeVisible();
+        await page.locator('#appbar-no').click();
+        await expect(page.locator('#appbar')).toBeHidden();
+        await page.reload();
+        await page.evaluate(() => window.dispatchEvent(new Event('beforeinstallprompt')));
+        await expect(page.locator('#appbar')).toBeHidden();
+        expect(errors).toEqual([]);
+    });
+
     test.describe('when online ordering is disabled', () => {
         const db = seedData();
         db.settings.online.enabled = false;
