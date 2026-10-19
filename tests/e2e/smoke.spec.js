@@ -81,6 +81,39 @@ test.describe('customer ordering (order.html)', () => {
         expect(errors).toEqual([]);
     });
 
+    test('is installable as its own app and offers the install bar', async ({ page, errors }) => {
+        await page.goto('order.html');
+        await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        const res = await page.request.get('order.webmanifest');
+        const m = await res.json();
+        expect(m.start_url).toBe('./order.html');
+        expect(m.scope).toBe('./order');
+        expect(m.display).toBe('standalone');
+        for (const icon of m.icons) expect((await page.request.get(icon.src)).ok()).toBe(true);
+        // iPhone/iPad (the WebKit project) shows the bar straight away with Add to Home Screen steps;
+        // other browsers wait for the install prompt event
+        const ios = await page.evaluate(() => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+        if (ios) {
+            await expect(page.locator('#appbar')).toBeVisible();
+            await page.locator('#appbar-go').click();
+            await expect(page.locator('#appbar-ios')).toBeVisible();
+        } else {
+            await expect(page.locator('#appbar')).toBeHidden();
+        }
+        await page.evaluate(() => {
+            const e = new Event('beforeinstallprompt');
+            e.prompt = () => {};
+            e.userChoice = Promise.resolve({ outcome: 'dismissed' });
+            window.dispatchEvent(e);
+        });
+        await expect(page.locator('#appbar')).toBeVisible();
+        await page.locator('#appbar-no').click();
+        await expect(page.locator('#appbar')).toBeHidden();
+        // the fixture clears localStorage on every load, so check the saved flag instead of reloading
+        expect(await page.evaluate(() => localStorage.getItem('augx-appbar-off'))).toBe('1');
+        expect(errors).toEqual([]);
+    });
+
     test.describe('when online ordering is disabled', () => {
         const db = seedData();
         db.settings.online.enabled = false;
