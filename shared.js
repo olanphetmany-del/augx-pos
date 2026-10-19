@@ -223,7 +223,7 @@ function startApp(role, init) {
 
     const ov = document.createElement('div');
     ov.id = 'login-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;background:#1a365d;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;background:#1a365d;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
     ov.innerHTML =
         '<div style="background:#fff;border-radius:12px;padding:26px;width:100%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.3);">' +
         '<div style="font-size:1.3rem;font-weight:bold;color:#1a365d;text-align:center;margin-bottom:4px;">AUGUSTX POS</div>' +
@@ -535,7 +535,7 @@ function injectSharedCss() {
     const st = document.createElement('style');
     st.id = 'sx-css';
     st.textContent =
-        '.sx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3500;display:flex;align-items:center;justify-content:center;padding:12px}' +
+        '.sx-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.6);z-index:3500;display:flex;align-items:center;justify-content:center;padding:12px}' +
         '.sx-box{background:#fff;width:100%;max-width:440px;max-height:96vh;max-height:96dvh;overflow-y:auto;border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-family:inherit}' +
         '.sx-box label{display:block;font-weight:bold;font-size:12px;color:#555;margin:10px 0 4px}' +
         '.sx-box input,.sx-box textarea{width:100%;padding:11px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;font-family:inherit}' +
@@ -610,7 +610,7 @@ function openVoidDialog(id, bill, by, onDone) {
 /* =====================================================================
    ใบเสร็จ: โมเดลเดียว ใช้ได้ทั้งพิมพ์ / รูป-PDF / ข้อความ
    ===================================================================== */
-const RCPT = { s: { paperSize: '58mm', shopName: 'AUGUSTX', shopSub: 'HOME COFFEE RECIPE', address: '', phone: '', footer: 'ขอบคุณที่ใช้บริการ' }, logo: '', started: false };
+const RCPT = { s: { paperSize: '58mm', shopName: 'AUGUSTX', shopSub: 'HOME COFFEE RECIPE', address: '', phone: '', footer: 'ຂອບໃຈທີ່ໃຊ້ບໍລິການ' }, logo: '', started: false };
 function receiptInit() {
     if (RCPT.started) return;
     RCPT.started = true;
@@ -643,15 +643,15 @@ function receiptModel(o, copy) {
     const sub0 = receiptSub(o);
     if (sub0) m.push({ t: 'c', x: sub0 });
     if (S.address) m.push({ t: 'c', x: S.address });
-    if (S.phone) m.push({ t: 'c', x: 'โทร ' + S.phone });
-    if (copy) { m.push({ t: 'c', x: '*** สำเนา (COPY) ***', b: 1, z: 15 }); m.push({ t: 'c', x: 'พิมพ์เมื่อ ' + fmtDateTime(Date.now()) }); }
-    if (o.status === 'void') m.push({ t: 'c', x: '*** ยกเลิก (VOID) ***', b: 1, z: 16 });
+    if (S.phone) m.push({ t: 'c', x: 'ໂທ ' + S.phone });
+    if (copy) { m.push({ t: 'c', x: '*** ສຳເນົາ (COPY) ***', b: 1, z: 15 }); m.push({ t: 'c', x: 'ພິມເມື່ອ ' + fmtDateTime(Date.now()) }); }
+    if (o.status === 'void') m.push({ t: 'c', x: '*** ຍົກເລີກ (VOID) ***', b: 1, z: 16 });
     m.push({ t: 'hr' });
-    m.push({ t: 'r', l: 'บิล #' + (o.orderNo || '-'), r: fmtDateTime(o.paidAt || o.timestamp) });
-    const where = o.table ? 'โต๊ะ ' + o.table : (o.source && o.source !== 'store' ? o.source : '');
+    m.push({ t: 'r', l: 'ບິນ #' + (o.orderNo || '-'), r: fmtDateTime(o.paidAt || o.timestamp) });
+    const where = o.table ? 'ໂຕະ ' + o.table : (o.source && o.source !== 'store' ? o.source : '');
     if (o.orderType || where) m.push({ t: 'r', l: o.orderType || '', r: where });
-    if (o.appOrderNo) m.push({ t: 'r', l: 'เลขออร์เดอร์แอป', r: String(o.appOrderNo) });
-    if (o.customerName) m.push({ t: 'r', l: 'ลูกค้า', r: o.customerName });
+    if (o.appOrderNo) m.push({ t: 'r', l: 'ເລກອໍເດີແອັບ', r: String(o.appOrderNo) });
+    if (o.customerName) m.push({ t: 'r', l: 'ລູກຄ້າ', r: o.customerName });
     m.push({ t: 'hr' });
     items.forEach(function (c) {
         m.push({ t: 'r', l: c.name + ' x' + c.quantity, r: amt(Number(c.price || 0) * Number(c.quantity || 0)) });
@@ -662,30 +662,30 @@ function receiptModel(o, copy) {
     m.push({ t: 'hr' });
     if (cur === 'THB') {
         const subT = o.subtotalThb != null ? o.subtotalThb : itemsSubtotal(items), totT = o.totalThb != null ? o.totalThb : subT;
-        m.push({ t: 'r', l: 'รวม', r: baht(subT) });
-        if (Number(o.discountThb) > 0) m.push({ t: 'r', l: 'ส่วนลด', r: '-' + baht(o.discountThb) });
-        m.push({ t: 'r', l: 'ยอดสุทธิ', r: baht(totT), b: 1, z: 16 });
+        m.push({ t: 'r', l: 'ລວມ', r: baht(subT) });
+        if (Number(o.discountThb) > 0) m.push({ t: 'r', l: 'ສ່ວນຫຼຸດ', r: '-' + baht(o.discountThb) });
+        m.push({ t: 'r', l: 'ຍອດສຸດທິ', r: baht(totT), b: 1, z: 16 });
         const pc = o.payCurrency === 'LAK' ? 'LAK' : 'THB', pm = function (n) { return moneyC(n, pc); };
-        if (o.status === 'paid' && pc === 'LAK') { m.push({ t: 'r', l: 'ชำระเป็นกีบ', r: money(o.payAmount), b: 1 }); m.push({ t: 'r', l: 'เรท', r: '1 ฿ = ' + Number(o.rate || 0).toLocaleString() + ' ₭', s: 1 }); }
+        if (o.status === 'paid' && pc === 'LAK') { m.push({ t: 'r', l: 'ຊຳລະເປັນກີບ', r: money(o.payAmount), b: 1 }); m.push({ t: 'r', l: 'ອັດຕາ', r: '1 ฿ = ' + Number(o.rate || 0).toLocaleString() + ' ₭', s: 1 }); }
         else if (o.status !== 'paid' && (o.rate || FX.rate)) m.push({ t: 'r', l: '', r: approxLak(totT, o.rate || FX.rate), s: 1 });
         if (o.paymentMethod === 'cash') {
-            m.push({ t: 'r', l: 'เงินสด', r: pm(o.cashReceived) });
-            m.push({ t: 'r', l: 'เงินทอน', r: pm(o.change) });
-        } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ชำระโดย', r: 'โอนเงิน QR' });
+            m.push({ t: 'r', l: 'ເງິນສົດ', r: pm(o.cashReceived) });
+            m.push({ t: 'r', l: 'ເງິນທອນ', r: pm(o.change) });
+        } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ຊຳລະໂດຍ', r: 'ໂອນເງິນ QR' });
         warrantyBox(o, m);
         m.push({ t: 'hr' });
         m.push({ t: 'c', x: S.footer || '' });
         return m;
     }
     const sub = o.subtotal != null ? o.subtotal : itemsSubtotal(items);
-    m.push({ t: 'r', l: 'รวม', r: Number(sub).toLocaleString() });
-    if (Number(o.discount) > 0) m.push({ t: 'r', l: 'ส่วนลด', r: '-' + Number(o.discount).toLocaleString() });
-    m.push({ t: 'r', l: 'ยอดสุทธิ', r: Number(o.total || 0).toLocaleString() + ' ₭', b: 1, z: 16 });
+    m.push({ t: 'r', l: 'ລວມ', r: Number(sub).toLocaleString() });
+    if (Number(o.discount) > 0) m.push({ t: 'r', l: 'ສ່ວນຫຼຸດ', r: '-' + Number(o.discount).toLocaleString() });
+    m.push({ t: 'r', l: 'ຍອດສຸດທິ', r: Number(o.total || 0).toLocaleString() + ' ₭', b: 1, z: 16 });
     if (o.paymentMethod === 'cash') {
-        m.push({ t: 'r', l: 'เงินสด', r: Number(o.cashReceived || 0).toLocaleString() });
-        m.push({ t: 'r', l: 'เงินทอน', r: Number(o.change || 0).toLocaleString() });
-    } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ชำระโดย', r: 'โอนเงิน QR' });
-    else if (o.paymentMethod === 'delivery') m.push({ t: 'r', l: 'ชำระโดย', r: 'แอป Delivery' });
+        m.push({ t: 'r', l: 'ເງິນສົດ', r: Number(o.cashReceived || 0).toLocaleString() });
+        m.push({ t: 'r', l: 'ເງິນທອນ', r: Number(o.change || 0).toLocaleString() });
+    } else if (o.paymentMethod === 'transfer') m.push({ t: 'r', l: 'ຊຳລະໂດຍ', r: 'ໂອນເງິນ QR' });
+    else if (o.paymentMethod === 'delivery') m.push({ t: 'r', l: 'ຊຳລະໂດຍ', r: 'ແອັບ Delivery' });
     warrantyBox(o, m);
     m.push({ t: 'hr' });
     m.push({ t: 'c', x: S.footer || '' });
@@ -703,20 +703,20 @@ function receiptText(o) {
     const S = RCPT.s;
     if (o.source === 'preorder' && o.po && typeof poReceiptText === 'function') return poReceiptText(o);
     const thb = billCur(o) === 'THB';
-    let t = S.shopName + '\n' + 'บิล #' + (o.orderNo || '-') + '  ' + fmtDateTime(o.paidAt || o.timestamp) + '\n----------------\n';
+    let t = S.shopName + '\n' + 'ບິນ #' + (o.orderNo || '-') + '  ' + fmtDateTime(o.paidAt || o.timestamp) + '\n----------------\n';
     arr(o.items).forEach(function (c) {
         const d = lineDetails(c), v = Number(c.price || 0) * Number(c.quantity || 0);
         t += c.name + (d ? ' (' + d + ')' : '') + ' x' + c.quantity + '  ' + (thb ? baht(v) : v.toLocaleString()) + '\n';
     });
     t += '----------------\n';
     if (thb) {
-        if (Number(o.discountThb) > 0) t += 'ส่วนลด -' + baht(o.discountThb) + '\n';
-        t += 'ยอดสุทธิ ' + baht(o.totalThb) + (o.payCurrency === 'LAK' ? '\nชำระเป็นกีบ ' + money(o.payAmount) + ' (1฿ = ' + o.rate + '₭)' : '') + '\n';
+        if (Number(o.discountThb) > 0) t += 'ສ່ວນຫຼຸດ -' + baht(o.discountThb) + '\n';
+        t += 'ຍອດສຸດທິ ' + baht(o.totalThb) + (o.payCurrency === 'LAK' ? '\nຊຳລະເປັນກີບ ' + money(o.payAmount) + ' (1฿ = ' + o.rate + '₭)' : '') + '\n';
         if (S.footer) t += '\n' + S.footer;
         return t;
     }
-    if (Number(o.discount) > 0) t += 'ส่วนลด -' + Number(o.discount).toLocaleString() + '\n';
-    t += 'ยอดสุทธิ ' + Number(o.total || 0).toLocaleString() + ' ₭\n';
+    if (Number(o.discount) > 0) t += 'ສ່ວນຫຼຸດ -' + Number(o.discount).toLocaleString() + '\n';
+    t += 'ຍອດສຸດທິ ' + Number(o.total || 0).toLocaleString() + ' ₭\n';
     if (S.footer) t += '\n' + S.footer;
     return t;
 }
@@ -851,7 +851,23 @@ function ensurePrintArea() {
     return a;
 }
 // copy = true จะพิมพ์คำว่า "สำเนา (COPY)"; id = ใส่เพื่อนับจำนวนครั้งที่พิมพ์
+// ตั้งค่า "ส่งตรงไป RawBT" + เปิดบน Android = ส่งเป็นรูป ESC/POS ไป RawBT ทันที ไม่ผ่านหน้าต่างพิมพ์
 function printReceipt(o, copy, id) {
+    if (id) database.ref('orders/' + id + '/printCount').transaction(function (n) { return (n || 0) + 1; });
+    if (!rcptRawbtOk()) { printReceiptDialog(o, copy); return; }
+    rcptEscBytes(o, copy).then(function (b) { window.location.href = 'rawbt:base64,' + stkB64(b); },
+        function () { printReceiptDialog(o, copy); });   /* วาดรูปไม่ได้ -> ใช้หน้าต่างพิมพ์แทน */
+}
+function rcptRawbtOk() { return RCPT.s.printMethod === 'rawbt' && /Android/i.test(navigator.userAgent || ''); }
+// ใบเสร็จ (รูปเดียวกับที่แชร์ให้ลูกค้า) -> ภาพขาวดำกว้างเท่าหัวพิมพ์ 384/576 จุด -> ESC/POS + เลื่อนกระดาษ + ตัด (เครื่องไม่มีมีดจะข้ามคำสั่งตัด)
+async function rcptEscBytes(o, copy) {
+    const cv = await receiptCanvas(o, copy);
+    const W = RCPT.s.paperSize === '80mm' ? 576 : 384, H = Math.round(cv.height * W / cv.width);
+    const k = document.createElement('canvas'); k.width = W; k.height = H;
+    const c = k.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.drawImage(cv, 0, 0, W, H);
+    return stkCat([Uint8Array.of(0x1B, 0x40), stkEscRaster(stkBits(k, 160, false), W / 8, H, 40, 0), Uint8Array.of(0x1B, 0x64, 4, 0x1D, 0x56, 0x42, 0)]);
+}
+function printReceiptDialog(o, copy) {
     const area = ensurePrintArea();
     const narrow = RCPT.s.paperSize !== '80mm';
     let h = '';
@@ -873,7 +889,6 @@ function printReceipt(o, copy, id) {
     area.style.width = narrow ? '48mm' : '72mm';
     area.innerHTML = h;
     document.getElementById('print-page-style').textContent = '@page{size:' + (narrow ? '58mm' : '80mm') + ' auto;margin:2mm}';
-    if (id) database.ref('orders/' + id + '/printCount').transaction(function (n) { return (n || 0) + 1; });
     setTimeout(function () { window.print(); }, 150);
 }
 

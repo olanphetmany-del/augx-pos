@@ -111,7 +111,7 @@
     else document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', boot) : boot();
 
     var CSS = '' +
-        '.axp-ov{position:fixed;inset:0;background:#f4f6f8;z-index:2600;display:none;flex-direction:column;height:100vh;height:100dvh;font-family:inherit}' +
+        '.axp-ov{position:fixed;top:0;right:0;bottom:0;left:0;background:#f4f6f8;z-index:2600;display:none;flex-direction:column;height:100vh;height:100dvh;font-family:inherit}' +
         '.axp-head{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid #e0e0e0}' +
         '.axp-head h3{flex:1;margin:0;color:#0b4db3;font-size:1.1rem;min-width:0}' +
         '.axp-body{flex:1;min-height:0;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}.axp-in{max-width:760px;margin:0 auto}' +

@@ -444,11 +444,19 @@
                         <option value="80mm">Xprinter 80mm</option>
                     </select>
                 </div>
+                <div class="form-group" style="max-width: 400px;">
+                    <label>วิธีพิมพ์บิล</label>
+                    <select id="printer-method">
+                        <option value="dialog">หน้าต่างพิมพ์ของเครื่อง (แบบเดิม)</option>
+                        <option value="rawbt">ส่งตรงไป RawBT ไม่ต้องกดยืนยัน (Android)</option>
+                    </select>
+                    <p class="hint" style="margin:4px 0 0;">ส่งตรงไป RawBT ใช้ได้บนแท็บเล็ต/มือถือ Android ที่ติดตั้ง RawBT · คอมพิวเตอร์จะใช้หน้าต่างพิมพ์ตามเดิม</p>
+                </div>
                 <div class="form-group" style="max-width: 400px;"><label>ชื่อร้าน</label><input type="text" id="set-shop-name" placeholder="AUGUSTX"></div>
                 <div class="form-group" style="max-width: 400px;"><label>บรรทัดรอง</label><input type="text" id="set-shop-sub" placeholder="HOME COFFEE RECIPE"></div>
                 <div class="form-group" style="max-width: 400px;"><label>ที่อยู่</label><input type="text" id="set-shop-address" placeholder="(ไม่บังคับ)"></div>
                 <div class="form-group" style="max-width: 400px;"><label>เบอร์โทร</label><input type="text" id="set-shop-phone" placeholder="(ไม่บังคับ)"></div>
-                <div class="form-group" style="max-width: 400px;"><label>ข้อความท้ายใบเสร็จ</label><input type="text" id="set-shop-footer" placeholder="ขอบคุณที่ใช้บริการ"></div>
+                <div class="form-group" style="max-width: 400px;"><label>ข้อความท้ายใบเสร็จ</label><input type="text" id="set-shop-footer" placeholder="ຂອບໃຈທີ່ໃຊ້ບໍລິການ"></div>
                 <button class="btn btn-green" onclick="savePrinterSettings()">บันทึกการตั้งค่า</button>
             </div>
 
@@ -853,6 +861,7 @@
             database.ref('settings/printer').on('value', snap => {
                 const p = snap.val() || {};
                 document.getElementById('printer-paper-size').value = p.paperSize || '58mm';
+                document.getElementById('printer-method').value = p.printMethod === 'rawbt' ? 'rawbt' : 'dialog';
                 document.getElementById('set-shop-name').value = p.shopName || '';
                 document.getElementById('set-shop-sub').value = p.shopSub || '';
                 document.getElementById('set-shop-address').value = p.address || '';
@@ -943,6 +952,7 @@
         function savePrinterSettings() {
             database.ref('settings/printer').set({
                 paperSize: document.getElementById('printer-paper-size').value,
+                printMethod: document.getElementById('printer-method').value,
                 shopName: document.getElementById('set-shop-name').value.trim(),
                 shopSub: document.getElementById('set-shop-sub').value.trim(),
                 address: document.getElementById('set-shop-address').value.trim(),
@@ -2220,6 +2230,7 @@
     <script src="theme7.js"></script>
     <script src="i18n-dict.js"></script>
     <script src="i18n.js"></script>
+    <script src="old-ios.js"></script>
 <script>function axTab(url, name) { /* เปิดหน้าในแท็บชื่อ name ถ้ามีอยู่แล้วแค่สลับไป ไม่โหลดใหม่ (ตะกร้าที่ค้างไม่หาย) */ var w = null; try { w = window.open('', name); } catch (e) {} if (!w) { location.href = url; return false; } try { if (!w.location.href || w.location.href === 'about:blank') w.location.href = url; } catch (e) { w.location.href = url; } try { w.focus(); } catch (e) {} return false; }</script>
 </body>
 </html>
