@@ -83,3 +83,46 @@ test.describe('accepting an online order', () => {
         expect(errors).toEqual([]);
     });
 });
+
+function dbWithExpiredOrders() {
+    const now = Date.now();
+    const db = seedData(now);
+    const order = (id, hoursAgo, tok) => ({
+        name: 'Late Payer', phone: '+8562033334444', status: 'expired', createdAt: now - hoursAgo * 3600000, expiredAt: now - hoursAgo * 3600000 + 600000,
+        total: 20000, trackTok: tok, items: [{ itemId: 'tea', qty: 1, unitPrice: 20000, name: 'Smoke Tea' }],
+    });
+    db.online_orders = {
+        'ON181026001-OLD': order('ON181026001-OLD', 25, 'OLDtokOLDtokOLDtok01'),
+        'ON191026001-NEW': order('ON191026001-NEW', 2, 'NEWtokNEWtokNEWtok01'),
+    };
+    db.order_track = {
+        OLDtokOLDtokOLDtok01: { bill: 'ON181026001-OLD', status: 'expired', paid: false, at: now - 25 * 3600000 },
+        NEWtokNEWtokNEWtok01: { bill: 'ON191026001-NEW', status: 'expired', paid: false, at: now - 2 * 3600000 },
+    };
+    return db;
+}
+
+test.describe('expired online orders', () => {
+    test.use({ db: dbWithExpiredOrders() });
+
+    test('BUG-22: are kept (with their tracking page) after 24 h, just hidden from the list', async ({ page, errors }) => {
+        await page.clock.install();
+        await page.clock.resume();
+        await page.goto('cashier.html');
+        await expect(page.locator('.axo-btn')).toBeVisible();
+        await page.clock.fastForward(20000); // let the 15 s cleanup run
+        await page.waitForTimeout(100);
+
+        await page.locator('.axo-btn').click();
+        const panel = page.locator('.axo-ov');
+        await expect(panel).toContainText('ON191026001-NEW'); // under 24 h: listed, can be revived
+        await expect(panel.locator('[data-a="revive"][data-id="ON191026001-NEW"]')).toBeVisible();
+        await expect(panel).not.toContainText('ON181026001-OLD'); // over 24 h: hidden from the list...
+        for (const path of ['online_orders/ON181026001-OLD', 'order_track/OLDtokOLDtokOLDtok01', 'online_orders/ON191026001-NEW']) {
+            expect(await page.evaluate((p) => window.__fakeDb.get(p), path), path).not.toBeNull(); // ...but kept
+        }
+        const deletes = await page.evaluate(() => window.__FAKE_WRITES.filter((w) => w[0] === 'remove' || (w[0] === 'update' && Object.values(w[2]).some((v) => v === null))));
+        expect(deletes).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+});
