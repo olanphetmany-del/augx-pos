@@ -23,7 +23,7 @@ header h1 { margin: 0; font-size: 18px; flex: 1; min-width: 0; letter-spacing: .
 .top-controls { display: flex; gap: 6px; flex-wrap: wrap; }
 .top-btn { background: rgba(255,255,255,.16); color: #fff; border: 0; border-radius: 8px; padding: 8px 10px; font-weight: bold; font-size: 13px; text-decoration: none; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
 main { flex: 1; min-height: 0; position: relative; }
-.view { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px max(12px, env(safe-area-inset-left, 0px)) 24px; }
+.view { position: absolute; top: 0; right: 0; bottom: 0; left: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px max(12px, env(safe-area-inset-left, 0px)) 24px; }
 #v-po { padding: 0; overflow: hidden; display: flex; }
 #axp-host { flex: 1; min-width: 0; display: flex; }
 #axp-host > .axp-ov { flex: 1; }
@@ -279,5 +279,6 @@ startApp('staff', boot);
 <script src="theme7.js"></script>
 <script src="i18n-dict.js"></script>
 <script src="i18n.js"></script>
+<script src="old-ios.js"></script>
 </body>
 </html>

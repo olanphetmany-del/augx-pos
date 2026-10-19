@@ -97,7 +97,7 @@
     var CSS = '' +
         '.axo-btn{position:relative}.axo-btn.alert{background:#dc2626!important;color:#fff!important;animation:axoPulse 1s infinite}' +
         '@keyframes axoPulse{50%{box-shadow:0 0 0 6px rgba(220,38,38,.25)}}' +
-        '.axo-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:3000;display:flex;justify-content:center;align-items:flex-start;padding:24px 12px;overflow:auto}' +
+        '.axo-ov{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(15,23,42,.55);z-index:3000;display:flex;justify-content:center;align-items:flex-start;padding:24px 12px;overflow:auto}' +
         '.axo-box{background:#fff;color:#0f172a;border-radius:12px;width:100%;max-width:680px;padding:18px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.3)}' +
         '.axo-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.axo-head h3{margin:0;font-size:18px;color:#1a365d}' +
         '.axo-card{border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-top:10px}.axo-card.new{border:2px solid #dc2626;background:#fff7f7}.axo-card.done{opacity:.6}.axo-card.live{border:2px solid #1a365d}' +

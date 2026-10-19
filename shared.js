@@ -223,7 +223,7 @@ function startApp(role, init) {
 
     const ov = document.createElement('div');
     ov.id = 'login-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;background:#1a365d;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;background:#1a365d;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
     ov.innerHTML =
         '<div style="background:#fff;border-radius:12px;padding:26px;width:100%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.3);">' +
         '<div style="font-size:1.3rem;font-weight:bold;color:#1a365d;text-align:center;margin-bottom:4px;">AUGUSTX POS</div>' +
@@ -535,7 +535,7 @@ function injectSharedCss() {
     const st = document.createElement('style');
     st.id = 'sx-css';
     st.textContent =
-        '.sx-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3500;display:flex;align-items:center;justify-content:center;padding:12px}' +
+        '.sx-overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.6);z-index:3500;display:flex;align-items:center;justify-content:center;padding:12px}' +
         '.sx-box{background:#fff;width:100%;max-width:440px;max-height:96vh;max-height:96dvh;overflow-y:auto;border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-family:inherit}' +
         '.sx-box label{display:block;font-weight:bold;font-size:12px;color:#555;margin:10px 0 4px}' +
         '.sx-box input,.sx-box textarea{width:100%;padding:11px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;font-family:inherit}' +
