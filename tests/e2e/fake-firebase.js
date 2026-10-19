@@ -191,5 +191,11 @@
         database: database,
         auth: function () { return auth; },
     };
-    window.__fakeDb = { get: getAt, set: function (p, v) { setAt(p, v); notify(); } };
+    window.__fakeDb = {
+        get: getAt,
+        set: function (p, v) { setAt(p, v); notify(); },
+        // Another device's write that this page hasn't been told about yet:
+        // listeners keep the old value, but transactions see the new one.
+        setUnseen: function (p, v) { setAt(p, v); },
+    };
 })();
