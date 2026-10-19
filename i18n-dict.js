@@ -13,3 +13,5 @@ window.I18N_DICT.cust.push(["ສະແກນເພື່ອເລືອກໄຊ
 window.I18N_DICT.cust.push(["↗ ແຊຣ໌ສິນຄ້ານີ້", "↗ แชร์สินค้านี้", "↗ Share this item"], ["ສຳເນົາລິ້ງແລ້ວ · ວາງສົ່ງໃຫ້ໝູ່ໄດ້ເລີຍ", "คัดลอกลิงก์แล้ว · วางส่งให้เพื่อนได้เลย", "Link copied · paste it to a friend"], ["ສຳເນົາລິ້ງນີ້", "คัดลอกลิงก์นี้", "Copy this link"]);
 /* แอปลูกค้า */
 window.I18N_DICT.cust.push(["ຕິດຕັ້ງແອັບ AUGUSTX", "ติดตั้งแอป AUGUSTX", "Install the AUGUSTX app"], ["ສັ່ງໄວ ເປີດຈາກໜ້າຈໍໂທລະສັບໄດ້ເລີຍ", "สั่งไว เปิดจากหน้าจอโทรศัพท์ได้เลย", "Order faster, right from your home screen"], ["ຕິດຕັ້ງ", "ติดตั้ง", "Install"], ["iPhone: ກົດປຸ່ມ ແຊຣ໌ (□↑) ຢູ່ລຸ່ມ Safari ແລ້ວເລືອກ “ເພີ່ມໃສ່ໜ້າຈໍໂຮມ” (Add to Home Screen)", "iPhone: กดปุ่ม แชร์ (□↑) ด้านล่าง Safari แล้วเลือก “เพิ่มไปยังหน้าจอโฮม” (Add to Home Screen)", "iPhone: tap Share (□↑) at the bottom of Safari, then choose “Add to Home Screen”"]);
+/* รับออร์เดอร์ออนไลน์ซ้ำจากหลายเครื่อง (BUG-5) */
+window.I18N_DICT.staff.push(["ถูกจัดการจากเครื่องอื่นแล้ว", "ຖືກຈັດການຈາກເຄື່ອງອື່ນແລ້ວ", "was already handled on another device"]);

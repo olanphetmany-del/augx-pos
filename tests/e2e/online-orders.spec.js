@@ -42,3 +42,44 @@ test.describe('online orders panel', () => {
         expect(errors).toEqual([]);
     });
 });
+
+function dbWithNewOrder() {
+    const now = Date.now();
+    const db = seedData(now);
+    db.online_orders = {
+        'ON191026001-AAA': {
+            name: 'Somchai', phone: '+8562011112222', status: 'new', createdAt: now - 60000, total: 20000,
+            items: [{ itemId: 'tea', qty: 1, unitPrice: 20000, name: 'Smoke Tea' }],
+        },
+    };
+    return db;
+}
+const billsFor = (page, id) => page.evaluate((id) => Object.values(window.__fakeDb.get('orders') || {}).filter((b) => b.appOrderNo === id).length, id);
+
+test.describe('accepting an online order', () => {
+    test.use({ db: dbWithNewOrder() });
+
+    test('opens one bill and marks the order accepted', async ({ page, errors }) => {
+        await page.goto('cashier.html');
+        await page.locator('.axo-btn').click();
+        await page.locator('.axo-ov [data-a="unpaid"][data-id="ON191026001-AAA"]').click();
+        await expect.poll(() => page.evaluate(() => window.__fakeDb.get('online_orders/ON191026001-AAA/billId'))).toBeTruthy();
+        expect(await page.evaluate(() => window.__fakeDb.get('online_orders/ON191026001-AAA/status'))).toBe('accepted');
+        expect(await billsFor(page, 'ON191026001-AAA')).toBe(1);
+        expect(errors).toEqual([]);
+    });
+
+    test('BUG-5: does not open a second bill when another device accepted it first', async ({ page, errors }) => {
+        await page.goto('cashier.html');
+        await page.locator('.axo-btn').click();
+        const accept = page.locator('.axo-ov [data-a="unpaid"][data-id="ON191026001-AAA"]');
+        await expect(accept).toBeVisible();
+        // Another cashier device accepts it; this device's screen hasn't updated yet.
+        await page.evaluate(() => window.__fakeDb.setUnseen('online_orders/ON191026001-AAA/status', 'accepted'));
+        await accept.click();
+        await expect(page.getByText('ถูกจัดการจากเครื่องอื่นแล้ว')).toBeVisible();
+        expect(await billsFor(page, 'ON191026001-AAA')).toBe(0);
+        expect(await page.evaluate(() => window.__fakeDb.get('online_orders/ON191026001-AAA/billId'))).toBeNull();
+        expect(errors).toEqual([]);
+    });
+});

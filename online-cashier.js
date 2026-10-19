@@ -401,14 +401,18 @@
         if (!o || o.status !== 'new') return;
         var p = priced(o);
         if (p.missing.length) return say('มีรายการที่ไม่มีในเมนูแล้ว', false);
+        if (!o.test && !p.normal.length) return say('ออร์เดอร์นี้มีแต่สินค้าพรีออเดอร์ ให้กด "เปิดใบพรีออเดอร์"', false);
         busy[id] = true; b.disabled = true; b.textContent = 'กำลังส่ง…';
         try {
+            // จองออร์เดอร์ก่อน: new → accepted แบบ transaction · ถ้าอีกเครื่องกดรับ/ไม่รับ/หมดเวลาไปแล้ว จะไม่เปิดบิลซ้ำ (BUG-5)
+            // (ค่าในเครื่องอาจยังเป็น null ตอนเรียกครั้งแรก → ส่ง null กลับไป ให้ Firebase ลองใหม่ด้วยค่าจริงจากเซิร์ฟเวอร์)
+            var claim = await database.ref('online_orders/' + id + '/status').transaction(function (st) { return st === 'new' ? 'accepted' : st === null ? null : undefined; });
+            if (!claim.committed || claim.snapshot.val() !== 'accepted') return say('ออร์เดอร์ ' + id + ' ถูกจัดการจากเครื่องอื่นแล้ว', false);
             if (o.test) { /* 🧪 ออเดอร์ทดลอง: ไม่เปิดบิล ไม่เข้าครัว ไม่ตัดสต็อก ไม่นับยอด · แค่เดินสถานะให้หน้าลูกค้าดู */
                 await database.ref('online_orders/' + id).update({ status: 'accepted', paid: !!paid && p.cur !== 'THB', handledAt: Date.now() });
                 await setTrack(o, { status: 'accepted', paid: !!paid && p.cur !== 'THB', total: p.normalTotal });
                 return say('🧪 ออเดอร์ทดลอง ' + id + ' รับแล้ว (ไม่เปิดบิล ไม่นับยอดขาย)');
             }
-            if (!p.normal.length) return say('ออร์เดอร์นี้มีแต่สินค้าพรีออเดอร์ ให้กด "เปิดใบพรีออเดอร์"', false);
             var mk = function (l) {
                 var it = menu && menu.byId[l.itemId];
                 return {
@@ -421,21 +425,27 @@
             // สินค้า SHOP กับเครื่องดื่ม แยกเป็น 2 บิล (ยอดเข้าคนละกล่องในรายงาน)
             var groups = [p.normal.filter(isShopLine), p.normal.filter(function (l) { return !isShopLine(l); })].filter(function (g) { return g.length; });
             if (paid && p.cur === 'THB') paid = false;
-            var made = [];
-            for (var gi = 0; gi < groups.length; gi++) {
-                var isShop = isShopLine(groups[gi][0]);
-                var rb = await createBill({
-                    items: groups[gi].map(mk), source: 'online', orderType: o.delivery ? 'Online 🛵' : 'Online', appOrderNo: id,
-                    customerName: o.name || '', customerPhone: o.phone || '', customerId: cust ? cust.id : '',
-                    trackTok: made.length ? '' : (o.trackTok || ''), trackDelivery: !!o.delivery, currency: p.cur, store: isShop ? 'shop' : ''
-                });
-                if (paid) await payBill(rb.id, { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' });
-                made.push(rb);
-            }
+            var made = [], fail = null;
+            try {
+                for (var gi = 0; gi < groups.length; gi++) {
+                    var isShop = isShopLine(groups[gi][0]);
+                    var rb = await createBill({
+                        items: groups[gi].map(mk), source: 'online', orderType: o.delivery ? 'Online 🛵' : 'Online', appOrderNo: id,
+                        customerName: o.name || '', customerPhone: o.phone || '', customerId: cust ? cust.id : '',
+                        trackTok: made.length ? '' : (o.trackTok || ''), trackDelivery: !!o.delivery, currency: p.cur, store: isShop ? 'shop' : ''
+                    });
+                    made.push(rb);
+                    if (paid) await payBill(rb.id, { discountType: 'amount', discountValue: 0, method: 'transfer', cashReceived: '' });
+                }
+            } catch (e) { fail = e; }
+            // ยังไม่ได้เปิดบิลเลย → คืนสถานะเป็น new ให้กดรับใหม่ได้ · เปิดไปแล้วบางบิล → ผูกบิลที่เปิดแล้วไว้กับออร์เดอร์ ไม่ให้กดรับซ้ำ
+            if (!made.length) { await database.ref('online_orders/' + id + '/status').set('new'); throw fail; }
+            if (fail) paid = false;
             var r = made[0];
             await database.ref('online_orders/' + id).update({ status: 'accepted', billId: r.id, billIds: made.map(function (x) { return x.id; }), orderNo: r.bill.orderNo, paid: !!paid, handledAt: Date.now() });
             await setTrack(o, { status: 'accepted', paid: !!paid, total: p.normalTotal });
             if (!cust && o.phone) database.ref('customers').push({ name: o.name || '', phone: o.phone, email: '', source: 'online' });
+            if (fail) throw fail;
             say('ออร์เดอร์ ' + id + ' เข้าครัวแล้ว (บิล #' + r.bill.orderNo + (paid ? ' · จ่ายแล้ว' : ' · ยังไม่จ่าย') + ')');
         } catch (err) {
             say('ไม่สำเร็จ: ' + (err && err.message || err), false);
