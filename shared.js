@@ -851,7 +851,23 @@ function ensurePrintArea() {
     return a;
 }
 // copy = true จะพิมพ์คำว่า "สำเนา (COPY)"; id = ใส่เพื่อนับจำนวนครั้งที่พิมพ์
+// ตั้งค่า "ส่งตรงไป RawBT" + เปิดบน Android = ส่งเป็นรูป ESC/POS ไป RawBT ทันที ไม่ผ่านหน้าต่างพิมพ์
 function printReceipt(o, copy, id) {
+    if (id) database.ref('orders/' + id + '/printCount').transaction(function (n) { return (n || 0) + 1; });
+    if (!rcptRawbtOk()) { printReceiptDialog(o, copy); return; }
+    rcptEscBytes(o, copy).then(function (b) { window.location.href = 'rawbt:base64,' + stkB64(b); },
+        function () { printReceiptDialog(o, copy); });   /* วาดรูปไม่ได้ -> ใช้หน้าต่างพิมพ์แทน */
+}
+function rcptRawbtOk() { return RCPT.s.printMethod === 'rawbt' && /Android/i.test(navigator.userAgent || ''); }
+// ใบเสร็จ (รูปเดียวกับที่แชร์ให้ลูกค้า) -> ภาพขาวดำกว้างเท่าหัวพิมพ์ 384/576 จุด -> ESC/POS + เลื่อนกระดาษ + ตัด (เครื่องไม่มีมีดจะข้ามคำสั่งตัด)
+async function rcptEscBytes(o, copy) {
+    const cv = await receiptCanvas(o, copy);
+    const W = RCPT.s.paperSize === '80mm' ? 576 : 384, H = Math.round(cv.height * W / cv.width);
+    const k = document.createElement('canvas'); k.width = W; k.height = H;
+    const c = k.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.drawImage(cv, 0, 0, W, H);
+    return stkCat([Uint8Array.of(0x1B, 0x40), stkEscRaster(stkBits(k, 160, false), W / 8, H, 40, 0), Uint8Array.of(0x1B, 0x64, 4, 0x1D, 0x56, 0x42, 0)]);
+}
+function printReceiptDialog(o, copy) {
     const area = ensurePrintArea();
     const narrow = RCPT.s.paperSize !== '80mm';
     let h = '';
@@ -873,7 +889,6 @@ function printReceipt(o, copy, id) {
     area.style.width = narrow ? '48mm' : '72mm';
     area.innerHTML = h;
     document.getElementById('print-page-style').textContent = '@page{size:' + (narrow ? '58mm' : '80mm') + ' auto;margin:2mm}';
-    if (id) database.ref('orders/' + id + '/printCount').transaction(function (n) { return (n || 0) + 1; });
     setTimeout(function () { window.print(); }, 150);
 }
 
