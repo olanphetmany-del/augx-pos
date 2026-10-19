@@ -144,3 +144,69 @@ test.describe('cashier: test-mode orders', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// BUG-24: the shop switches online ordering off (or changes settings) in
+// Admin while customers already have the storefront open.
+test.describe('online ordering switched off or changed while the page is open', () => {
+    test.use({ user: null });
+    const setLive = (page, path, v) => page.evaluate(([p, x]) => window.__fakeDb.set(p, x), [path, v]);
+    const savedCart = (page) => page.evaluate(() => localStorage.getItem('augx-cart'));
+
+    test('switching off hides the menu and shows the closed message; the cart is kept', async ({ page, errors }) => {
+        await page.goto('order.html');
+        await page.locator('.item[data-id="tea"]').click();
+        await page.locator('#sheet [data-act="add"]').click();
+        await expect(page.locator('#bar')).toBeVisible();
+        await setLive(page, 'settings/online/enabled', false);
+        await expect(page.locator('#closed')).toBeVisible();
+        await expect(page.locator('.item')).toHaveCount(0);
+        await expect(page.locator('#bar')).toBeHidden();
+        expect(await savedCart(page)).toContain('"itemId":"tea"');
+        expect(errors).toEqual([]);
+    });
+
+    test('an order confirmed after switching off is not sent (checked at submit)', async ({ page, errors }) => {
+        await page.goto('order.html');
+        await page.locator('.item[data-id="tea"]').click();
+        await page.locator('#sheet [data-act="add"]').click();
+        await page.locator('#bar-btn').click();
+        await page.locator('#sheet [data-act="checkout"]').click();
+        await page.locator('#cname').fill('Somchai');
+        await page.locator('#cphone').fill('020 5555 6666');
+        // Switched off, but this page hasn't been told yet: only the submit check can catch it.
+        await page.evaluate(() => window.__fakeDb.setUnseen('settings/online/enabled', false));
+        await page.locator('#sheet [data-act="confirm"]').click();
+        await expect(page.locator('#closed')).toBeVisible();
+        await expect(page.locator('#sheet')).toBeHidden();
+        expect(await page.evaluate(() => window.__fakeDb.get('online_orders'))).toBeNull();
+        expect(await page.evaluate(() => window.__fakeDb.get('counters_online'))).toBeNull();
+        expect(await savedCart(page)).toContain('"itemId":"tea"');
+        expect(errors).toEqual([]);
+    });
+
+    test('a new WhatsApp number is used without reloading', async ({ page, errors }) => {
+        await page.goto('order.html');
+        await setLive(page, 'settings/online/waNumber', '+8562099998888');
+        await orderTea(page);
+        await expect(page.locator('#wa-go')).toHaveAttribute('href', /^https:\/\/wa\.me\/8562099998888\?/);
+        expect(errors).toEqual([]);
+    });
+
+    test.describe('page opened while closed', () => {
+        const db = seedData();
+        db.settings.online.enabled = false;
+        test.use({ db });
+
+        test('reopening reloads the page and shows the menu', async ({ page, errors }) => {
+            // The fixture re-seeds the fake database on every load; after the reload, seed it as reopened.
+            await page.addInitScript(() => { if (sessionStorage.getItem('reopened')) window.__FAKE_DB.settings.online.enabled = true; });
+            await page.goto('order.html');
+            await expect(page.locator('#closed')).toBeVisible();
+            await page.evaluate(() => sessionStorage.setItem('reopened', '1'));
+            await setLive(page, 'settings/online/enabled', true);
+            await expect(page.locator('.item[data-id="tea"]')).toBeVisible();
+            await expect(page.locator('#closed')).toBeHidden();
+            expect(errors).toEqual([]);
+        });
+    });
+});
