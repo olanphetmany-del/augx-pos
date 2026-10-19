@@ -90,7 +90,16 @@ test.describe('customer ordering (order.html)', () => {
         expect(m.scope).toBe('./order');
         expect(m.display).toBe('standalone');
         for (const icon of m.icons) expect((await page.request.get(icon.src)).ok()).toBe(true);
-        await expect(page.locator('#appbar')).toBeHidden();
+        // iPhone/iPad (the WebKit project) shows the bar straight away with Add to Home Screen steps;
+        // other browsers wait for the install prompt event
+        const ios = await page.evaluate(() => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+        if (ios) {
+            await expect(page.locator('#appbar')).toBeVisible();
+            await page.locator('#appbar-go').click();
+            await expect(page.locator('#appbar-ios')).toBeVisible();
+        } else {
+            await expect(page.locator('#appbar')).toBeHidden();
+        }
         await page.evaluate(() => {
             const e = new Event('beforeinstallprompt');
             e.prompt = () => {};
