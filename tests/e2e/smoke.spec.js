@@ -100,9 +100,8 @@ test.describe('customer ordering (order.html)', () => {
         await expect(page.locator('#appbar')).toBeVisible();
         await page.locator('#appbar-no').click();
         await expect(page.locator('#appbar')).toBeHidden();
-        await page.reload();
-        await page.evaluate(() => window.dispatchEvent(new Event('beforeinstallprompt')));
-        await expect(page.locator('#appbar')).toBeHidden();
+        // the fixture clears localStorage on every load, so check the saved flag instead of reloading
+        expect(await page.evaluate(() => localStorage.getItem('augx-appbar-off'))).toBe('1');
         expect(errors).toEqual([]);
     });
 
