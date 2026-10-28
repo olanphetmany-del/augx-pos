@@ -127,20 +127,60 @@
         let historyOrders = [];         // ออร์เดอร์ของวันที่เลือก (ใช้หน้า History)
         let historyRef = null;
         let knownIds = null;            // เก็บ id ที่เคยเห็นแล้ว เพื่อรู้ว่าอันไหนใหม่
-        let audioCtx = null, audioReady = false;
+        let audioCtx = null, audioReady = false, wakeLock = null;
 
         /* ---------------- เสียง ---------------- */
+        // จอล็อกแล้ว iPad จะหยุดเสียงของหน้าเว็บ (suspended / interrupted) และไม่เปิดคืนเอง
+        // → ตอนกลับมาที่หน้า หรือก่อนส่งเสียง ให้ลองเปิดเสียงเอง ถ้าเครื่องไม่ยอม ให้ขึ้นแถบ "แตะเพื่อเปิดเสียง" อีกครั้ง
+        function soundOn() { return !!audioCtx && audioCtx.state === 'running'; }
+        function soundReady() {
+            audioReady = true;
+            document.getElementById('sound-banner').classList.remove('active');
+            document.removeEventListener('click', unlockAudio);
+        }
+        function askForTap() {
+            audioReady = false;
+            document.getElementById('sound-banner').classList.add('active');
+            document.removeEventListener('click', unlockAudio);
+            document.addEventListener('click', unlockAudio, { once: true });
+        }
+        // iOS 12 (webkitAudioContext) อาจไม่คืน Promise จาก resume()
+        function resumeAudio() {
+            let p = null;
+            try { p = audioCtx.resume(); } catch (e) { }
+            if (p && p.then) p.then(function () { if (soundOn()) soundReady(); }, function () { });
+        }
+        function checkSound() {
+            if (!audioReady || !audioCtx || soundOn()) return;
+            askForTap();
+            resumeAudio();
+        }
         function unlockAudio() {
             try {
                 const AC = window.AudioContext || window.webkitAudioContext;
                 if (AC && !audioCtx) audioCtx = new AC();
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                if (audioCtx && !soundOn()) resumeAudio();
             } catch (e) { }
-            audioReady = true;
-            document.getElementById('sound-banner').classList.remove('active');
+            soundReady();
+            keepAwake();
         }
+        // กันจอดับ (เครื่องที่รองรับ: iPadOS 16.4+, Chrome) · iPad รุ่นเก่าให้ตั้ง Auto-Lock = Never แทน
+        function keepAwake() {
+            if (wakeLock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+            try {
+                navigator.wakeLock.request('screen').then(function (l) {
+                    wakeLock = l;
+                    l.addEventListener('release', function () { wakeLock = null; });
+                }, function () { });
+            } catch (e) { }
+        }
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') { checkSound(); keepAwake(); }
+        });
+        window.addEventListener('pageshow', checkSound);
         function beep(times) {
             if (!audioCtx) return;
+            if (!soundOn()) checkSound();
             for (let i = 0; i < times; i++) {
                 const o = audioCtx.createOscillator(), g = audioCtx.createGain();
                 o.type = 'sine'; o.frequency.value = 880;
@@ -220,7 +260,7 @@
             // เตือนซ้ำทุก 5 นาที ถ้ายังมีออร์เดอร์ค้าง
             setInterval(() => { if (openOrders().length > 0) playReminderSound(); }, 300000);
             // อัปเดตเวลารอทุก 30 วินาที
-            setInterval(() => { if (currentTab === 'main') renderOrders(); }, 30000);
+            setInterval(() => { checkSound(); if (currentTab === 'main') renderOrders(); }, 30000);
         }
 
         function loadHistory() {
