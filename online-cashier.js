@@ -17,6 +17,9 @@
     var REJECT_REASONS = ['ของหมด', 'ร้านปิดแล้ว', 'อยู่นอกพื้นที่ส่ง', 'ยังไม่ได้รับเงิน', 'อื่นๆ'];
     // 'cafe' = แคชเชียร์ (ไม่เห็นออร์เดอร์ที่มีสินค้า SHOP) · 'shop' = หน้า SHOP (เห็นเฉพาะออร์เดอร์ที่มีสินค้า SHOP)
     var MODE = window.AXO_MODE || 'cafe', muteUntil = 0;
+    // เวลาตามเซิร์ฟเวอร์ Firebase (เครื่องที่นาฬิกาเดินเร็ว/ช้า ไม่ทำให้ออร์เดอร์หมดเวลาผิด · BUG-9)
+    var clockSkew = 0;
+    function serverNow() { return Date.now() + clockSkew; }
     function winMs() { var m = Number(cfg.payWindowMin); return (m > 0 ? m : 10) * 60000; }
     function deadline(o) { return Math.max(Number(o.until) || 0, (Number(o.createdAt) || 0) + winMs()); }
     function mmss(ms) { ms = Math.max(0, ms); var m = Math.floor(ms / 60000), x = Math.floor(ms / 1000) % 60; return m + ':' + ('0' + x).slice(-2); }
@@ -39,7 +42,7 @@
     function M(n) { return typeof money === 'function' ? money(n) : Number(n || 0).toLocaleString() + ' ₭'; }
     function say(t, ok) { if (typeof toast === 'function') toast(t, ok); }
     function ago(ts) {
-        var m = Math.max(0, Math.round((Date.now() - (ts || 0)) / 60000));
+        var m = Math.max(0, Math.round((serverNow() - (ts || 0)) / 60000));
         return m < 1 ? 'เมื่อกี้' : m < 60 ? m + ' นาทีที่แล้ว' : Math.floor(m / 60) + ' ชม. ที่แล้ว';
     }
     function waDigits(p) { return typeof waNumber === 'function' ? waNumber(p) : String(p || '').replace(/\D/g, ''); }
@@ -54,8 +57,9 @@
             database.ref(k).on('value', function (s) { raw[k] = s.val() || {}; menu = AugustxMenu.buildMenu(raw.menu_items, raw.modifiers, raw.categories); render(); });
         });
         database.ref('settings/online').on('value', function (s) { cfg = s.val() || {}; });
+        database.ref('.info/serverTimeOffset').on('value', function (s) { clockSkew = Number(s.val()) || 0; });
         setInterval(function () { sweep(); if (panelOpen) drawPanel(); else render(); }, 15000);
-        database.ref('online_orders').orderByChild('createdAt').startAt(Date.now() - 36 * 3600000).on('value', function (s) {
+        database.ref('online_orders').orderByChild('createdAt').startAt(serverNow() - 36 * 3600000).on('value', function (s) {
             orders = s.val() || {};
             watch();
             render();
@@ -132,21 +136,34 @@
                 return (b.status === 'new') - (a.status === 'new') || finished(a) - finished(b) || (b.createdAt || 0) - (a.createdAt || 0);
             });
     }
-    function newOnes() { return list().filter(function (o) { return o.status === 'new' && Date.now() <= deadline(o); }); }
-    function expiredOnes() { return list().filter(function (o) { return o.status === 'expired' || (o.status === 'new' && Date.now() > deadline(o)); }); }
-    // หมดเวลา: ยังไม่มีใครกดรับเกินเวลาที่ตั้ง → "หมดเวลา" (ดึงกลับมาทำได้ใน 24 ชม.) · เกิน 24 ชม. → ลบทิ้ง
+    function newOnes() { return list().filter(function (o) { return o.status === 'new' && serverNow() <= deadline(o); }); }
+    // หมดเวลา: ยังไม่มีใครกดรับเกินเวลาที่ตั้ง → "หมดเวลา" (ดึงกลับมาทำได้ใน 24 ชม.) · เกิน 24 ชม. → ซ่อนจากรายการ แต่เก็บข้อมูล + หน้าติดตามไว้ (BUG-22)
+    // (ลูกค้าที่โอนแล้วแต่ร้านพลาด ยังมีหลักฐานให้ตรวจ)
+    function expiredOnes() {
+        var now = serverNow();
+        return list().filter(function (o) { return (o.status === 'expired' || (o.status === 'new' && now > deadline(o))) && now - (o.createdAt || 0) <= 24 * 3600000; });
+    }
     function sweep() {
-        var now = Date.now();
+        var now = serverNow();
         list().forEach(function (o) {
             if (o.status === 'new' && now > deadline(o)) {
-                database.ref('online_orders/' + o.id).update({ status: 'expired', expiredAt: now }).catch(function () {});
-                setTrack(o, { status: 'expired' });
-            } else if (o.status === 'expired' && now - (o.createdAt || 0) > 24 * 3600000) {
-                var upd = {}; upd['online_orders/' + o.id] = null; if (o.trackTok) upd['order_track/' + o.trackTok] = null;
-                database.ref().update(upd).catch(function () {});
+                moveStatus(o.id, function (x) { return x.status === 'new' && serverNow() > deadline(x); }, { status: 'expired', expiredAt: now })
+                    .then(function (ok) { if (ok) setTrack(o, { status: 'expired' }); }, function (e) { console.warn('expire ' + o.id + ':', e && e.message); });
             }
         });
     }
+    // เปลี่ยนสถานะออร์เดอร์แบบ transaction: เขียนเฉพาะเมื่อข้อมูลในฐานข้อมูลตอนนี้ยังผ่าน ok() (BUG-9)
+    // → เครื่องที่ข้อมูลเก่า/หลุดเน็ตแล้วกลับมา จะไม่เขียนทับออร์เดอร์ที่เครื่องอื่นรับ/ไม่รับไปแล้ว
+    // (ค่าในเครื่องอาจยังเป็น null ตอนเรียกครั้งแรก → ส่ง null กลับไป ให้ Firebase ลองใหม่ด้วยค่าจริงจากเซิร์ฟเวอร์)
+    function moveStatus(id, ok, patch) {
+        return database.ref('online_orders/' + id).transaction(function (x) {
+            if (x === null) return null;
+            if (!ok(x)) return;
+            return Object.assign(x, patch);
+        }).then(function (r) { var v = r.committed && r.snapshot.val(); return !!(v && v.status === patch.status); });
+    }
+    function isNewNow(x) { return x.status === 'new'; }
+    function handledElsewhere(id) { say('ออร์เดอร์ ' + id + ' ถูกจัดการจากเครื่องอื่นแล้ว', false); }
     var histOpen = false;
     function isDone(o) { return o.status === 'rejected' || !!o.poNo || (o.status === 'accepted' && finished(o) && o.paid === true); }
     function liveOnes() { return list().filter(function (o) { return o.status === 'accepted' && !finished(o); }); }
@@ -223,7 +240,7 @@
 
     function drawPanel() {
         var keepScroll = overlay.scrollTop;
-        var all = list().filter(function (o) { return !(o.status === 'expired' || (o.status === 'new' && Date.now() > deadline(o))); }), exp = expiredOnes();
+        var all = list().filter(function (o) { return !(o.status === 'expired' || (o.status === 'new' && serverNow() > deadline(o))); }), exp = expiredOnes();
         var html = '<div class="axo-box"><div class="axo-head"><h3>🛵 ออร์เดอร์ลูกค้าสั่งเอง' + (MODE === 'shop' ? ' · 👟 SHOP' : '') + '</h3><button class="axo-x" data-a="close" style="border:0;border-radius:8px;padding:8px 12px;font-weight:bold;cursor:pointer">ปิด</button></div>' +
             '<div class="axo-acts" style="margin:0 0 6px">' + (Date.now() > muteUntil ? '<button class="axo-x" data-a="mute" style="color:#334155">🔇 ปิดเสียง 30 นาที</button>' : '<button class="axo-b" data-a="unmute">🔔 เปิดเสียง (ปิดถึง ' + timeHHMM(muteUntil) + ')</button>') +
             (newOnes().length > 1 ? '<button class="axo-x" data-a="rejectall">🗑️ ไม่รับออร์เดอร์ใหม่ทั้งหมด (' + newOnes().length + ')</button>' : '') + '</div>';
@@ -233,7 +250,7 @@
         all.forEach(function (o) {
             var p = priced(o), isNew = o.status === 'new', stage = stageOf(o), dl = o.delivery, t = o.trackTok && tracks[o.trackTok], C = p.cur;
             var live = o.status === 'accepted' && !finished(o);
-            var left = deadline(o) - Date.now();
+            var left = deadline(o) - serverNow();
             html += '<div class="axo-card ' + (isNew ? 'new' : live ? 'live' : 'done') + '">' +
                 '<div class="axo-row"><div><b style="font-size:15px">' + E(o.id) + '</b> <span class="axo-pill ' + E(o.status) + '">' + ({ new: 'ใหม่', accepted: 'รับแล้ว', rejected: 'ไม่รับ' }[o.status] || E(o.status)) + '</span>' +
                 (o.status === 'accepted' ? '<span class="axo-pill ' + (o.paid ? 'paid">จ่ายแล้ว' : 'unpaid">ยังไม่จ่าย') + '</span><span class="axo-pill st">' + E(STAGE_TH[stage] || stage) + '</span>' : '') +
@@ -302,7 +319,7 @@
             html += '</details>';
         }
         if (exp.length) {
-            html += '<h3 style="margin:16px 0 4px;font-size:15px;color:#64748b">⏰ หมดเวลา (' + exp.length + ') · ดึงกลับมาทำได้ภายใน 24 ชม. หลังจากนั้นระบบลบเอง</h3>';
+            html += '<h3 style="margin:16px 0 4px;font-size:15px;color:#64748b">⏰ หมดเวลา (' + exp.length + ') · ดึงกลับมาทำได้ภายใน 24 ชม. หลังจากนั้นซ่อนจากรายการ (ข้อมูลยังเก็บไว้)</h3>';
             exp.forEach(function (o) {
                 var p = priced(o);
                 html += '<div class="axo-card done"><div class="axo-row"><div><b>' + E(o.id) + '</b> <span class="axo-pill rejected">หมดเวลา</span></div><span class="axo-sm">' + ago(o.createdAt) + '</span></div>' +
@@ -330,36 +347,51 @@
         if (a === 'rejectall') {
             var ns = newOnes();
             if (!confirm('ไม่รับออร์เดอร์ใหม่ทั้งหมด ' + ns.length + ' รายการ? (ใช้ตอนโดนสั่งมั่ว)')) return;
-            ns.forEach(function (x) { database.ref('online_orders/' + x.id).update({ status: 'rejected', rejectReason: 'อื่นๆ', handledAt: Date.now() }); setTrack(x, { status: 'rejected', reason: '' }); });
-            return say('ไม่รับ ' + ns.length + ' ออร์เดอร์แล้ว');
+            Promise.all(ns.map(function (x) {
+                return moveStatus(x.id, isNewNow, { status: 'rejected', rejectReason: 'อื่นๆ', handledAt: serverNow() })
+                    .then(function (ok) { if (ok) setTrack(x, { status: 'rejected', reason: '' }); return ok; });
+            })).then(function (r) {
+                var n = r.filter(Boolean).length;
+                say('ไม่รับ ' + n + ' ออร์เดอร์แล้ว' + (n < ns.length ? ' · ' + (ns.length - n) + ' ออร์เดอร์ถูกจัดการจากเครื่องอื่นแล้ว' : ''));
+            }, function (err) { say('ไม่สำเร็จ: ' + (err && err.message || err), false); });
+            return;
         }
         if (!o || busy[id]) return;
         if (a === 'extend') {
-            var until = Math.max(deadline(o), Date.now()) + 10 * 60000;
+            var until = Math.max(deadline(o), serverNow()) + 10 * 60000;
             database.ref('online_orders/' + id + '/until').set(until); setTrack(o, { until: until });
             return say('ต่อเวลาให้ลูกค้าอีก 10 นาที');
         }
         if (a === 'revive') {
-            var u2 = Date.now() + winMs();
-            database.ref('online_orders/' + id).update({ status: 'new', until: u2, revivedAt: Date.now() }); setTrack(o, { status: 'new', until: u2 });
-            seen[id] = true;
-            return say('ดึงออร์เดอร์ ' + id + ' กลับมาแล้ว · กดรับเข้าครัวได้เลย');
+            var u2 = serverNow() + winMs();
+            moveStatus(id, function (x) { return x.status === 'expired' || (x.status === 'new' && serverNow() > deadline(x)); }, { status: 'new', until: u2, revivedAt: serverNow() }).then(function (ok) {
+                if (!ok) return handledElsewhere(id);
+                setTrack(o, { status: 'new', until: u2 });
+                seen[id] = true;
+                say('ดึงออร์เดอร์ ' + id + ' กลับมาแล้ว · กดรับเข้าครัวได้เลย');
+            }, function (err) { say('ไม่สำเร็จ: ' + (err && err.message || err), false); });
+            return;
         }
         if (a === 'block') {
             if (!confirm('บล็อกเบอร์ ' + o.phone + ' ?\nเบอร์นี้จะสั่งออนไลน์ไม่ได้อีก (ปลดบล็อกได้ที่ Admin → สั่งออนไลน์) และไม่รับออร์เดอร์นี้')) return;
-            database.ref('blocked/' + String(o.phone).replace(/[.#$\/\[\]]/g, '')).set({ name: o.name || '', at: Date.now(), order: id });
-            database.ref('online_orders/' + id).update({ status: 'rejected', rejectReason: 'บล็อก', handledAt: Date.now() });
-            setTrack(o, { status: 'rejected', reason: '' });
-            return say('บล็อกเบอร์ ' + o.phone + ' แล้ว');
+            moveStatus(id, isNewNow, { status: 'rejected', rejectReason: 'บล็อก', handledAt: serverNow() }).then(function (ok) {
+                if (!ok) return handledElsewhere(id);   // เครื่องอื่นรับไปแล้ว → ไม่บล็อกลูกค้าคนนี้
+                database.ref('blocked/' + String(o.phone).replace(/[.#$\/\[\]]/g, '')).set({ name: o.name || '', at: Date.now(), order: id });
+                setTrack(o, { status: 'rejected', reason: '' });
+                say('บล็อกเบอร์ ' + o.phone + ' แล้ว');
+            }, function (err) { say('ไม่สำเร็จ: ' + (err && err.message || err), false); });
+            return;
         }
         if (a === 'reject') { rejecting[id] = true; return render(); }
         if (a === 'rejectback') { delete rejecting[id]; return render(); }
         if (a === 'rejectwhy') {
             var r = b.dataset.r;
             delete rejecting[id];
-            database.ref('online_orders/' + id).update({ status: 'rejected', rejectReason: r, handledAt: Date.now() });
-            setTrack(o, { status: 'rejected', reason: typeof laoReason === 'function' ? laoReason(r) : '' });
-            say('ไม่รับออร์เดอร์ ' + id + ' แล้ว · แจ้งลูกค้าในหน้าติดตาม');
+            moveStatus(id, isNewNow, { status: 'rejected', rejectReason: r, handledAt: serverNow() }).then(function (ok) {
+                if (!ok) return handledElsewhere(id);
+                setTrack(o, { status: 'rejected', reason: typeof laoReason === 'function' ? laoReason(r) : '' });
+                say('ไม่รับออร์เดอร์ ' + id + ' แล้ว · แจ้งลูกค้าในหน้าติดตาม');
+            }, function (err) { say('ไม่สำเร็จ: ' + (err && err.message || err), false); });
             return;
         }
         if (a === 'paid' || a === 'unpaid') return accept(id, a === 'paid', b);
@@ -407,7 +439,7 @@
             // จองออร์เดอร์ก่อน: new → accepted แบบ transaction · ถ้าอีกเครื่องกดรับ/ไม่รับ/หมดเวลาไปแล้ว จะไม่เปิดบิลซ้ำ (BUG-5)
             // (ค่าในเครื่องอาจยังเป็น null ตอนเรียกครั้งแรก → ส่ง null กลับไป ให้ Firebase ลองใหม่ด้วยค่าจริงจากเซิร์ฟเวอร์)
             var claim = await database.ref('online_orders/' + id + '/status').transaction(function (st) { return st === 'new' ? 'accepted' : st === null ? null : undefined; });
-            if (!claim.committed || claim.snapshot.val() !== 'accepted') return say('ออร์เดอร์ ' + id + ' ถูกจัดการจากเครื่องอื่นแล้ว', false);
+            if (!claim.committed || claim.snapshot.val() !== 'accepted') return handledElsewhere(id);
             if (o.test) { /* 🧪 ออเดอร์ทดลอง: ไม่เปิดบิล ไม่เข้าครัว ไม่ตัดสต็อก ไม่นับยอด · แค่เดินสถานะให้หน้าลูกค้าดู */
                 await database.ref('online_orders/' + id).update({ status: 'accepted', paid: !!paid && p.cur !== 'THB', handledAt: Date.now() });
                 await setTrack(o, { status: 'accepted', paid: !!paid && p.cur !== 'THB', total: p.normalTotal });
