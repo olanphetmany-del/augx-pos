@@ -126,3 +126,127 @@ test.describe('expired online orders', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// BUG-9: a cashier device whose data is out of date (e.g. it was offline) or
+// whose clock is wrong must not overwrite what another device already did.
+function dbWithNewOrderAged(minutesOld) {
+    const now = Date.now();
+    const db = seedData(now);
+    db.online_orders = {
+        'ON191026002-STL': {
+            name: 'Somchai', phone: '+8562011112222', status: 'new', createdAt: now - minutesOld * 60000, total: 20000, trackTok: 'STLtokSTLtokSTLtok01',
+            items: [{ itemId: 'tea', qty: 1, unitPrice: 20000, name: 'Smoke Tea' }],
+        },
+    };
+    db.order_track = { STLtokSTLtokSTLtok01: { bill: 'ON191026002-STL', status: 'new', paid: false, at: now - minutesOld * 60000 } };
+    return db;
+}
+const ID = 'ON191026002-STL';
+const status = (page) => page.evaluate((id) => window.__fakeDb.get('online_orders/' + id + '/status'), ID);
+const trackStatus = (page) => page.evaluate(() => window.__fakeDb.get('order_track/STLtokSTLtokSTLtok01/status'));
+// Another cashier device accepts the order; this device hasn't heard yet.
+const acceptElsewhere = (page) => page.evaluate((id) => {
+    window.__fakeDb.setUnseen('online_orders/' + id + '/status', 'accepted');
+    window.__fakeDb.setUnseen('online_orders/' + id + '/billId', 'b-other');
+}, ID);
+async function startCashier(page) {
+    await page.clock.install();
+    await page.clock.resume();
+    await page.goto('cashier.html');
+    await expect(page.locator('.axo-btn')).toBeVisible();
+}
+const runSweep = async (page) => { await page.clock.fastForward(20000); await page.waitForTimeout(150); };
+
+test.describe('BUG-9: out-of-date device', () => {
+    test.describe('order past its pay window', () => {
+        test.use({ db: dbWithNewOrderAged(20) });
+
+        test('expiry does not overwrite an accept made on another device', async ({ page, errors }) => {
+            await startCashier(page);
+            await acceptElsewhere(page);
+            await runSweep(page);
+            expect(await status(page)).toBe('accepted');
+            expect(await trackStatus(page)).toBe('new');
+            expect(errors).toEqual([]);
+        });
+
+        test('without that, the order does expire (control)', async ({ page, errors }) => {
+            await startCashier(page);
+            await runSweep(page);
+            expect(await status(page)).toBe('expired');
+            expect(await trackStatus(page)).toBe('expired');
+            expect(errors).toEqual([]);
+        });
+
+        test('"bring back" does not overwrite an accept made on another device', async ({ page, errors }) => {
+            await startCashier(page);
+            await page.locator('.axo-btn').click();
+            const revive = page.locator(`.axo-ov [data-a="revive"][data-id="${ID}"]`);
+            await expect(revive).toBeVisible();
+            await acceptElsewhere(page);
+            await revive.click();
+            await expect(page.getByText('ถูกจัดการจากเครื่องอื่นแล้ว')).toBeVisible();
+            expect(await status(page)).toBe('accepted');
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('order inside its pay window', () => {
+        test.use({ db: dbWithNewOrderAged(1) });
+
+        test('reject does not overwrite an accept made on another device', async ({ page, errors }) => {
+            await startCashier(page);
+            await page.locator('.axo-btn').click();
+            await page.locator(`.axo-ov [data-a="reject"][data-id="${ID}"]`).click();
+            const why = page.locator(`.axo-ov [data-a="rejectwhy"][data-id="${ID}"]`).first();
+            await expect(why).toBeVisible();
+            await acceptElsewhere(page);
+            await why.click();
+            await expect(page.getByText('ถูกจัดการจากเครื่องอื่นแล้ว')).toBeVisible();
+            expect(await status(page)).toBe('accepted');
+            expect(await trackStatus(page)).toBe('new');
+            expect(errors).toEqual([]);
+        });
+
+        test('block does not overwrite an accept, and does not block the customer', async ({ page, errors }) => {
+            await page.addInitScript(() => { window.confirm = () => true; });
+            await startCashier(page);
+            await page.locator('.axo-btn').click();
+            const block = page.locator(`.axo-ov [data-a="block"][data-id="${ID}"]`);
+            await expect(block).toBeVisible();
+            await acceptElsewhere(page);
+            await block.click();
+            await expect(page.getByText('ถูกจัดการจากเครื่องอื่นแล้ว')).toBeVisible();
+            expect(await status(page)).toBe('accepted');
+            expect(await page.evaluate(() => window.__fakeDb.get('blocked'))).toBeNull();
+            expect(errors).toEqual([]);
+        });
+
+        test('reject still works normally', async ({ page, errors }) => {
+            await startCashier(page);
+            await page.locator('.axo-btn').click();
+            await page.locator(`.axo-ov [data-a="reject"][data-id="${ID}"]`).click();
+            await page.locator(`.axo-ov [data-a="rejectwhy"][data-id="${ID}"]`).first().click();
+            await expect.poll(() => status(page)).toBe('rejected');
+            expect(await trackStatus(page)).toBe('rejected');
+            expect(errors).toEqual([]);
+        });
+    });
+});
+
+test.describe('BUG-9: device clock 10 minutes fast', () => {
+    // Server time is 10 min behind this device. The order is 5 min old by the
+    // server's clock (15 min by the device's), inside the 10 min pay window.
+    const db = dbWithNewOrderAged(15);
+    test.use({ db });
+
+    test('uses server time: the order is not expired early', async ({ page, errors }) => {
+        await page.addInitScript(() => { window.__FAKE_SERVER_OFFSET = -10 * 60000; });
+        await startCashier(page);
+        await runSweep(page);
+        expect(await status(page)).toBe('new');
+        await page.locator('.axo-btn').click();
+        await expect(page.locator(`.axo-ov [data-a="paid"][data-id="${ID}"]`)).toBeVisible(); // still acceptable
+        expect(errors).toEqual([]);
+    });
+});
