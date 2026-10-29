@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const FAKE_FIREBASE = readFileSync(path.join(import.meta.dirname, 'fake-firebase.js'), 'utf8');
-export const OWNER = { uid: 'owner-uid', email: 'olan.phetmany@gmail.com' }; // shared.js APP_CONFIG.OWNER_EMAIL
+export const OWNER = { uid: 'owner-uid', email: 'olan.phetmany@gmail.com' }; // shared.js APP_CONFIG.OWNER_EMAILS
+export const ADMIN2 = { uid: 'admin2-uid', email: 'Brandon+AUGX@massconfusion.com' }; // second owner; mixed case on purpose
 export const STAFF = { uid: 'staff-uid', email: 'staff@example.com' };
 
 // Seed data with timestamps relative to "now" so time-windowed queries see it.

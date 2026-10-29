@@ -1,9 +1,12 @@
 // Smoke tests: every page loads against a fake Firebase without JavaScript
 // errors and shows the seeded data. Catches broken uploads, missing files and
 // script-order problems before customers or staff do.
-import { test, expect, OWNER, STAFF, seedData } from './fixtures.js';
+import { test, expect, OWNER, ADMIN2, STAFF, seedData } from './fixtures.js';
 
 const loginOverlay = (page) => page.locator('#login-overlay');
+// Everything on the page except the login overlay is hidden until login is confirmed.
+const shownOutsideLogin = (page) => page.evaluate(() => [...document.body.children]
+    .filter((el) => el.id !== 'login-overlay' && getComputedStyle(el).visibility !== 'hidden').map((el) => el.tagName + '#' + el.id));
 
 test.describe('staff pages, signed out', () => {
     test.use({ user: null });
@@ -12,6 +15,7 @@ test.describe('staff pages, signed out', () => {
             await page.goto(p);
             await expect(page.locator('#login-email')).toBeVisible();
             await expect(page.locator('#login-btn')).toBeVisible();
+            expect(await shownOutsideLogin(page)).toEqual([]);
             expect(errors).toEqual([]);
         });
     }
@@ -30,6 +34,7 @@ test.describe('staff pages, signed in', () => {
         await page.goto('kitchen.html');
         await expect(loginOverlay(page)).toBeHidden();
         await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        expect(await shownOutsideLogin(page)).not.toEqual([]);
         expect(errors).toEqual([]);
     });
 
@@ -51,12 +56,37 @@ test.describe('staff pages, signed in', () => {
         });
     });
 
+    test.describe('admin as the second owner', () => {
+        test.use({ user: ADMIN2 });
+        test('admin.html loads; owner checks match any listed email, ignoring case', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            await expect(loginOverlay(page)).toBeHidden();
+            await expect(page.locator('body')).toContainText('Smoke Latte');
+            expect(await page.evaluate(() => [
+                'olan.phetmany@gmail.com', 'BRANDON+augx@massconfusion.com', 'staff@example.com', 'brandon@massconfusion.com', '', null,
+            ].map(window.isOwnerEmail))).toEqual([true, true, false, false, false, false]);
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('admin on a phone', () => {
+        test.use({ user: OWNER, viewport: { width: 390, height: 844 } });
+        test('home buttons split the menu icon from the label', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            const delivery = page.locator('#m-home button', { hasText: 'Delivery Partners' });
+            await expect(delivery.locator('span')).toHaveText('🛵');
+            await expect(page.locator('#m-home button', { hasText: 'Printer' }).locator('span')).toHaveText('🖨️');
+            expect(errors).toEqual([]);
+        });
+    });
+
     test.describe('admin as non-owner', () => {
         test.use({ user: STAFF });
         test('admin.html refuses staff accounts', async ({ page, errors }) => {
             await page.goto('admin.html');
             await expect(page.locator('#login-msg')).toContainText('ไม่มีสิทธิ์');
             await expect(page.locator('#login-logout')).toBeVisible();
+            expect(await shownOutsideLogin(page)).toEqual([]);
             expect(errors).toEqual([]);
         });
     });

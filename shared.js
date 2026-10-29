@@ -8,8 +8,9 @@ const APP_CONFIG = {
     // false = เปิดใช้ได้เลยเหมือนเดิม (ไม่ต้องล็อกอิน)
     // true  = ต้องล็อกอินด้วยอีเมล/รหัสผ่านก่อนใช้งาน (ทำตามไฟล์ SETUP-คู่มือ.md ก่อนเปิด!)
     REQUIRE_LOGIN: true,
-    // อีเมลเจ้าของร้าน (ใช้เมื่อ REQUIRE_LOGIN = true) เฉพาะอีเมลนี้เข้า Admin ได้
-    OWNER_EMAIL: 'olan.phetmany@gmail.com',
+    // อีเมลเจ้าของร้าน/ผู้ดูแล (ใช้เมื่อ REQUIRE_LOGIN = true) เฉพาะอีเมลเหล่านี้เข้า Admin ได้
+    // เพิ่มคนต้องเพิ่ม UID ในกฎ Firebase ด้วย (ไม่งั้นล็อกอินได้แต่ไม่เห็นข้อมูล)
+    OWNER_EMAILS: ['olan.phetmany@gmail.com', 'brandon+augx@massconfusion.com'],
     // เตือนเมื่อแก้วเหลือน้อยกว่าจำนวนนี้
     LOW_CUP_ALERT: 50,
     // รหัสประเทศสำหรับ WhatsApp (ลาว = 856) ใช้เติมหน้าเบอร์ที่ขึ้นต้นด้วย 0
@@ -218,8 +219,14 @@ function watchConnection() {
 function logoutApp() {
     if (APP_CONFIG.REQUIRE_LOGIN) { firebase.auth().signOut().then(function () { location.reload(); }); }
 }
+// หน้าพนักงานเริ่มด้วย <html class="auth-wait"> = ซ่อนทุกอย่างยกเว้นหน้าล็อกอิน จนกว่าจะรู้ว่าเข้าได้
+function showPage(on) { document.documentElement.classList[on ? 'remove' : 'add']('auth-wait'); }
+function isOwnerEmail(email) {
+    const e = String(email || '').toLowerCase();
+    return !!e && APP_CONFIG.OWNER_EMAILS.some(function (o) { return String(o).toLowerCase() === e; });
+}
 function startApp(role, init) {
-    if (!APP_CONFIG.REQUIRE_LOGIN) { watchConnection(); init(); return; }
+    if (!APP_CONFIG.REQUIRE_LOGIN) { showPage(true); watchConnection(); init(); return; }
 
     const ov = document.createElement('div');
     ov.id = 'login-overlay';
@@ -268,15 +275,14 @@ function startApp(role, init) {
 
     let started = false;
     firebase.auth().onAuthStateChanged(function (user) {
-        if (!user) { ov.style.display = 'flex'; form.style.display = 'block'; logoutBtn.style.display = 'none'; return; }
-        const owner = String(APP_CONFIG.OWNER_EMAIL || '').toLowerCase();
-        if (role === 'admin' && owner && String(user.email || '').toLowerCase() !== owner) {
-            ov.style.display = 'flex'; form.style.display = 'none';
+        if (!user) { showPage(false); ov.style.display = 'flex'; form.style.display = 'block'; logoutBtn.style.display = 'none'; return; }
+        if (role === 'admin' && !isOwnerEmail(user.email)) {
+            showPage(false); ov.style.display = 'flex'; form.style.display = 'none';
             msg.textContent = 'บัญชีนี้ไม่มีสิทธิ์เข้าหน้า Admin';
             logoutBtn.style.display = 'block';
             return;
         }
-        ov.style.display = 'none';
+        ov.style.display = 'none'; showPage(true);
         if (!started) { started = true; watchConnection(); init(); }
     });
 }
@@ -506,16 +512,33 @@ const LAO_REASON = {
 function laoReason(r) { r = String(r || '').trim(); return Object.prototype.hasOwnProperty.call(LAO_REASON, r) ? LAO_REASON[r] : ''; }
 function voidBill(id, bill, opts) {
     const wasOpen = isOpenBill(bill);
-    const base = 'orders/' + id + '/', upd = {};
-    upd[base + 'status'] = 'void';
-    upd[base + 'voidReason'] = opts.reason || '';
-    upd[base + 'voidedBy'] = opts.by || '';
-    upd[base + 'voidedAt'] = Date.now();
-    upd[base + 'voidedWasPaid'] = !wasOpen;
-    if (!wasOpen && opts.refund) {
-        upd[base + 'refund'] = { status: opts.refund.status, method: opts.refund.method || '', amount: Number(bill.total || 0), at: Date.now() };
-    }
-    return database.ref().update(upd).then(function () {
+    const base = 'orders/' + id + '/';
+    let outcome = '';
+    // จองสถานะ "void" ด้วย transaction ก่อน: ถ้าอีกเครื่องเพิ่งรับเงินหรือยกเลิกบิลนี้ไปแล้ว จะไม่เขียนทับ
+    // (หน้าต่างยกเลิกเปิดค้างได้นาน ข้อมูลบิลในมืออาจเก่า)
+    return database.ref(base + 'status').transaction(function (s) {
+        if (s === null) return null; // ยังไม่ได้ค่าจากเซิร์ฟเวอร์ / บิลเก่าไม่มี status
+        if (s === 'void') { outcome = 'already'; return; }
+        if ((s === 'paid') === wasOpen) { outcome = 'changed'; return; }
+        outcome = 'void';
+        return 'void';
+    }).then(function (res) {
+        if (outcome === 'already') throw new Error('บิลนี้ถูกยกเลิกจากเครื่องอื่นแล้ว');
+        if (outcome === 'changed') throw new Error('บิลนี้ถูกชำระเงินจากเครื่องอื่นแล้ว · ปิดหน้าต่างแล้วเปิดใหม่');
+        if (!res.committed) throw new Error('ยกเลิกบิลไม่สำเร็จ');
+        const upd = {};
+        if (outcome !== 'void') upd[base + 'status'] = 'void'; // บิลเก่าที่ไม่มี status
+        upd[base + 'voidReason'] = opts.reason || '';
+        upd[base + 'voidedBy'] = opts.by || '';
+        upd[base + 'voidedAt'] = Date.now();
+        upd[base + 'voidedWasPaid'] = !wasOpen;
+        if (!wasOpen && opts.refund) {
+            upd[base + 'refund'] = { status: opts.refund.status, method: opts.refund.method || '', amount: Number(bill.total || 0), at: Date.now() };
+        }
+        return database.ref().update(upd).then(function () { return database.ref('orders/' + id).once('value'); });
+    }).then(function (snap) {
+        // คืนสต็อก/แก้ว ตามรายการล่าสุดของบิล (อาจมีเครื่องอื่นสั่งเพิ่มหลังเปิดหน้าต่าง)
+        bill = Object.assign({}, bill, snap.val() || {});
         // ออร์เดอร์ที่ลูกค้าสั่งออนไลน์: แจ้งหน้าติดตามของลูกค้าว่ายกเลิก พร้อมเหตุผล (ภาษาลาว)
         if (bill.trackTok) database.ref('order_track/' + bill.trackTok).update({ status: 'rejected', reason: laoReason(opts.reason) }).catch(function () {});
         adjustCups(billCups(bill));

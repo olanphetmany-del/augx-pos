@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="lo">
+<html lang="lo" class="auth-wait">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -202,6 +202,8 @@
         .card { border-left-color: #0b4db3 !important; border-radius: 14px !important; }
         h2 { color: #0b4db3 !important; }
     </style>
+    <!-- ซ่อนหน้าไว้จนกว่าจะล็อกอินผ่าน (shared.js startApp เอาออก) -->
+    <style>.auth-wait body > :not(#login-overlay) { visibility: hidden; }</style>
 </head>
 <body>
     <div class="sidebar">
@@ -1240,7 +1242,7 @@
             document.getElementById('modal-item-cup').checked = true;
             document.getElementById('modal-item-retail').checked = false;
             document.getElementById('modal-item-preorder').checked = false;
-            stockOn = false; stockMap = {}; document.getElementById('modal-item-stock').checked = false; renderVariantRows();
+            stockOn = false; stockMap = {}; stockOrig = null; document.getElementById('modal-item-stock').checked = false; renderVariantRows();
             document.getElementById('modal-item-cur').value = 'LAK';
             document.getElementById('modal-item-cur-wrap').hidden = !FX.on;
             document.getElementById('modal-item-desc').value = '';
@@ -1264,7 +1266,7 @@
             document.getElementById('modal-item-cup').checked = it.usesCup !== false;
             document.getElementById('modal-item-retail').checked = it.retail === true;
             document.getElementById('modal-item-preorder').checked = it.preorder === true;
-            stockOn = it.stockOn === true; stockMap = Object.assign({}, it.stock || {}); document.getElementById('modal-item-stock').checked = stockOn;
+            stockOn = it.stockOn === true; stockMap = Object.assign({}, it.stock || {}); stockOrig = stockOn ? Object.assign({}, it.stock || {}) : null; document.getElementById('modal-item-stock').checked = stockOn;
             renderVariantRows();
             document.getElementById('modal-item-cur').value = it.currency === 'THB' ? 'THB' : 'LAK';
             document.getElementById('modal-item-cur-wrap').hidden = !FX.on && it.currency !== 'THB';
@@ -1290,7 +1292,19 @@
             document.getElementById('modal-item-channels').innerHTML = chans.map(c =>
                 `<label><input type="checkbox" value="${esc(c.id)}" ${hidden.includes(c.id) ? '' : 'checked'}> ${esc(c.name)}</label>`).join('');
         }
-        let stockOn = false, stockMap = {};
+        let stockOn = false, stockMap = {}, stockOrig = null;
+        // BUG-8: ระหว่างที่หน้าต่างแก้สินค้าเปิดอยู่ แคชเชียร์อาจขายไปแล้ว → บันทึกเฉพาะไซส์ที่แก้ตัวเลขในหน้าต่างนี้
+        // ไม่เขียนทับไซส์อื่นด้วยตัวเลขเก่าตอนเปิดหน้าต่าง · orig = สต็อกตอนเปิด, now = สต็อกที่จะบันทึก
+        function stockChanges(orig, now) {
+            const upd = {};
+            Object.keys(now).forEach(k => { if (!(k in orig) || Number(orig[k]) !== now[k]) upd[k] = now[k]; });
+            Object.keys(orig).forEach(k => { if (!(k in now)) upd[k] = null; });
+            return upd;
+        }
+        function saveStockChanges(id, orig, now) {
+            const upd = stockChanges(orig, now);
+            return Object.keys(upd).length ? database.ref('menu_items/' + id + '/stock').update(upd) : Promise.resolve();
+        }
         function renderVariantRows() {
             const box = document.getElementById('variant-rows');
             box.innerHTML = variantRows.map((r, i) =>
@@ -1329,7 +1343,7 @@
             const finish = id => {
                 const st = {};
                 if (stockOn) prices.forEach(p => { const v = parseInt(stockMap[stockKey(p.label)], 10); st[stockKey(p.label)] = isNaN(v) ? 0 : Math.max(0, v); });
-                const stockSave = database.ref('menu_items/' + id + '/stock').set(stockOn ? st : null);
+                const stockSave = stockOn && editingItemId && stockOrig ? saveStockChanges(id, stockOrig, st) : database.ref('menu_items/' + id + '/stock').set(stockOn ? st : null);
                 if (!modalPhotosDirty) return stockSave;
                 const n = modalPhotos.length;
                 return Promise.all([
@@ -1405,7 +1419,7 @@
             const brands = shoeBrandCats();
             if (!brands.length) return toast('ยังไม่มีหมวดแบรนด์ — ไปหน้า Categories กด "👟 สร้างหมวดแบรนด์รองเท้า" ก่อน', false);
             const it = id ? globalItems.find(x => x.id === id) : null;
-            SH = { id: it && !copy ? it.id : null, brand: '', rows: [], cur: null, photos: [], photosDirty: false, dirty: false, keep: {} };
+            SH = { id: it && !copy ? it.id : null, brand: '', rows: [], cur: null, photos: [], photosDirty: false, dirty: false, keep: {}, stockOrig: it && !copy ? Object.assign({}, it.stock || {}) : null };
             if (it) {
                 const cat = catByNameA(it.category);
                 SH.brand = cat && catSizes(cat).length ? it.category : '';
@@ -1598,7 +1612,7 @@
             try {
                 data.image = await shThumb();
                 let id = SH.id;
-                if (id) await database.ref('menu_items/' + id).update(data);
+                if (id) { const orig = SH.stockOrig || {}; delete data.stock; await database.ref('menu_items/' + id).update(data); await saveStockChanges(id, orig, stock); }
                 else { data.timestamp = Date.now(); const ref = database.ref('menu_items').push(); id = ref.key; Object.keys(data).forEach(k => data[k] === null && delete data[k]); await ref.set(data); }
                 if (SH.photosDirty || !SH.id) {
                     const n = SH.photos.length;
@@ -2205,7 +2219,8 @@
             document.querySelectorAll('.nav-menu li').forEach(li => {
                 if (!li.classList.contains('nav-item')) { h += '<div class="m-sec">' + esc(li.textContent.trim()) + '</div>'; return; }
                 const m = (li.getAttribute('onclick') || '').match(/'(tab-[a-z]+)'/); if (!m || m[1] === 'tab-financial') return;
-                const t = li.textContent.trim(), mm = t.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+                // \u0E44\u0E2D\u0E04\u0E2D\u0E19 = \u0E04\u0E33\u0E41\u0E23\u0E01\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E15\u0E31\u0E27\u0E2D\u0E31\u0E01\u0E29\u0E23/\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 (\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49 \p{Extended_Pictographic}: iOS 12 \u0E44\u0E21\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A)
+                const t = li.textContent.trim(), sp = t.match(/^(\S+)\s+(.*)$/), mm = sp && !/[A-Za-z0-9\u0E00-\u0EFF]/.test(sp[1]) ? sp : null;
                 const ic = mm ? mm[1] : '•', label = (mm ? mm[2] : t).replace(/\(.*?\)/g, '').trim();
                 h += `<button type="button" data-tab="${m[1]}" data-title="${esc(label)}"><span>${esc(ic)}</span>${esc(label)}</button>`;
             });

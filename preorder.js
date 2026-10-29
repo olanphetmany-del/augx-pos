@@ -41,7 +41,7 @@
     function say(t, ok) { toast(t, ok); }
     function isOwner() {
         var u = firebase.auth && firebase.auth().currentUser;
-        return !!(u && String(u.email || '').toLowerCase() === String(APP_CONFIG.OWNER_EMAIL || '').toLowerCase());
+        return !!(u && isOwnerEmail(u.email));
     }
     function trackLink(tok) { return location.href.replace(/[^/]*([?#].*)?$/, 'order.html') + '#t=' + tok; }
     function rnd(n) { var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = new Uint32Array(n), s = ''; crypto.getRandomValues(b); for (var i = 0; i < n; i++) s += abc[b[i] % abc.length]; return s; }

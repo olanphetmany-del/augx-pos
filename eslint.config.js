@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import * as espree from 'espree';
 import globals from 'globals';
 import html from 'eslint-plugin-html';
+import { builtinRules } from 'eslint/use-at-your-own-risk';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const APP_FILES = readdirSync(ROOT).filter((f) => /\.(js|html)$/.test(f) && !/^(eslint|vitest|playwright)\.config\.js$/.test(f));
@@ -68,6 +69,28 @@ const appWarnings = {
     'no-unused-vars': ['warn', { vars: 'local', args: 'none', caughtErrors: 'none', varsIgnorePattern: '^exports$' }],
 };
 
+// The oldest staff device is an iPad on iOS 12 (Safari 12), so app code must
+// stay within ES2018 syntax (ecmaVersion below) and avoid these newer built-ins.
+// A miss here doesn't fail one feature: a syntax error stops the whole script.
+const oldSafari = (what, since) => `${what} needs ${since}; the shop's iOS 12 iPad doesn't have it.`;
+// A second copy of no-restricted-syntax, so these can be errors while the
+// silent-catch check above stays a warning (one severity per rule name).
+const ios12 = { rules: { 'no-restricted-syntax': builtinRules.get('no-restricted-syntax') } };
+const ios12Rules = {
+    'ios12/no-restricted-syntax': ['error',
+        ...['replaceAll', 'matchAll', 'at', 'findLast', 'findLastIndex'].map((m) => ({
+            selector: `CallExpression[callee.property.name='${m}']`, message: oldSafari(`.${m}()`, 'iOS 13+'),
+        })),
+        { selector: "CallExpression[callee.object.name='Object'][callee.property.name=/^(fromEntries|hasOwn)$/]", message: oldSafari('Object.fromEntries / Object.hasOwn', 'iOS 12.2+ / 15.4+') },
+        { selector: "CallExpression[callee.object.name='Promise'][callee.property.name=/^(allSettled|any)$/]", message: oldSafari('Promise.allSettled / Promise.any', 'iOS 13+ / 14+') },
+        { selector: 'Literal[regex.pattern=/\\(\\?<[=!]/]', message: oldSafari('Regex lookbehind (?<= / (?<!', 'iOS 16.4+') },
+    ],
+    'no-restricted-globals': ['error',
+        { name: 'structuredClone', message: oldSafari('structuredClone', 'iOS 15.4+') },
+        { name: 'globalThis', message: oldSafari('globalThis', 'iOS 12.2+') },
+    ],
+};
+
 export default [
     {
         ignores: ['node_modules/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'i18n-dict.js'],
@@ -75,9 +98,9 @@ export default [
     {
         files: ['*.js', '*.html'],
         ignores: ['*.config.js'],
-        plugins: { html },
+        plugins: { html, ios12 },
         languageOptions: {
-            ecmaVersion: 'latest',
+            ecmaVersion: 2018, // iOS 12 floor; see ios12Rules
             sourceType: 'script',
             globals: {
                 ...globals.browser,
@@ -88,7 +111,7 @@ export default [
                 ...appGlobals(),
             },
         },
-        rules: { ...breakageRules, ...appWarnings },
+        rules: { ...breakageRules, ...appWarnings, ...ios12Rules },
     },
     {
         files: ['*.config.js', 'scripts/**/*.js', 'tests/**/*.js'],
