@@ -333,16 +333,26 @@
             } else container.innerHTML = html;
         }
 
+        // BUG-10: เปลี่ยนสถานะเฉพาะเมื่อสถานะบนเซิร์ฟเวอร์ยังเป็นอย่างที่จอนี้เห็น
+        // (แตะช้า/จอค้าง จะไม่เขียน "กำลังทำ" ทับใบที่ถูกยกเลิกไปแล้ว และไม่เปลี่ยนหน้าติดตามของลูกค้า)
+        // ถ้าไม่ตรง ไม่ต้องทำอะไร: จอจะอัปเดตเป็นสถานะจริงเอง
+        function moveTicket(orderId, from, to) {
+            let moved = false;
+            return database.ref('tickets/' + orderId + '/status').transaction(s => {
+                const cur = s === null ? 'pending' : s; // ใบเก่าไม่มี status = รอทำ
+                moved = cur === from;
+                if (!moved) return;
+                return to;
+            }).then(r => r.committed && moved, e => { console.warn('เปลี่ยนสถานะใบสั่งไม่สำเร็จ', e); return false; });
+        }
         function advanceOrderStatus(orderId, currentStatus, isCancelTicket) {
             if (currentStatus === 'completed' || currentStatus === 'void') return;
             if (currentStatus === 'canceled') return;
             const next = (currentStatus === 'pending' && !isCancelTicket) ? 'cooking' : 'completed';
-            database.ref('tickets/' + orderId).update({ status: next });
-            if (!isCancelTicket) syncTrack(orderId, next);
+            moveTicket(orderId, currentStatus, next).then(ok => { if (ok && !isCancelTicket) syncTrack(orderId, next); });
         }
         function revertStatus(orderId) {
-            database.ref('tickets/' + orderId).update({ status: 'pending' });
-            syncTrack(orderId, 'pending');
+            moveTicket(orderId, 'cooking', 'pending').then(ok => { if (ok) syncTrack(orderId, 'pending'); });
         }
         // ออร์เดอร์ที่ลูกค้าสั่งออนไลน์: อัปเดตหน้าติดตามของลูกค้า (เริ่มทำ → กำลังทำ, เสร็จ → พร้อมรับ / รอส่ง)
         function syncTrack(orderId, ticketStatus) {

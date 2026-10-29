@@ -65,3 +65,51 @@ test('a new order on a silenced tablet brings the banner back', async ({ page, e
     await expect(banner(page)).toBeVisible();
     expect(errors).toEqual([]);
 });
+
+// BUG-10: a tap on a ticket only counts if the ticket is still in the state
+// this screen shows. "Unseen" writes play another device or a late update.
+test.describe('ticket status from a stale screen (BUG-10)', () => {
+    const TOK = 'TRACKtrackTRACKtrack';
+    test.use({ db: (() => {
+        const d = seedData();
+        d.tickets.k1.trackTok = TOK;
+        d.order_track = { [TOK]: { bill: 'B7', status: 'accepted', at: 1, paid: true } };
+        return d;
+    })() });
+    const get = (page, p) => page.evaluate((p) => window.__fakeDb.get(p), p);
+    const stale = (page, p, v) => page.evaluate(([p, v]) => window.__fakeDb.setUnseen(p, v), [p, v]);
+    const open = async (page) => {
+        await page.goto('kitchen.html');
+        await expect(page.locator('.action-btn')).toHaveCount(1);
+    };
+
+    test('start cooking: ticket and tracking page move on', async ({ page, errors }) => {
+        await open(page);
+        await page.locator('.action-btn').click();
+        await expect.poll(() => get(page, 'tickets/k1/status')).toBe('cooking');
+        await expect.poll(() => get(page, 'order_track/' + TOK + '/status')).toBe('making');
+        expect(errors).toEqual([]);
+    });
+
+    test('a tap on a ticket that was cancelled meanwhile changes nothing', async ({ page, errors }) => {
+        await open(page);
+        await stale(page, 'tickets/k1/status', 'canceled');
+        await page.locator('.action-btn').click();
+        await page.waitForTimeout(300);
+        expect(await get(page, 'tickets/k1/status')).toBe('canceled');
+        expect(await get(page, 'order_track/' + TOK + '/status')).toBe('accepted');
+        expect(errors).toEqual([]);
+    });
+
+    test('undo on a ticket another screen already finished changes nothing', async ({ page, errors }) => {
+        await open(page);
+        await page.locator('.action-btn').click(); // pending → cooking
+        await expect(page.locator('.undo-btn')).toHaveCount(1);
+        await stale(page, 'tickets/k1/status', 'completed');
+        await page.locator('.undo-btn').click();
+        await page.waitForTimeout(300);
+        expect(await get(page, 'tickets/k1/status')).toBe('completed');
+        expect(await get(page, 'order_track/' + TOK + '/status')).toBe('making');
+        expect(errors).toEqual([]);
+    });
+});
