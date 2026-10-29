@@ -582,6 +582,25 @@
     }
 
     /* ---------- เปลี่ยนสถานะ ---------- */
+    // BUG-27: เปลี่ยนสถานะได้เฉพาะเมื่อสถานะบนเซิร์ฟเวอร์ยังตรงกับที่หน้าจอนี้เห็น
+    // (กันเครื่องที่ข้อมูลเก่าย้อน "รับของแล้ว" กลับเป็น "ของถึงร้าน" และรีเซ็ตวันหมดเขตรับของ)
+    function moveStatus(p, to) {
+        var moved = false;
+        return database.ref('preorders/' + p.id + '/status').transaction(function (s) {
+            if (s === null) return null;
+            moved = s === p.status;
+            if (!moved) return;
+            return to;
+        }).then(function (r) {
+            if (!r.committed || !moved) throw new Error('สถานะถูกเปลี่ยนจากเครื่องอื่นแล้ว · ปิดแล้วเปิดพรีออเดอร์นี้ใหม่');
+        });
+    }
+    function saveStatus(p, upd) {
+        var rest = Object.assign({}, upd); delete rest.status;
+        return moveStatus(p, upd.status).then(function () {
+            return Object.keys(rest).length ? database.ref('preorders/' + p.id).update(rest) : null;
+        });
+    }
     async function step(to) {
         var p = cur(); if (!p) return;
         var now = Date.now(), upd = { status: to };
@@ -591,7 +610,7 @@
         if (to === 'picked') { upd.pickedAt = now; if (p.authentic) upd.claimUntil = now + 30 * DAY; }
         if (to === 'noshow') upd.noshowAt = now;
         try {
-            await database.ref('preorders/' + p.id).update(upd);
+            await saveStatus(p, upd);
             var np = Object.assign({}, p, upd); A.list[p.id] = np; pushTrack(np);
             say(ST[to].icon + ' ' + ST[to].th + ' · ลูกค้าเห็นในหน้าติดตามแล้ว');
             if (to === 'arrived' && confirm('ส่ง WhatsApp แจ้งลูกค้าว่าของถึงร้านแล้ว?')) waArrived(np);
@@ -608,7 +627,8 @@
         if (p.status === 'arrived') { upd.arrivedAt = null; upd.pickupBy = null; }
         if (p.status === 'shipping') upd.shippedAt = null;
         if (p.status === 'ordered') upd.orderedAt = null;
-        database.ref('preorders/' + p.id).update(upd).then(function () { var np = Object.assign({}, p, upd); A.list[p.id] = np; pushTrack(np); draw(); });
+        saveStatus(p, upd).then(function () { var np = Object.assign({}, p, upd); A.list[p.id] = np; pushTrack(np); draw(); },
+            function (e) { say('ไม่สำเร็จ: ' + e.message, false); });
     }
 
     /* ---------- หน้าติดตามของลูกค้า (ไม่มีชื่อ/เบอร์) ---------- */
