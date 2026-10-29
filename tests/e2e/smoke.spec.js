@@ -56,6 +56,21 @@ test.describe('staff pages, signed in', () => {
         });
     });
 
+    test.describe('admin CSV export (SEC-11)', () => {
+        test.use({ user: OWNER });
+        test('text that a spreadsheet would run as a formula is neutralised; numbers stay numbers', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            await expect(loginOverlay(page)).toBeHidden();
+            const cells = await page.evaluate(() => [
+                '=HYPERLINK("http://x","click")', '+1+1', '-2+3', '@SUM(A1)', '\tx', 'Somchai', '-', -5000, '-5000', '12.5', 0, null,
+            ].map(window.csvCell));
+            expect(cells).toEqual([
+                '"\'=HYPERLINK(""http://x"",""click"")"', '"\'+1+1"', '"\'-2+3"', '"\'@SUM(A1)"', '"\'\tx"', '"Somchai"', '"-"', '"-5000"', '"-5000"', '"12.5"', '"0"', '""',
+            ]);
+            expect(errors).toEqual([]);
+        });
+    });
+
     test.describe('admin as the second owner', () => {
         test.use({ user: ADMIN2 });
         test('admin.html loads; owner checks match any listed email, ignoring case', async ({ page, errors }) => {

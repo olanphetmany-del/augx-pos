@@ -2197,7 +2197,13 @@
         }
         function reprintOrder(id) { const o = findReportOrder(id); if (o) printReceipt(o, true, id); }
         function shareOrder(id) { const o = findReportOrder(id); if (o) openShareModal(o); }
-        function csvCell(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+        // SEC-11: ข้อความที่ขึ้นต้นด้วย = + - @ (เช่นชื่อลูกค้าออนไลน์ "=HYPERLINK(...)") Excel/Sheets จะรันเป็นสูตร
+        // → ใส่ ' นำหน้าให้เป็นข้อความ · ตัวเลขจริง (รวมยอดติดลบ) และ "-" ตัวเดียวคงเดิม
+        function csvCell(v) {
+            let s = String(v == null ? '' : v);
+            if (/^[=+\-@\t\r]/.test(s) && s !== '-' && !/^[-+]?\d+(\.\d+)?$/.test(s)) s = "'" + s;
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
         function exportOrdersCSV() {
             if (!reportOrders.length) return toast('ไม่มีข้อมูลในช่วงที่เลือก', false);
             const head = ['เลขที่บิล', 'วันที่', 'เวลา', 'ช่องทาง', 'ประเภท', 'โต๊ะ', 'ลูกค้า', 'รายการ', 'ยอดรวม', 'ส่วนลด', 'ยอดสุทธิ', 'ชำระแล้ว', 'วิธีชำระ', 'สถานะ', 'เลขออร์เดอร์แอป', 'เหตุผลยกเลิก', 'คืนเงิน', 'สกุลเงินบิล', 'ยอดบาท', 'จ่ายเป็น', 'เรท'];
