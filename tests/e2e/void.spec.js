@@ -13,7 +13,7 @@ const set = (page, p, v) => page.evaluate(([p, v]) => window.__fakeDb.set(p, v),
 // What the dialog does: the bill as it looked when the dialog opened, then confirm.
 const staleCopy = (page, id) => page.evaluate((id) => JSON.parse(JSON.stringify(window.__fakeDb.get('orders/' + id))), id);
 const confirmVoid = (page, id, bill, refund) => page.evaluate(([id, bill, refund]) =>
-    voidBill(id, bill, { reason: 'คีย์ผิด', by: 'cashier', refund }).then(() => 'ok', (e) => e.message), [id, bill, refund]);
+    window.voidBill(id, bill, { reason: 'คีย์ผิด', by: 'cashier', refund }).then(() => 'ok', (e) => e.message), [id, bill, refund]);
 const cancelTickets = (page) => page.evaluate(() => Object.values(window.__fakeDb.get('tickets') || {}).filter((t) => t.kind === 'cancel').length);
 
 test('a void confirmed after another device took payment is refused', async ({ page, errors }) => {

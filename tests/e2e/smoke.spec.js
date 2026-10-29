@@ -56,6 +56,17 @@ test.describe('staff pages, signed in', () => {
         });
     });
 
+    test.describe('admin on a phone', () => {
+        test.use({ user: OWNER, viewport: { width: 390, height: 844 } });
+        test('home buttons split the menu icon from the label', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            const delivery = page.locator('#m-home button', { hasText: 'Delivery Partners' });
+            await expect(delivery.locator('span')).toHaveText('🛵');
+            await expect(page.locator('#m-home button', { hasText: 'Printer' }).locator('span')).toHaveText('🖨️');
+            expect(errors).toEqual([]);
+        });
+    });
+
     test.describe('admin as non-owner', () => {
         test.use({ user: STAFF });
         test('admin.html refuses staff accounts', async ({ page, errors }) => {

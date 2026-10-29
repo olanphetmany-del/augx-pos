@@ -213,4 +213,4 @@
   var api = { buildMenu: buildMenu, prePriceOf: prePriceOf, sizeKey: sizeKey, parsePrices: parsePrices, parseOptions: parseOptions, unitPrice: unitPrice, priceRound: priceRound, money: money, FIELD: FIELD };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.AugustxMenu = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof window !== 'undefined' ? window : globalThis); // eslint-disable-line no-restricted-globals, no-undef -- globalThis ใช้เฉพาะตอนเทสใน Node (เบราว์เซอร์ใช้ window)

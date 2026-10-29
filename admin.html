@@ -2207,7 +2207,8 @@
             document.querySelectorAll('.nav-menu li').forEach(li => {
                 if (!li.classList.contains('nav-item')) { h += '<div class="m-sec">' + esc(li.textContent.trim()) + '</div>'; return; }
                 const m = (li.getAttribute('onclick') || '').match(/'(tab-[a-z]+)'/); if (!m || m[1] === 'tab-financial') return;
-                const t = li.textContent.trim(), mm = t.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+                // \u0E44\u0E2D\u0E04\u0E2D\u0E19 = \u0E04\u0E33\u0E41\u0E23\u0E01\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E15\u0E31\u0E27\u0E2D\u0E31\u0E01\u0E29\u0E23/\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 (\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49 \p{Extended_Pictographic}: iOS 12 \u0E44\u0E21\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A)
+                const t = li.textContent.trim(), sp = t.match(/^(\S+)\s+(.*)$/), mm = sp && !/[A-Za-z0-9\u0E00-\u0EFF]/.test(sp[1]) ? sp : null;
                 const ic = mm ? mm[1] : '•', label = (mm ? mm[2] : t).replace(/\(.*?\)/g, '').trim();
                 h += `<button type="button" data-tab="${m[1]}" data-title="${esc(label)}"><span>${esc(ic)}</span>${esc(label)}</button>`;
             });
