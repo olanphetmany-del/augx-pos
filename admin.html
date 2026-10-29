@@ -1242,7 +1242,7 @@
             document.getElementById('modal-item-cup').checked = true;
             document.getElementById('modal-item-retail').checked = false;
             document.getElementById('modal-item-preorder').checked = false;
-            stockOn = false; stockMap = {}; document.getElementById('modal-item-stock').checked = false; renderVariantRows();
+            stockOn = false; stockMap = {}; stockOrig = null; document.getElementById('modal-item-stock').checked = false; renderVariantRows();
             document.getElementById('modal-item-cur').value = 'LAK';
             document.getElementById('modal-item-cur-wrap').hidden = !FX.on;
             document.getElementById('modal-item-desc').value = '';
@@ -1266,7 +1266,7 @@
             document.getElementById('modal-item-cup').checked = it.usesCup !== false;
             document.getElementById('modal-item-retail').checked = it.retail === true;
             document.getElementById('modal-item-preorder').checked = it.preorder === true;
-            stockOn = it.stockOn === true; stockMap = Object.assign({}, it.stock || {}); document.getElementById('modal-item-stock').checked = stockOn;
+            stockOn = it.stockOn === true; stockMap = Object.assign({}, it.stock || {}); stockOrig = stockOn ? Object.assign({}, it.stock || {}) : null; document.getElementById('modal-item-stock').checked = stockOn;
             renderVariantRows();
             document.getElementById('modal-item-cur').value = it.currency === 'THB' ? 'THB' : 'LAK';
             document.getElementById('modal-item-cur-wrap').hidden = !FX.on && it.currency !== 'THB';
@@ -1292,7 +1292,19 @@
             document.getElementById('modal-item-channels').innerHTML = chans.map(c =>
                 `<label><input type="checkbox" value="${esc(c.id)}" ${hidden.includes(c.id) ? '' : 'checked'}> ${esc(c.name)}</label>`).join('');
         }
-        let stockOn = false, stockMap = {};
+        let stockOn = false, stockMap = {}, stockOrig = null;
+        // BUG-8: ระหว่างที่หน้าต่างแก้สินค้าเปิดอยู่ แคชเชียร์อาจขายไปแล้ว → บันทึกเฉพาะไซส์ที่แก้ตัวเลขในหน้าต่างนี้
+        // ไม่เขียนทับไซส์อื่นด้วยตัวเลขเก่าตอนเปิดหน้าต่าง · orig = สต็อกตอนเปิด, now = สต็อกที่จะบันทึก
+        function stockChanges(orig, now) {
+            const upd = {};
+            Object.keys(now).forEach(k => { if (!(k in orig) || Number(orig[k]) !== now[k]) upd[k] = now[k]; });
+            Object.keys(orig).forEach(k => { if (!(k in now)) upd[k] = null; });
+            return upd;
+        }
+        function saveStockChanges(id, orig, now) {
+            const upd = stockChanges(orig, now);
+            return Object.keys(upd).length ? database.ref('menu_items/' + id + '/stock').update(upd) : Promise.resolve();
+        }
         function renderVariantRows() {
             const box = document.getElementById('variant-rows');
             box.innerHTML = variantRows.map((r, i) =>
@@ -1331,7 +1343,7 @@
             const finish = id => {
                 const st = {};
                 if (stockOn) prices.forEach(p => { const v = parseInt(stockMap[stockKey(p.label)], 10); st[stockKey(p.label)] = isNaN(v) ? 0 : Math.max(0, v); });
-                const stockSave = database.ref('menu_items/' + id + '/stock').set(stockOn ? st : null);
+                const stockSave = stockOn && editingItemId && stockOrig ? saveStockChanges(id, stockOrig, st) : database.ref('menu_items/' + id + '/stock').set(stockOn ? st : null);
                 if (!modalPhotosDirty) return stockSave;
                 const n = modalPhotos.length;
                 return Promise.all([
@@ -1407,7 +1419,7 @@
             const brands = shoeBrandCats();
             if (!brands.length) return toast('ยังไม่มีหมวดแบรนด์ — ไปหน้า Categories กด "👟 สร้างหมวดแบรนด์รองเท้า" ก่อน', false);
             const it = id ? globalItems.find(x => x.id === id) : null;
-            SH = { id: it && !copy ? it.id : null, brand: '', rows: [], cur: null, photos: [], photosDirty: false, dirty: false, keep: {} };
+            SH = { id: it && !copy ? it.id : null, brand: '', rows: [], cur: null, photos: [], photosDirty: false, dirty: false, keep: {}, stockOrig: it && !copy ? Object.assign({}, it.stock || {}) : null };
             if (it) {
                 const cat = catByNameA(it.category);
                 SH.brand = cat && catSizes(cat).length ? it.category : '';
@@ -1600,7 +1612,7 @@
             try {
                 data.image = await shThumb();
                 let id = SH.id;
-                if (id) await database.ref('menu_items/' + id).update(data);
+                if (id) { const orig = SH.stockOrig || {}; delete data.stock; await database.ref('menu_items/' + id).update(data); await saveStockChanges(id, orig, stock); }
                 else { data.timestamp = Date.now(); const ref = database.ref('menu_items').push(); id = ref.key; Object.keys(data).forEach(k => data[k] === null && delete data[k]); await ref.set(data); }
                 if (SH.photosDirty || !SH.id) {
                     const n = SH.photos.length;
