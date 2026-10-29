@@ -12,6 +12,9 @@ live shop, and every page uses one production Firebase database.
   commit customer data or internal notes. Never commit keys or passwords,
   even after the repo goes private.
 - Escape customer or database text with `esc()` before using `innerHTML`.
+- Adding a file the site loads (page, script, style, image, manifest)? Add
+  it to `SITE` in `scripts/build-site.js`. Only listed files are deployed to
+  Firebase Hosting, and the build fails on an unlisted one.
 
 ## Languages
 - App text: staff screens are Thai, customer screens are Lao. Every new UI

@@ -93,7 +93,7 @@ const ios12Rules = {
 
 export default [
     {
-        ignores: ['node_modules/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'i18n-dict.js'],
+        ignores: ['node_modules/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'public/**', 'i18n-dict.js'],
     },
     {
         files: ['*.js', '*.html'],
