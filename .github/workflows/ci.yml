@@ -1,10 +1,15 @@
 name: CI
 
-# Runs on every push to any branch (including files uploaded through the
-# GitHub web UI straight to main) and on pull requests. GitHub emails the
-# person who pushed if a run fails.
+# Runs on pull requests and on every push to main (including files uploaded
+# through the GitHub web UI straight to main). Other branches are checked
+# through their pull request, which saves Actions minutes once the repo is
+# private. GitHub emails the person who pushed if a run fails.
+#
+# When every check passes, the deploy job publishes the site to Firebase
+# Hosting: main → the live site, pull requests → a 7-day preview link.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -92,3 +97,39 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 14
+
+  # Publishes public/ (built from the allowlist in scripts/build-site.js) to
+  # Firebase Hosting. Skipped with a note until the deploy key secret exists.
+  deploy:
+    name: Deploy to Firebase Hosting
+    needs: [checks, unit, e2e]
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write # preview link comment
+      checks: write
+    env:
+      HAS_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AUGX_D75C2 != '' }}
+    steps:
+      - name: No deploy key yet
+        if: env.HAS_KEY != 'true'
+        run: echo "::notice::Deploy skipped - add the FIREBASE_SERVICE_ACCOUNT_AUGX_D75C2 repository secret to turn it on."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_KEY == 'true'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: env.HAS_KEY == 'true'
+        with:
+          node-version-file: .nvmrc
+      - name: Build public/ from the site allowlist
+        if: env.HAS_KEY == 'true'
+        run: node scripts/build-site.js
+      - uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0
+        if: env.HAS_KEY == 'true'
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AUGX_D75C2 }}
+          projectId: augx-d75c2
+          channelId: ${{ github.event_name == 'push' && 'live' || '' }}
+          firebaseToolsVersion: 15.32.1

@@ -3,6 +3,10 @@ coverage/
 test-results/
 playwright-report/
 
+# Built by scripts/build-site.js for Firebase Hosting; never committed
+public/
+.firebase/
+
 # Never commit local secrets (the repo is public)
 .env
 .env.*

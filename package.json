@@ -12,8 +12,10 @@
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "check:pages": "node scripts/check-pages.js",
-    "check": "npm run check:pages && npm run lint && npm test && npm run test:e2e",
-    "serve": "node scripts/serve.js"
+    "build:site": "node scripts/build-site.js",
+    "check": "npm run check:pages && npm run build:site && npm run lint && npm test && npm run test:e2e",
+    "serve": "node scripts/serve.js",
+    "deploy:site": "npm run build:site && npx --yes firebase-tools@15.32.1 deploy --only hosting --project augx-d75c2"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
