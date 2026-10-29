@@ -637,6 +637,7 @@ const RCPT = { s: { paperSize: '58mm', shopName: 'AUGUSTX', shopSub: 'HOME COFFE
 function receiptInit() {
     if (RCPT.started) return;
     RCPT.started = true;
+    rawbtFromHash(); window.addEventListener('hashchange', rawbtFromHash);
     stickerInit();
     database.ref('settings/printer').on('value', function (snap) {
         const p = snap.val() || {};
@@ -877,11 +878,37 @@ function ensurePrintArea() {
 // ตั้งค่า "ส่งตรงไป RawBT" + เปิดบน Android = ส่งเป็นรูป ESC/POS ไป RawBT ทันที ไม่ผ่านหน้าต่างพิมพ์
 function printReceipt(o, copy, id) {
     if (id) database.ref('orders/' + id + '/printCount').transaction(function (n) { return (n || 0) + 1; });
+    if (rawbtShop() && !rawbtDevice()) { askRawbt(function () { printReceipt(o, copy); }); return; }
     if (!rcptRawbtOk()) { printReceiptDialog(o, copy); return; }
     rcptEscBytes(o, copy).then(function (b) { window.location.href = 'rawbt:base64,' + stkB64(b); },
         function () { printReceiptDialog(o, copy); });   /* วาดรูปไม่ได้ -> ใช้หน้าต่างพิมพ์แทน */
 }
-function rcptRawbtOk() { return RCPT.s.printMethod === 'rawbt' && /Android/i.test(navigator.userAgent || ''); }
+// BUG-28: RawBT ติดตั้งแยกแต่ละเครื่อง แต่ค่า "ส่งตรงไป RawBT" ตั้งทั้งร้าน
+// → เครื่อง Android แต่ละเครื่องถามครั้งแรกที่พิมพ์ว่ามี RawBT ไหม แล้วจำไว้ในเครื่อง (เครื่องที่ไม่มี จะไม่พิมพ์เงียบ ๆ อีก)
+// เปลี่ยนภายหลัง: เปิดหน้าบนเครื่องนั้นโดยต่อท้ายลิงก์ด้วย #printer
+const RAWBT_KEY = 'augx-rawbt';
+let rawbtMem = '';
+function rawbtShop() { return RCPT.s.printMethod === 'rawbt' && /Android/i.test(navigator.userAgent || ''); }
+function rawbtDevice() { try { return localStorage.getItem(RAWBT_KEY) || rawbtMem; } catch (e) { return rawbtMem; } }
+function rcptRawbtOk() { return rawbtShop() && rawbtDevice() === 'on'; }
+function askRawbt(then) {
+    const ov = sxModal('<div class="sx-title">🖨️ เครื่องนี้ติดตั้งแอป RawBT แล้วหรือยัง?</div>' +
+        '<div class="sx-hint">ร้านตั้งให้ส่งใบเสร็จตรงไป RawBT · ถ้าเครื่องนี้ไม่มี RawBT จะพิมพ์ไม่ออก · เปลี่ยนภายหลัง: เปิดหน้านี้โดยต่อท้ายลิงก์ด้วย #printer</div>' +
+        '<div class="sx-grid"><button class="sx-btn sx-green" type="button" data-rb="on">มี RawBT แล้ว · ส่งตรง</button>' +
+        '<button class="sx-btn sx-gray" type="button" data-rb="off">ยังไม่มี · ใช้หน้าต่างพิมพ์</button></div>');
+    ov.addEventListener('click', function (e) {
+        const b = e.target.closest('[data-rb]'); if (!b) return;
+        rawbtMem = b.dataset.rb;
+        try { localStorage.setItem(RAWBT_KEY, rawbtMem); } catch (er) { /* โหมดส่วนตัว: จำไว้จนปิดหน้า */ }
+        ov.remove();
+        if (then) then();
+    });
+}
+function rawbtFromHash() {
+    if (location.hash !== '#printer') return;
+    history.replaceState(null, '', location.pathname + location.search);
+    askRawbt(function () { toast('บันทึกการพิมพ์ของเครื่องนี้แล้ว'); });
+}
 // ใบเสร็จ (รูปเดียวกับที่แชร์ให้ลูกค้า) -> ภาพขาวดำกว้างเท่าหัวพิมพ์ 384/576 จุด -> ESC/POS + เลื่อนกระดาษ + ตัด (เครื่องไม่มีมีดจะข้ามคำสั่งตัด)
 async function rcptEscBytes(o, copy) {
     const cv = await receiptCanvas(o, copy);
