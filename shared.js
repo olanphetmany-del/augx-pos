@@ -218,8 +218,10 @@ function watchConnection() {
 function logoutApp() {
     if (APP_CONFIG.REQUIRE_LOGIN) { firebase.auth().signOut().then(function () { location.reload(); }); }
 }
+// หน้าพนักงานเริ่มด้วย <html class="auth-wait"> = ซ่อนทุกอย่างยกเว้นหน้าล็อกอิน จนกว่าจะรู้ว่าเข้าได้
+function showPage(on) { document.documentElement.classList[on ? 'remove' : 'add']('auth-wait'); }
 function startApp(role, init) {
-    if (!APP_CONFIG.REQUIRE_LOGIN) { watchConnection(); init(); return; }
+    if (!APP_CONFIG.REQUIRE_LOGIN) { showPage(true); watchConnection(); init(); return; }
 
     const ov = document.createElement('div');
     ov.id = 'login-overlay';
@@ -268,15 +270,15 @@ function startApp(role, init) {
 
     let started = false;
     firebase.auth().onAuthStateChanged(function (user) {
-        if (!user) { ov.style.display = 'flex'; form.style.display = 'block'; logoutBtn.style.display = 'none'; return; }
+        if (!user) { showPage(false); ov.style.display = 'flex'; form.style.display = 'block'; logoutBtn.style.display = 'none'; return; }
         const owner = String(APP_CONFIG.OWNER_EMAIL || '').toLowerCase();
         if (role === 'admin' && owner && String(user.email || '').toLowerCase() !== owner) {
-            ov.style.display = 'flex'; form.style.display = 'none';
+            showPage(false); ov.style.display = 'flex'; form.style.display = 'none';
             msg.textContent = 'บัญชีนี้ไม่มีสิทธิ์เข้าหน้า Admin';
             logoutBtn.style.display = 'block';
             return;
         }
-        ov.style.display = 'none';
+        ov.style.display = 'none'; showPage(true);
         if (!started) { started = true; watchConnection(); init(); }
     });
 }

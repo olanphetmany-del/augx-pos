@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="lo">
+<html lang="lo" class="auth-wait">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -202,6 +202,8 @@
         .card { border-left-color: #0b4db3 !important; border-radius: 14px !important; }
         h2 { color: #0b4db3 !important; }
     </style>
+    <!-- ซ่อนหน้าไว้จนกว่าจะล็อกอินผ่าน (shared.js startApp เอาออก) -->
+    <style>.auth-wait body > :not(#login-overlay) { visibility: hidden; }</style>
 </head>
 <body>
     <div class="sidebar">

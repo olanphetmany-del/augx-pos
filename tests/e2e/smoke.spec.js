@@ -4,6 +4,9 @@
 import { test, expect, OWNER, STAFF, seedData } from './fixtures.js';
 
 const loginOverlay = (page) => page.locator('#login-overlay');
+// Everything on the page except the login overlay is hidden until login is confirmed.
+const shownOutsideLogin = (page) => page.evaluate(() => [...document.body.children]
+    .filter((el) => el.id !== 'login-overlay' && getComputedStyle(el).visibility !== 'hidden').map((el) => el.tagName + '#' + el.id));
 
 test.describe('staff pages, signed out', () => {
     test.use({ user: null });
@@ -12,6 +15,7 @@ test.describe('staff pages, signed out', () => {
             await page.goto(p);
             await expect(page.locator('#login-email')).toBeVisible();
             await expect(page.locator('#login-btn')).toBeVisible();
+            expect(await shownOutsideLogin(page)).toEqual([]);
             expect(errors).toEqual([]);
         });
     }
@@ -30,6 +34,7 @@ test.describe('staff pages, signed in', () => {
         await page.goto('kitchen.html');
         await expect(loginOverlay(page)).toBeHidden();
         await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+        expect(await shownOutsideLogin(page)).not.toEqual([]);
         expect(errors).toEqual([]);
     });
 
@@ -57,6 +62,7 @@ test.describe('staff pages, signed in', () => {
             await page.goto('admin.html');
             await expect(page.locator('#login-msg')).toContainText('ไม่มีสิทธิ์');
             await expect(page.locator('#login-logout')).toBeVisible();
+            expect(await shownOutsideLogin(page)).toEqual([]);
             expect(errors).toEqual([]);
         });
     });
