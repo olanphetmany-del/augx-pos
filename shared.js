@@ -508,16 +508,33 @@ const LAO_REASON = {
 function laoReason(r) { r = String(r || '').trim(); return Object.prototype.hasOwnProperty.call(LAO_REASON, r) ? LAO_REASON[r] : ''; }
 function voidBill(id, bill, opts) {
     const wasOpen = isOpenBill(bill);
-    const base = 'orders/' + id + '/', upd = {};
-    upd[base + 'status'] = 'void';
-    upd[base + 'voidReason'] = opts.reason || '';
-    upd[base + 'voidedBy'] = opts.by || '';
-    upd[base + 'voidedAt'] = Date.now();
-    upd[base + 'voidedWasPaid'] = !wasOpen;
-    if (!wasOpen && opts.refund) {
-        upd[base + 'refund'] = { status: opts.refund.status, method: opts.refund.method || '', amount: Number(bill.total || 0), at: Date.now() };
-    }
-    return database.ref().update(upd).then(function () {
+    const base = 'orders/' + id + '/';
+    let outcome = '';
+    // จองสถานะ "void" ด้วย transaction ก่อน: ถ้าอีกเครื่องเพิ่งรับเงินหรือยกเลิกบิลนี้ไปแล้ว จะไม่เขียนทับ
+    // (หน้าต่างยกเลิกเปิดค้างได้นาน ข้อมูลบิลในมืออาจเก่า)
+    return database.ref(base + 'status').transaction(function (s) {
+        if (s === null) return null; // ยังไม่ได้ค่าจากเซิร์ฟเวอร์ / บิลเก่าไม่มี status
+        if (s === 'void') { outcome = 'already'; return; }
+        if ((s === 'paid') === wasOpen) { outcome = 'changed'; return; }
+        outcome = 'void';
+        return 'void';
+    }).then(function (res) {
+        if (outcome === 'already') throw new Error('บิลนี้ถูกยกเลิกจากเครื่องอื่นแล้ว');
+        if (outcome === 'changed') throw new Error('บิลนี้ถูกชำระเงินจากเครื่องอื่นแล้ว · ปิดหน้าต่างแล้วเปิดใหม่');
+        if (!res.committed) throw new Error('ยกเลิกบิลไม่สำเร็จ');
+        const upd = {};
+        if (outcome !== 'void') upd[base + 'status'] = 'void'; // บิลเก่าที่ไม่มี status
+        upd[base + 'voidReason'] = opts.reason || '';
+        upd[base + 'voidedBy'] = opts.by || '';
+        upd[base + 'voidedAt'] = Date.now();
+        upd[base + 'voidedWasPaid'] = !wasOpen;
+        if (!wasOpen && opts.refund) {
+            upd[base + 'refund'] = { status: opts.refund.status, method: opts.refund.method || '', amount: Number(bill.total || 0), at: Date.now() };
+        }
+        return database.ref().update(upd).then(function () { return database.ref('orders/' + id).once('value'); });
+    }).then(function (snap) {
+        // คืนสต็อก/แก้ว ตามรายการล่าสุดของบิล (อาจมีเครื่องอื่นสั่งเพิ่มหลังเปิดหน้าต่าง)
+        bill = Object.assign({}, bill, snap.val() || {});
         // ออร์เดอร์ที่ลูกค้าสั่งออนไลน์: แจ้งหน้าติดตามของลูกค้าว่ายกเลิก พร้อมเหตุผล (ภาษาลาว)
         if (bill.trackTok) database.ref('order_track/' + bill.trackTok).update({ status: 'rejected', reason: laoReason(opts.reason) }).catch(function () {});
         adjustCups(billCups(bill));
