@@ -230,7 +230,8 @@ function startApp(role, init) {
 
     const ov = document.createElement('div');
     ov.id = 'login-overlay';
-    ov.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;background:#1a365d;z-index:5000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    // ซ่อนไว้ก่อน: Firebase ใช้เวลาครู่หนึ่งกู้การล็อกอินที่จำไว้ → แสดงหน้าล็อกอินเฉพาะเมื่อรู้แล้วว่ายังไม่ได้ล็อกอิน (ไม่กะพริบตอนเปลี่ยนหน้า)
+    ov.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;background:#1a365d;z-index:5000;display:none;align-items:center;justify-content:center;padding:16px;';
     ov.innerHTML =
         '<div style="background:#fff;border-radius:12px;padding:26px;width:100%;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.3);">' +
         '<div style="font-size:1.3rem;font-weight:bold;color:#1a365d;text-align:center;margin-bottom:4px;">AUGUSTX POS</div>' +
