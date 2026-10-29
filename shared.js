@@ -8,8 +8,9 @@ const APP_CONFIG = {
     // false = เปิดใช้ได้เลยเหมือนเดิม (ไม่ต้องล็อกอิน)
     // true  = ต้องล็อกอินด้วยอีเมล/รหัสผ่านก่อนใช้งาน (ทำตามไฟล์ SETUP-คู่มือ.md ก่อนเปิด!)
     REQUIRE_LOGIN: true,
-    // อีเมลเจ้าของร้าน (ใช้เมื่อ REQUIRE_LOGIN = true) เฉพาะอีเมลนี้เข้า Admin ได้
-    OWNER_EMAIL: 'olan.phetmany@gmail.com',
+    // อีเมลเจ้าของร้าน/ผู้ดูแล (ใช้เมื่อ REQUIRE_LOGIN = true) เฉพาะอีเมลเหล่านี้เข้า Admin ได้
+    // เพิ่มคนต้องเพิ่ม UID ในกฎ Firebase ด้วย (ไม่งั้นล็อกอินได้แต่ไม่เห็นข้อมูล)
+    OWNER_EMAILS: ['olan.phetmany@gmail.com', 'brandon+augx@massconfusion.com'],
     // เตือนเมื่อแก้วเหลือน้อยกว่าจำนวนนี้
     LOW_CUP_ALERT: 50,
     // รหัสประเทศสำหรับ WhatsApp (ลาว = 856) ใช้เติมหน้าเบอร์ที่ขึ้นต้นด้วย 0
@@ -220,6 +221,10 @@ function logoutApp() {
 }
 // หน้าพนักงานเริ่มด้วย <html class="auth-wait"> = ซ่อนทุกอย่างยกเว้นหน้าล็อกอิน จนกว่าจะรู้ว่าเข้าได้
 function showPage(on) { document.documentElement.classList[on ? 'remove' : 'add']('auth-wait'); }
+function isOwnerEmail(email) {
+    const e = String(email || '').toLowerCase();
+    return !!e && APP_CONFIG.OWNER_EMAILS.some(function (o) { return String(o).toLowerCase() === e; });
+}
 function startApp(role, init) {
     if (!APP_CONFIG.REQUIRE_LOGIN) { showPage(true); watchConnection(); init(); return; }
 
@@ -271,8 +276,7 @@ function startApp(role, init) {
     let started = false;
     firebase.auth().onAuthStateChanged(function (user) {
         if (!user) { showPage(false); ov.style.display = 'flex'; form.style.display = 'block'; logoutBtn.style.display = 'none'; return; }
-        const owner = String(APP_CONFIG.OWNER_EMAIL || '').toLowerCase();
-        if (role === 'admin' && owner && String(user.email || '').toLowerCase() !== owner) {
+        if (role === 'admin' && !isOwnerEmail(user.email)) {
             showPage(false); ov.style.display = 'flex'; form.style.display = 'none';
             msg.textContent = 'บัญชีนี้ไม่มีสิทธิ์เข้าหน้า Admin';
             logoutBtn.style.display = 'block';

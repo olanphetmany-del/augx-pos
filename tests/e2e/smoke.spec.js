@@ -1,7 +1,7 @@
 // Smoke tests: every page loads against a fake Firebase without JavaScript
 // errors and shows the seeded data. Catches broken uploads, missing files and
 // script-order problems before customers or staff do.
-import { test, expect, OWNER, STAFF, seedData } from './fixtures.js';
+import { test, expect, OWNER, ADMIN2, STAFF, seedData } from './fixtures.js';
 
 const loginOverlay = (page) => page.locator('#login-overlay');
 // Everything on the page except the login overlay is hidden until login is confirmed.
@@ -52,6 +52,19 @@ test.describe('staff pages, signed in', () => {
             await page.goto('admin.html');
             await expect(loginOverlay(page)).toBeHidden();
             await expect(page.locator('body')).toContainText('Smoke Latte');
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('admin as the second owner', () => {
+        test.use({ user: ADMIN2 });
+        test('admin.html loads; owner checks match any listed email, ignoring case', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            await expect(loginOverlay(page)).toBeHidden();
+            await expect(page.locator('body')).toContainText('Smoke Latte');
+            expect(await page.evaluate(() => [
+                'olan.phetmany@gmail.com', 'BRANDON+augx@massconfusion.com', 'staff@example.com', 'brandon@massconfusion.com', '', null,
+            ].map(window.isOwnerEmail))).toEqual([true, true, false, false, false, false]);
             expect(errors).toEqual([]);
         });
     });
