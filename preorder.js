@@ -487,17 +487,39 @@
         main(h);
         foot('<button class="axp-b g big" data-a="pay-save"' + (d.ok ? '' : ' disabled') + '>✓ รับเงิน ' + (d.ok ? M(d.due, d.payCur) : '') + '</button>');
     }
+    // BUG-7: 2 เครื่องรับเงินพรีออเดอร์เดียวกัน (หรือหน้าจอที่ข้อมูลเก่า) → บิลรายรับซ้ำ
+    // ก่อนสร้างบิล: จองสิทธิ์รับเงิน (payClaim, หมดอายุเอง 2 นาที) แล้วตรวจยอด "จ่ายแล้ว" จากเซิร์ฟเวอร์ว่ายังตรงกับหน้าจอ
+    var PAY_CLAIM_MS = 120000;
+    async function claimPay(p) {
+        var ref = database.ref('preorders/' + p.id), me = newLid(), busy = false;
+        var lock = await ref.child('payClaim').transaction(function (c) {
+            busy = !!(c && c.id !== me && c.at > Date.now() - PAY_CLAIM_MS);
+            if (busy) return;
+            return { id: me, at: Date.now(), by: (firebase.auth().currentUser || {}).email || '' };
+        });
+        if (busy || !lock.committed) throw new Error('อีกเครื่องกำลังรับเงินพรีออเดอร์นี้อยู่ · รอสักครู่แล้วลองใหม่');
+        var paidNow = await ref.child('paid').transaction(function (x) { return x; }); // อ่านค่าล่าสุดจากเซิร์ฟเวอร์
+        if (Number(paidNow.snapshot.val() || 0) !== Number(p.paid || 0)) {
+            await ref.child('payClaim').remove();
+            throw new Error('ยอดที่จ่ายแล้วเปลี่ยนจากเครื่องอื่น · ปิดแล้วเปิดพรีออเดอร์นี้ใหม่');
+        }
+        return ref.child('payClaim');
+    }
     async function savePay() {
         var p = cur(); if (!p || A.busy) return;
         var rem = remaining(p), d = payDue(rem);
         if (!d.ok) return say('ตรวจยอด / เรท อีกครั้ง', false);
         A.busy = true;
+        var claim = null;
         try {
+            claim = await claimPay(p);
             var now = Date.now(), pick = p.status === 'arrived' && A.payPick, upd = {};
             var extra = pick ? { pickedAt: now, claimUntil: now + 30 * DAY } : {};
             var r = await writePayBill(p, 'final', rem, d, extra), pk = database.ref('preorders').push().key;
+            claim = null; // มีบิลแล้ว: ถ้าบันทึกขั้นต่อไปพลาด ให้ล็อกหมดอายุเอง (กันกดซ้ำแล้วได้บิลที่ 2 ทันที)
             upd['payments/' + pk] = r.pay;
             upd.paid = Number(p.paid || 0) + rem;
+            upd.payClaim = null;
             if (pick) { upd.status = 'picked'; upd.pickedAt = now; upd.claimUntil = now + 30 * DAY; }
             await database.ref('preorders/' + p.id).update(upd);
             var np = Object.assign({}, p); Object.keys(upd).forEach(function (k) { if (k.indexOf('payments/') !== 0) np[k] = upd[k]; });
@@ -505,7 +527,10 @@
             A.list[p.id] = np; pushTrack(np);
             A.done = { id: p.id, billId: r.billId, bill: r.bill, title: pick ? 'ชำระครบ · ลูกค้ารับของแล้ว' : 'รับเงินแล้ว' };
             A.view = 'done'; draw();
-        } catch (e) { say('ไม่สำเร็จ: ' + (e && e.message || e), false); }
+        } catch (e) {
+            if (claim) claim.remove().catch(function (er) { console.warn('ปลดล็อกรับเงินไม่สำเร็จ (หมดอายุเองใน 2 นาที)', er); });
+            say('ไม่สำเร็จ: ' + (e && e.message || e), false);
+        }
         finally { A.busy = false; }
     }
 
