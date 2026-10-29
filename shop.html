@@ -207,10 +207,12 @@ async function doPay(btn) {
     if (!id) {
       var r = await createBill({ items: S.cart.map(function (c) { return Object.assign({}, c); }), source: 'store', orderType: 'SHOP', store: 'shop', currency: P.cur,
         customerName: (S.cname || '').trim(), customerPhone: (S.cphone || '').trim() });
-      id = r.id;
+      // ตะกร้ากลายเป็นบิลแล้ว: ถ้ารับเงินไม่สำเร็จ "ลองใหม่" จะรับเงินบิลเดิม (ไม่สร้างบิลซ้ำ / ไม่ตัดสต็อกซ้ำ)
+      // ถ้ากดยกเลิก บิลจะอยู่ใน "บิลค้างจ่าย"
+      id = P.billId = r.id;
+      S.cart = []; S.cname = ''; S.cphone = ''; drawSell();
     }
     var bill = await payBill(id, { discountType: 'amount', discountValue: 0, method: P.method, cashReceived: P.received, payCurrency: P.payCur, rate: parseFloat(P.rate) || 0 });
-    if (!P.billId) { S.cart = []; S.cname = ''; S.cphone = ''; }
     S.payOv.remove(); S.payOv = null;
     var done = sxModal('<div class="ok"><div class="tick">✓</div><b>รับเงินแล้ว · บิล #' + esc(bill.orderNo) + '</b><div style="font-size:24px;font-weight:bold;margin:6px 0">' + (billCur(bill) === 'THB' ? moneyC(bill.payAmount, bill.payCurrency) : money(bill.total)) + '</div>' +
       (bill.change ? '<div style="color:#689f38;font-weight:bold">เงินทอน ' + moneyC(bill.change, billCur(bill) === 'THB' ? bill.payCurrency : 'LAK') + '</div>' : '') + '</div>' +
