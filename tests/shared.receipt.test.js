@@ -60,16 +60,21 @@ describe('receiptModel (customer receipt, Lao)', () => {
 describe('printReceipt → RawBT', () => {
     const ANDROID = 'Mozilla/5.0 (Linux; Android 13; SM-X200) AppleWebKit/537.36 Chrome/130.0 Safari/537.36';
     const IPAD = 'Mozilla/5.0 (iPad; CPU OS 12_5_7 like Mac OS X) AppleWebKit/605.1.15 Version/12.1.2 Mobile/15E148 Safari/604.1';
+    // BUG-28: each device answers once whether RawBT is installed (localStorage 'augx-rawbt').
+    const deviceSaid = (ctx, answer) => { ctx.localStorage = { getItem: (k) => (k === 'augx-rawbt' ? answer : null), setItem() {} }; };
 
     test.each([
-        ['dialog', 'Android', ANDROID, false],
-        ['rawbt', 'Android', ANDROID, true],
-        ['rawbt', 'iPad (iOS 12)', IPAD, false],
-        [undefined, 'Android', ANDROID, false],
-    ])('printMethod %s on %s → RawBT: %s', (method, _device, ua, rawbt) => {
+        ['dialog', 'Android', ANDROID, 'on', false],
+        ['rawbt', 'Android', ANDROID, 'on', true],
+        ['rawbt', 'Android', ANDROID, 'off', false], // BUG-28: this device has no RawBT
+        ['rawbt', 'Android', ANDROID, null, false], // BUG-28: not asked yet (printReceipt asks first)
+        ['rawbt', 'iPad (iOS 12)', IPAD, 'on', false],
+        [undefined, 'Android', ANDROID, 'on', false],
+    ])('printMethod %s on %s, device said %s → RawBT: %s', (method, _device, ua, answer, rawbt) => {
         const { get, ctx, RCPT } = load();
         RCPT.s.printMethod = method;
         ctx.navigator.userAgent = ua;
+        deviceSaid(ctx, answer);
         expect(get(['rcptRawbtOk']).rcptRawbtOk()).toBe(rawbt);
     });
 
@@ -86,6 +91,7 @@ describe('printReceipt → RawBT', () => {
         const { get, ctx, RCPT } = load();
         RCPT.s.printMethod = 'rawbt';
         ctx.navigator.userAgent = ANDROID;
+        deviceSaid(ctx, 'on');
         get(['printReceipt']).printReceipt(bill, false, 'b1');
         await vi.waitFor(() => expect(ctx.location.href).toMatch(/^rawbt:base64,/));
         expect(ctx.printReceiptDialog).not.toHaveBeenCalled();
@@ -109,6 +115,7 @@ describe('printReceipt → RawBT', () => {
         const { get, ctx, RCPT } = load();
         RCPT.s.printMethod = 'rawbt';
         ctx.navigator.userAgent = ANDROID;
+        deviceSaid(ctx, 'on');
         ctx.receiptCanvas = async () => { throw new Error('canvas tainted'); };
         get(['printReceipt']).printReceipt(bill, true);
         await vi.waitFor(() => expect(ctx.printReceiptDialog).toHaveBeenCalledWith(bill, true));

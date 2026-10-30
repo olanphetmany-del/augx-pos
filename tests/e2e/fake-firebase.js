@@ -3,6 +3,8 @@
 // surface this app uses. Configure before page scripts run via:
 //   window.__FAKE_DB   initial database contents (plain JSON tree)
 //   window.__FAKE_USER signed-in user ({ uid, email }) or null
+//   window.__FAKE_AUTH_DELAY ms before the sign-in state is reported (default 0), like a
+//   real browser restoring a saved session
 //   window.__FAKE_SERVER_OFFSET  server clock minus this device's clock, in ms
 //                      (.info/serverTimeOffset; default 0)
 // Every write is recorded in window.__FAKE_WRITES for assertions.
@@ -174,7 +176,7 @@
     var authListeners = [];
     var auth = {
         get currentUser() { return user; },
-        onAuthStateChanged: function (cb) { authListeners.push(cb); setTimeout(function () { cb(user); }, 0); return function () {}; },
+        onAuthStateChanged: function (cb) { authListeners.push(cb); setTimeout(function () { cb(user); }, window.__FAKE_AUTH_DELAY || 0); return function () {}; },
         signInWithEmailAndPassword: function (email) {
             return later(function () {
                 user = { uid: 'fake-' + email, email: email };

@@ -21,6 +21,25 @@ test.describe('staff pages, signed out', () => {
     }
 });
 
+test.describe('while the saved sign-in is being restored', () => {
+    // A real browser takes a moment to restore the session; nothing should flash meanwhile.
+    for (const [who, user] of [['signed in', STAFF], ['signed out', null]]) {
+        test.describe(who, () => {
+            test.use({ user });
+            test(`cashier shows neither the login form nor the page until it knows (${who})`, async ({ page, errors }) => {
+                await page.addInitScript(() => { window.__FAKE_AUTH_DELAY = 1500; });
+                await page.goto('cashier.html');
+                await expect(page.locator('#login-overlay')).toBeAttached();
+                await expect(page.locator('#login-overlay')).toBeHidden();
+                expect(await shownOutsideLogin(page)).toEqual([]);
+                if (user) await expect(page.getByText('Smoke Latte').first()).toBeVisible();
+                else await expect(page.locator('#login-email')).toBeVisible();
+                expect(errors).toEqual([]);
+            });
+        });
+    }
+});
+
 test.describe('staff pages, signed in', () => {
     test('cashier (cashier.html) shows the menu', async ({ page, errors }) => {
         await page.goto('cashier.html');
@@ -52,6 +71,21 @@ test.describe('staff pages, signed in', () => {
             await page.goto('admin.html');
             await expect(loginOverlay(page)).toBeHidden();
             await expect(page.locator('body')).toContainText('Smoke Latte');
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('admin CSV export (SEC-11)', () => {
+        test.use({ user: OWNER });
+        test('text that a spreadsheet would run as a formula is neutralised; numbers stay numbers', async ({ page, errors }) => {
+            await page.goto('admin.html');
+            await expect(loginOverlay(page)).toBeHidden();
+            const cells = await page.evaluate(() => [
+                '=HYPERLINK("http://x","click")', '+1+1', '-2+3', '@SUM(A1)', '\tx', 'Somchai', '-', -5000, '-5000', '12.5', 0, null,
+            ].map(window.csvCell));
+            expect(cells).toEqual([
+                '"\'=HYPERLINK(""http://x"",""click"")"', '"\'+1+1"', '"\'-2+3"', '"\'@SUM(A1)"', '"\'\tx"', '"Somchai"', '"-"', '"-5000"', '"-5000"', '"12.5"', '"0"', '""',
+            ]);
             expect(errors).toEqual([]);
         });
     });
