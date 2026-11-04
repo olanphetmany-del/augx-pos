@@ -26,7 +26,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@500;600;700&family=Noto+Sans+Lao:wght@400;500;700&family=Noto+Sans+Thai:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@500;600;700&family=Noto+Sans+Lao:wght@400;500;700&family=Noto+Sans+Thai:wght@400;600&display=swap">
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="augustx-menu.js"></script>
@@ -324,17 +324,103 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
 .policy b { display: block; } .policy ol { margin: 4px 0 0; padding-left: 20px; }
 </style>
 <style>
-/* รอบ 7: ให้เข้าชุดกับแคชเชียร์ */
-header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !important; }
-.grp { border-radius: 14px; }
-.grp button[aria-pressed="true"] { background: linear-gradient(100deg, #0b4db3, #2f7de0) !important; color: #fff !important; }
-.item { border-radius: 16px !important; }
-.item .th, .item .ph { border-radius: 12px !important; }
-.bar button, #bar-btn { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !important; border-radius: 16px !important; box-shadow: 0 8px 20px rgba(11,77,179,.3); }
-.primary:not(.wa) { background: linear-gradient(100deg, #0b4db3, #2f7de0) !important; border-radius: 14px !important; }
-.primary.wa { border-radius: 14px !important; }
-.tab[aria-pressed="true"] { background: #0b4db3 !important; border-color: #0b4db3 !important; color: #fff !important; }
-.opt, .zc { border-radius: 12px !important; }
+/* Streetwear (DESIGN.md): navy ink on concrete grey, one blue accent, square ruled boxes, condensed display capitals */
+:root {
+  --bg: #f2f3f5; --surface: #ffffff; --ink: #14284b; --muted: #596377; --line: #d3d7df;
+  --brand: #1b74c8; --brand-ink: #ffffff; --brand-soft: #e3edf8; --chip: #14284b; --chip-ink: #ffffff;
+  --solid: #14284b; --solid-ink: #ffffff; --hi: #8ec3f5; --code-bg: #f7f8fa;
+  --display: "Big Shoulders Display", "Barlow Condensed", "Noto Sans Lao", "Arial Narrow", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1424; --surface: #13203a; --ink: #e8edf6; --muted: #9aa6ba; --line: #26344f;
+  --brand: #5aa2ee; --brand-ink: #0b1424; --brand-soft: #172a4a; --chip: #e8edf6; --chip-ink: #0b1424;
+  --solid: #1f3a6b; --solid-ink: #ffffff; --hi: #8ec3f5; --code-bg: #0f1a2e;
+} }
+:root[data-theme="dark"] {
+  --bg: #0b1424; --surface: #13203a; --ink: #e8edf6; --muted: #9aa6ba; --line: #26344f;
+  --brand: #5aa2ee; --brand-ink: #0b1424; --brand-soft: #172a4a; --chip: #e8edf6; --chip-ink: #0b1424;
+  --solid: #1f3a6b; --solid-ink: #ffffff; --hi: #8ec3f5; --code-bg: #0f1a2e;
+}
+::selection { background: var(--brand); color: #fff; }
+header.band { background: var(--bg); color: var(--ink); padding: 22px 20px 0; }
+.band-inner { align-items: flex-start; }
+header.band .i18n-sel { background: none; color: var(--ink); border: 1.5px solid var(--ink); border-radius: 0; }
+.logo { font-weight: 900; font-size: 60px; line-height: .84; letter-spacing: 0; }
+.logo-sub { font-family: var(--body); font-weight: 700; font-size: 12px; letter-spacing: .14em; color: var(--muted); opacity: 1; margin-top: 8px; }
+main { padding-inline: 20px; }
+.grp { background: transparent; border: 0; border-bottom: 1.5px solid var(--ink); border-radius: 0; padding: 0; margin-top: 18px; gap: 0; }
+.grp button { border-radius: 0; padding: 8px 0 10px; text-align: left; font-family: var(--display); font-weight: 800; font-size: 25px; line-height: 1.1; text-transform: uppercase; color: var(--muted); }
+.grp button[aria-pressed="true"] { background: none; color: var(--ink); box-shadow: inset 0 -5px 0 var(--brand); }
+.tabs { gap: 18px; margin-inline: -20px; padding-inline: 20px; padding-block: 12px 8px; }
+.tab { border: 0; border-radius: 0; background: none; padding: 4px 0; font-size: 15px; color: var(--muted); }
+.tab[aria-pressed="true"] { background: none; color: var(--ink); box-shadow: inset 0 -2px 0 var(--ink); }
+.section-h { font-family: var(--body); font-weight: 700; font-size: 21px; letter-spacing: 0; text-transform: none; margin: 22px 0 2px; justify-content: space-between; }
+.list { gap: 0; }
+.item { background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 14px 0; }
+.item:hover { border-color: var(--line); }
+.item:not(.re)::after { content: "+"; flex: none; width: 40px; height: 40px; display: grid; place-items: center; background: var(--solid); color: var(--solid-ink); font-family: var(--body); font-weight: 500; font-size: 24px; line-height: 1; }
+.item .en { font-family: var(--display); font-weight: 800; font-size: 25px; letter-spacing: 0; line-height: 1; }
+.item .lo { margin-top: 4px; display: block; }
+.item .ph { display: none; }
+.item .th { width: 64px; height: 64px; border-radius: 0; }
+.item .price { border: 1.5px solid var(--ink); padding: 4px 8px 3px; min-width: 84px; font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.05; }
+.item .price small, .item .price .apx { font-family: var(--body); font-weight: 700; font-size: 12px; line-height: 1.3; letter-spacing: 0; }
+.item .price .apx { font-weight: 500; font-size: 11.5px; }
+.in-cart { background: var(--brand); color: #fff; border-radius: 0; vertical-align: 4px; }
+.stk, .badge { border-radius: 0; }
+.stk { background: var(--solid); color: var(--solid-ink); }
+.badge.pre { background: none; color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.bar { background: none; }
+.bar button { border-radius: 0; background: var(--solid); color: var(--solid-ink); box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
+#bar-total { font-family: var(--display); font-weight: 800; font-size: 24px; }
+.scrim { background: rgba(10, 18, 34, .55); }
+.sheet { border-radius: 0; padding: 22px 20px calc(20px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
+.sheet-head h2 { font-weight: 900; font-size: 40px; line-height: 1.05; letter-spacing: 0; text-transform: uppercase; }
+.x { background: none; border: 1.5px solid var(--ink); border-radius: 0; color: var(--ink); }
+.group h3 { font-size: 13px; letter-spacing: .04em; color: var(--muted); }
+.opt, .zc { border-radius: 0; border: 1.5px solid var(--line); background: var(--surface); }
+.opt[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.zc { font-family: var(--display); font-weight: 800; font-size: 20px; padding: 7px 0; }
+.zc.in { border-color: var(--line); color: var(--ink); font-weight: 800; }
+.zc[aria-pressed="true"] { background: var(--solid); color: var(--solid-ink); border-color: var(--solid); }
+.chk .box { border-radius: 0; }
+.chk[aria-pressed="true"] .box { background: var(--solid); border-color: var(--solid); color: var(--solid-ink); }
+input.in, textarea.in { border: 1.5px solid var(--line); border-radius: 0; }
+input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
+.qty { gap: 0; border: 1.5px solid var(--ink); width: max-content; }
+.qty button { border: 0; border-radius: 0; width: 44px; height: 44px; background: none; }
+.qty b { font-family: var(--display); font-weight: 800; font-size: 22px; }
+.primary { border-radius: 0; background: var(--solid); color: var(--solid-ink); }
+.primary.wa { border-radius: 0; }
+.ghost, .mini button, .back, .mini-btn, .sharebtn, .mbtn { border-radius: 0; }
+.ghost { border: 0; background: none; color: var(--muted); }
+.back { border: 1.5px solid var(--ink); background: none; }
+.line .en { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.05; }
+.total { font-weight: 800; }
+.bill { background: var(--solid); color: var(--solid-ink); border-radius: 0; }
+.notice, .policy, .qbox, .trust, .panel, .szsum, .re-box summary, .closed, .toast, .banner, .hero, .chip-track, .owner { border-radius: 0; }
+.notice, .policy { background: var(--brand-soft); }
+.trust { border: 1.5px solid var(--ink); }
+.hero { margin: -22px -20px 0; }
+.slide.matcha { background: #2f5a1d; }
+.slide.shoes { background: #14284b; }
+.track-top .logo { color: var(--ink); font-size: 34px; }
+.st-card { background: none; border: 0; padding: 4px 0 0; text-align: left; }
+.st-icon { display: none; }
+.st-card h2 { font-weight: 800; font-size: 34px; line-height: 1.2; }
+.st-bill { border: 1.5px solid var(--ink); padding: 0 8px; font-size: 24px; letter-spacing: .02em; }
+.pay { border-radius: 0; }
+.countdown { background: var(--solid); color: var(--solid-ink); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; }
+.countdown b { font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; color: var(--hi); }
+.steps .dot { border-radius: 0; width: 26px; height: 26px; font-family: var(--display); font-weight: 800; }
+.steps li:not(:last-child)::after { left: 12px; top: 26px; }
+.steps li.done .dot { background: var(--solid); border-color: var(--solid); color: var(--solid-ink); }
+.steps li.done:not(:last-child)::after { background: var(--solid); }
+.steps li.now .dot { background: var(--brand); border-color: var(--brand); color: #fff; }
+.tline img, .tline .ph { border-radius: 0; }
+.chip-track { background: var(--solid); color: var(--solid-ink); }
+.appbar .go { border-radius: 0; background: var(--solid); }
+.appbar img { border-radius: 0; }
 /* แถบชวนติดตั้งแอป */
 .appbar { background: var(--surface, #141c2b); border-bottom: 1px solid var(--line, #263247); }
 .appbar-in { max-width: 560px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
@@ -360,8 +446,8 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
 <header class="band">
   <div class="band-inner">
     <div>
-      <div class="logo">AUGX.</div>
-      <div class="logo-sub">AUGUSTX HOME COFFEE</div>
+      <div class="logo">AUGUSTX</div>
+      <div class="logo-sub">HOME COFFEE · SHOP</div>
     </div>
     <div data-i18n-slot style="display:flex;gap:8px;align-items:center"><span class="beta" id="beta-tag" hidden>BETA</span></div>
   </div>
@@ -372,7 +458,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
   <div class="closed" id="closed" hidden><h2 id="closed-title">ຂໍອະໄພ</h2><p id="closed-text"></p></div>
   <div class="banner" id="banner" hidden aria-label="ໂປຣໂມຊັ່ນ"><div class="slides" id="slides"></div><div class="dots" id="dots"></div></div>
   <div id="reorder" hidden></div>
-  <div class="grp" id="grp" hidden role="group" aria-label="ເລືອກຮ້ານ"><button type="button" data-grp="cafe" aria-pressed="true">☕ ຄາເຟ່</button><button type="button" data-grp="shop" aria-pressed="false">👟 SHOP</button></div>
+  <div class="grp" id="grp" hidden role="group" aria-label="ເລືອກຮ້ານ"><button type="button" data-grp="cafe" aria-pressed="true">ຄາເຟ່</button><button type="button" data-grp="shop" aria-pressed="false">SHOP</button></div>
   <nav class="tabs" id="tabs" aria-label="ໝວດເມນູ" hidden></nav>
   <div id="menu"></div>
 </main>
@@ -1153,7 +1239,7 @@ header.band { background: linear-gradient(100deg, #0b4db3 0%, #2f7de0 100%) !imp
     return out.map(function (x, i) { if (!x.dot) x.dot = x.cls === 'done' ? '✓' : String(i + 1); return x; });
   }
   function renderTrack() {
-    var d = T.data, h = '<div class="track-top"><span class="logo">AUGX.</span><button class="back" type="button" data-tr="menu">ເມນູ / ສັ່ງເພີ່ມ</button></div>';
+    var d = T.data, h = '<div class="track-top"><span class="logo">AUGUSTX</span><button class="back" type="button" data-tr="menu">ເມນູ / ສັ່ງເພີ່ມ</button></div>';
     if (!d) { $('track-in').innerHTML = h + '<div class="loading">ກຳລັງໂຫຼດ…</div>'; return; }
     if (d.missing) {
       $('track-in').innerHTML = h + '<div class="st-card"><h2>ບໍ່ພົບອໍເດີນີ້</h2><p>ລິ້ງອາດບໍ່ຖືກຕ້ອງ ຫຼື ອໍເດີຖືກລຶບແລ້ວ</p></div><button class="ghost" type="button" data-tr="clear">ປິດ</button>';
