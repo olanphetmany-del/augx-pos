@@ -13,3 +13,8 @@ public/
 
 .DS_Store
 *.log
+
+# Impeccable design skill: per-session runtime state, never committed
+.impeccable/questions/
+.impeccable/live/
+.impeccable/config.local.json
