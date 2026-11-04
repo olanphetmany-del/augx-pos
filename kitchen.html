@@ -4,120 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUGUSTX - Kitchen Display</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Barlow:wght@500;600;700&family=Noto+Sans+Thai:wght@400;600;700&family=Noto+Sans+Lao:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
-
-        :root { --blue: #1a365d; --green: #689f38; --red: #ef4444; --orange: #f59e0b; --bg: #f4f6f8; --white: #ffffff; --text: #334155; --border: #e0e0e0; }
-        * { font-family: 'Noto Sans Lao', sans-serif, 'Segoe UI', Tahoma; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        /* Streetwear (DESIGN.md): navy shell, ruled square tickets, big numbers readable from across the counter */
+        :root { --ink: #14284b; --muted: #596377; --line: #d3d7df; --bg: #f2f3f5; --white: #ffffff; --blue: #1b74c8; --amber: #b45309; --amber-bar: #d97706; --amber-bg: #fef3c7; --red: #b42318; --red-bg: #fdecea;
+                --display: "Big Shoulders Display", "Barlow Condensed", "Noto Sans Thai", "Arial Narrow", sans-serif; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, button, input, select { font-family: "Barlow", "Noto Sans Thai", "Noto Sans Lao", system-ui, sans-serif; }
         html { height: 100%; }
-        body { background-color: var(--bg); margin: 0; padding: 0; color: var(--text); height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; touch-action: manipulation; }
+        body { background: var(--bg); margin: 0; padding: 0; color: var(--ink); height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; touch-action: manipulation; }
+        .num { font-variant-numeric: tabular-nums; }
+        .kitchen-container { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
-        .kitchen-container { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 20px; }
-        
-        .kitchen-header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-        .kitchen-header h1 { margin: 0; color: var(--blue); font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
-        
-        .top-controls { display: flex; align-items: center; gap: 10px; }
-        .top-btn { background: var(--blue); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13.5px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .kitchen-header { flex-shrink: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 26px; background: var(--ink); color: #fff; padding: 0 20px; min-height: 72px; }
+        .kitchen-header h1 { margin: 0; font-family: var(--display); font-weight: 900; font-size: 36px; line-height: 1; letter-spacing: 0; color: #fff; white-space: nowrap; }
+        .kitchen-header h1 small { font-family: "Barlow", sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .16em; color: #a9b8d4; margin-left: 10px; vertical-align: 7px; }
+        .k-count { display: flex; gap: 22px; }
+        .k-count div { font-size: 14px; color: #c7d2e6; line-height: 1.1; }
+        .k-count b { display: block; font-family: var(--display); font-weight: 800; font-size: 34px; color: #fff; line-height: .95; }
+        .k-count .hot b { color: #8ec3f5; }
+        .kitchen-tabs { display: flex; margin-left: auto; align-self: stretch; }
+        .tab-btn { background: none; border: 0; border-bottom: 5px solid transparent; color: #a9b8d4; font-weight: 700; font-size: 16px; padding: 0 16px; cursor: pointer; min-height: 72px; }
+        .tab-btn.active { color: #fff; border-bottom-color: #5aa2ee; }
+        .k-clock { font-family: var(--display); font-weight: 800; font-size: 34px; }
+        .top-controls { display: flex; align-items: center; gap: 8px; }
+        .top-btn { border: 1.5px solid #3a5283; color: #dce4f2; background: none; font-size: 13px; font-weight: 700; padding: 7px 10px; text-decoration: none; white-space: nowrap; }
+        .kitchen-header .i18n-sel { border-radius: 0; background: none; border: 1.5px solid #3a5283; color: #dce4f2; }
 
-        /* Queue Alert Banner (แจ้งเตือนออร์เดอร์ที่รอคิวทั้งหมดถ้าเกิน 6) */
-        .queue-alert-banner { display: none; background: #fff7ed; border: 1px solid #ffedd5; color: #c2410c; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .queue-alert-banner.active { display: flex; }
+        .sound-banner, .queue-alert-banner { display: none; flex-shrink: 0; align-items: center; gap: 10px; padding: 9px 20px; font-size: 14px; font-weight: 700; border-bottom: 1px solid var(--line); }
+        .sound-banner { background: #e3edf8; color: var(--ink); cursor: pointer; }
+        .queue-alert-banner { background: var(--amber-bg); color: #7a3e00; justify-content: space-between; }
+        .sound-banner.active, .queue-alert-banner.active { display: flex; }
+        .queue-alert-banner strong { font-family: var(--display); font-size: 20px; }
 
-        /* Navigation & Filter Bar */
-        .kitchen-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
-        .kitchen-tabs { display: flex; gap: 10px; }
-        .tab-btn { padding: 9px 20px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; font-weight: bold; font-size: 14px; color: var(--blue); cursor: pointer; transition: 0.2s; }
-        .tab-btn.active { background: var(--blue); color: var(--white); border-color: var(--blue); }
-        
-        .date-filter-box { display: none; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; }
+        .date-filter-box { display: none; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; padding: 12px 20px 0; flex-shrink: 0; }
         .date-filter-box.active { display: flex; }
-        .date-filter-box input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: white; }
+        .date-filter-box input { padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 0; font-size: 15px; background: #fff; color: var(--ink); }
 
-        /* Order Cards Grid */
-        .orders-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; align-content: start; padding-bottom: 20px; -webkit-overflow-scrolling: touch; }
-        
-        .order-card { background: var(--white); border-radius: 12px; border-top: 8px solid var(--orange); box-shadow: 0 4px 10px rgba(0,0,0,0.06); display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
-        .order-card.cooking { border-top-color: var(--blue); background: #fefce8; }
-        .order-card.completed { border-top-color: var(--green); opacity: 0.75; }
+        .orders-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); grid-auto-rows: max-content; grid-gap: 16px; gap: 16px; align-content: start; padding: 16px 20px 24px; -webkit-overflow-scrolling: touch; }
+        .k-empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 80px 20px; font-size: 20px; font-weight: 700; }
+        .order-card { position: relative; background: var(--white); border: 1.5px solid var(--line); display: flex; flex-direction: column; min-height: 300px; }
+        .order-card::before { content: ""; position: absolute; left: -1.5px; right: -1.5px; top: -1.5px; height: 6px; background: var(--ink); }
+        .order-card.warn::before { background: var(--amber-bar); }
+        .order-card.late::before, .order-card.cancel::before { background: var(--red); }
+        .order-card.cooking { border-color: var(--blue); box-shadow: inset 0 0 0 1.5px var(--blue); }
+        .order-card.cancel { border-color: var(--red); box-shadow: inset 0 0 0 1.5px var(--red); }
+        .order-card.completed { opacity: .7; }
+        .order-card.completed::before { background: var(--line); }
 
-        .order-card-header { padding: 14px 18px; background: #f8fafc; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .order-table-badge { font-weight: bold; font-size: 1.2rem; color: var(--blue); }
-        .order-time { font-size: 13px; color: #64748b; font-weight: bold; }
+        .order-card-header { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px 10px; }
+        .order-no { border: 1.5px solid var(--ink); font-family: var(--display); font-weight: 900; font-size: 34px; line-height: 1; padding: 3px 8px 1px; flex: none; }
+        .cancel .order-no { border-color: var(--red); color: var(--red); }
+        .k-who { flex: 1; min-width: 0; }
+        .order-table-badge { display: block; font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .k-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+        .k-tag { font-size: 12.5px; font-weight: 700; padding: 2px 7px; border: 1.5px solid var(--line); color: var(--muted); white-space: nowrap; }
+        .k-tag.src { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .k-tag.cook { background: var(--blue); border-color: var(--blue); color: #fff; }
+        .k-tag.add { border-color: var(--blue); color: var(--blue); }
+        .k-tag.cancel { background: var(--red); border-color: var(--red); color: #fff; }
+        .k-wait { text-align: right; line-height: 1; flex: none; }
+        .k-wait b { display: block; font-family: var(--display); font-weight: 900; font-size: 40px; }
+        .k-wait span, .order-time { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+        .warn .k-wait b { color: var(--amber); }
+        .late .k-wait b { color: var(--red); }
 
-        .order-card-body { padding: 18px; flex: 1; overflow-y: auto; max-height: 250px; -webkit-overflow-scrolling: touch; }
-        .order-item-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px dotted #e2e8f0; font-size: 15px; }
-        .order-item-row:last-child { border-bottom: none; }
-        .item-name-qty { font-weight: bold; color: var(--text); }
-        .item-note { font-size: 13px; color: var(--red); margin-top: 3px; font-weight: bold; }
+        .order-card-body { flex: 1 0 auto; padding: 0 16px 4px; }
+        .order-item-row { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+        .k-q { width: 38px; height: 38px; flex: none; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 900; font-size: 24px; }
+        .item-name-qty { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.05; text-transform: uppercase; }
+        .k-mods { font-size: 14px; color: var(--muted); margin-top: 3px; }
+        .item-note { display: inline-block; margin-top: 5px; background: var(--amber-bg); color: #7a3e00; font-size: 14px; font-weight: 700; padding: 2px 8px; }
+        .cancel .item-name-qty { color: var(--red); text-decoration: line-through; }
+        .cancel .k-q { background: var(--red); }
+        .cancel-note { background: var(--red-bg); color: var(--red); font-weight: 700; font-size: 14px; padding: 6px 10px; margin-bottom: 6px; }
 
-        .order-card-footer { padding: 14px 18px; background: #f8fafc; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .order-source-badge { font-size: 13px; font-weight: bold; padding: 5px 10px; border-radius: 6px; background: #e0f2fe; color: #0369a1; }
-        
-        .action-btn { padding: 10px 18px; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; background: var(--orange); text-transform: uppercase; }
-        .action-btn.cooking { background: var(--blue); }
-        .action-btn.completed { background: var(--green); }
-    
+        .order-card-footer { display: flex; gap: 8px; padding: 12px 16px 16px; }
+        .footer-btns { display: flex; gap: 8px; flex: 1; }
+        .action-btn { flex: 1; min-height: 54px; border: 1.5px solid var(--ink); background: var(--ink); color: #fff; font-size: 18px; font-weight: 700; cursor: pointer; border-radius: 0; }
+        .action-btn.cooking { background: var(--blue); border-color: var(--blue); }
+        .action-btn.cancel { background: var(--red); border-color: var(--red); }
+        .action-btn.completed { background: none; color: var(--muted); border-color: var(--line); cursor: default; }
+        .undo-btn { width: 54px; min-height: 54px; flex: none; border: 1.5px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; border-radius: 0; display: flex; align-items: center; justify-content: center; }
+        .undo-btn svg { display: block; }
 
-        /* ---------- เพิ่มใหม่ ---------- */
-        .sound-banner { display: none; background: #fef9c3; border: 1px solid #fde047; color: #854d0e; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; margin-bottom: 12px; flex-shrink: 0; cursor: pointer; }
-        .sound-banner.active { display: block; }
-        .order-no { font-size: 13px; color: #64748b; font-weight: bold; margin-left: 8px; }
-        .wait-badge { display: inline-block; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 6px; background: #e0f2fe; color: #0369a1; margin-left: 8px; }
-        .wait-badge.warn { background: #ffedd5; color: #c2410c; }
-        .wait-badge.late { background: #fee2e2; color: #b91c1c; }
-        .kind-badge { display: inline-block; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 6px; margin-left: 8px; }
-        .kind-badge.add { background: #fef3c7; color: #92400e; }
-        .kind-badge.cancel { background: #ef4444; color: #fff; }
-        .order-card.cancel { border-color: #ef4444 !important; background: #fef2f2; box-shadow: 0 0 0 3px rgba(239,68,68,.25); }
-        .order-card.cancel .item-name-qty { color: #b91c1c; text-decoration: line-through; }
-        .cancel-note { color: #b91c1c; font-weight: bold; font-size: 13px; margin-bottom: 6px; }
-        .unpaid-badge { font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 6px; background: #fee2e2; color: #b91c1c; margin-left: 6px; }
-        .footer-btns { display: flex; gap: 6px; align-items: center; }
-        .undo-btn { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; color: #64748b; }
+        @media (max-width: 760px) {
+            .kitchen-header { padding: 8px 12px; gap: 8px 16px; }
+            .kitchen-tabs { margin-left: 0; }
+            .tab-btn { min-height: 48px; }
+            .k-clock { display: none; }
+            .orders-grid { padding: 12px; grid-template-columns: 1fr; }
+        }
     </style>
     <link rel="manifest" href="kitchen.webmanifest">
-    <meta name="theme-color" content="#b45309">
+    <meta name="theme-color" content="#14284b">
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="icon-kitchen-192.png">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,1,0&display=block">
-    <link rel="stylesheet" href="theme7.css">
     <!-- ซ่อนหน้าไว้จนกว่าจะล็อกอินผ่าน (shared.js startApp เอาออก) -->
     <style>.auth-wait body > :not(#login-overlay) { visibility: hidden; }</style>
 </head>
 <body>
     <div class="kitchen-container">
         <div class="kitchen-header">
-            <h1>👨‍🍳 หน้าจอห้องครัว (Kitchen Display)</h1>
+            <h1>AUGUSTX<small>KITCHEN</small></h1>
+            <div class="k-count" id="k-count"></div>
+            <div class="kitchen-tabs">
+                <button class="tab-btn active" id="tab-main-btn" onclick="switchTab('main')">ต้องทำ</button>
+                <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">ประวัติ</button>
+            </div>
+            <div class="k-clock num" id="k-clock"></div>
             <div class="top-controls">
-                <a href="cashier.html" class="top-btn">🛒 ไปหน้า Cashier</a>
-                <a href="admin.html" class="top-btn" style="background:var(--blue);">⚙️ ไปหน้า Admin</a>
+                <a href="cashier.html" class="top-btn">แคชเชียร์</a>
+                <a href="admin.html" class="top-btn">แอดมิน</a>
             </div>
         </div>
 
-        <div class="sound-banner" id="sound-banner" onclick="unlockAudio()">🔔 แตะที่นี่ 1 ครั้งเพื่อเปิดเสียงแจ้งเตือนออร์เดอร์ใหม่ (เบราว์เซอร์ต้องให้แตะก่อนจึงจะมีเสียง)</div>
+        <div class="sound-banner" id="sound-banner" onclick="unlockAudio()"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2a5 5 0 0 0-5 5v3l-1.5 3h13L14 10V7a5 5 0 0 0-5-5zM7 15a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>แตะที่ใดก็ได้ 1 ครั้งเพื่อเปิดเสียงแจ้งเตือนออร์เดอร์ใหม่</div>
 
         <div class="queue-alert-banner" id="queue-alert-banner">
-            <span>🔥 มีออร์เดอร์รอคิวทั้งหมด <strong id="total-pending-num">0</strong> รายการ (กำลังแสดง 6 คิวแรก)</span>
-            <span style="font-size: 12px; font-weight: normal;">ทำเสร็จแล้วจะเลื่อนขึ้นมาอัตโนมัติ</span>
+            <span>มีออร์เดอร์รอคิวทั้งหมด <strong id="total-pending-num">0</strong></span>
+            <span>แสดง 6 คิวแรก · ทำเสร็จแล้วคิวถัดไปจะขึ้นมาเอง</span>
         </div>
 
-        <div class="kitchen-toolbar">
-            <div class="kitchen-tabs">
-                <button class="tab-btn active" id="tab-main-btn" onclick="switchTab('main')">📋 ออร์เดอร์ที่ต้องทำ (Main)</button>
-                <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">📜 ประวัติย้อนหลัง (History)</button>
-            </div>
-            <div class="date-filter-box" id="date-filter-container">
-                <label>📅 เลือกวันที่:</label>
-                <input type="date" id="history-date-input" onchange="loadHistory()">
-            </div>
+        <div class="date-filter-box" id="date-filter-container">
+            <label for="history-date-input">เลือกวันที่</label>
+            <input type="date" id="history-date-input" onchange="loadHistory()">
         </div>
 
         <div class="orders-grid" id="kitchen-orders-container">
-            <div style="grid-column: 1/-1; text-align:center; color:#94a3b8; padding:80px; font-size:1.2rem;">กำลังโหลดออร์เดอร์...</div>
+            <div class="k-empty">กำลังโหลดออร์เดอร์...</div>
         </div>
     </div>
 
@@ -263,6 +281,7 @@
             setInterval(() => { if (openOrders().length > 0) playReminderSound(); }, 300000);
             // อัปเดตเวลารอทุก 30 วินาที
             setInterval(() => { checkSound(); if (currentTab === 'main') renderOrders(); }, 30000);
+            setInterval(tickClock, 10000);
         }
 
         function loadHistory() {
@@ -279,8 +298,30 @@
         }
 
         /* ---------------- แสดงผล ---------------- */
+        const SRC_TH = { store: 'หน้าร้าน', online: 'ออนไลน์', grab: 'Grab', foodpanda: 'foodpanda', lineman: 'LINE MAN', robinhood: 'Robinhood', shopeefood: 'ShopeeFood' };
+        const TYPE_TH = { 'dine-in': 'ทานที่ร้าน', 'take-away': 'กลับบ้าน', takeaway: 'กลับบ้าน', delivery: 'ส่ง' };
+        const UNDO_SVG = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h9a5 5 0 0 1 0 10H8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+        function srcLabel(s) { return SRC_TH[s] || s || SRC_TH.store; }
+        function typeLabel(t) { return TYPE_TH[t] || t || ''; }
+        function tickClock() { const el = document.getElementById('k-clock'); if (el) el.textContent = timeHHMM(Date.now()); }
+        function renderCounts() {
+            const el = document.getElementById('k-count'); if (!el) return;
+            let h;
+            if (currentTab === 'main') {
+                const open = openOrders();
+                const cook = open.filter(o => o.kind !== 'cancel' && o.status === 'cooking').length;
+                const wait = open.filter(o => o.kind !== 'cancel' && o.status !== 'cooking').length;
+                h = `<div class="hot"><b class="num">${wait}</b>รอรับ</div><div><b class="num">${cook}</b>กำลังทำ</div>`;
+            } else {
+                const done = historyOrders.filter(o => o.status === 'completed').length;
+                h = `<div><b class="num">${done}</b>เสร็จ</div>`;
+            }
+            if (el.innerHTML !== h) el.innerHTML = h;
+        }
+
         function renderOrders() {
             const container = document.getElementById('kitchen-orders-container');
+            renderCounts(); tickClock();
             let list;
             if (currentTab === 'main') list = openOrders().slice(0, 6);
             else list = historyOrders.filter(o => o.status === 'completed' || o.status === 'canceled').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
@@ -290,46 +331,51 @@
             list.forEach(order => {
                 const status = order.status || 'pending';
                 const isCancel = order.kind === 'cancel';
+                const main = currentTab === 'main';
                 let cardClass = isCancel ? 'cancel' : '', btnText = '', btnClass = '';
-                if (currentTab === 'main') {
-                    if (isCancel) { btnText = 'รับทราบการยกเลิก'; btnClass = 'cooking'; }
-                    else if (status === 'cooking') { cardClass = 'cooking'; btnText = 'กำลังทำอยู่... (กดเมื่อเสร็จ)'; btnClass = 'cooking'; }
-                    else btnText = 'รับออร์เดอร์ (เริ่มทำ)';
-                } else { cardClass = isCancel ? 'cancel' : 'completed'; btnText = order.status === 'canceled' ? 'ยกเลิกแล้ว' : 'เสร็จสิ้น ✓'; btnClass = 'completed'; }
+                if (main) {
+                    if (isCancel) { btnText = 'รับทราบการยกเลิก'; btnClass = 'cancel'; }
+                    else if (status === 'cooking') { cardClass = 'cooking'; btnText = 'ทำเสร็จแล้ว ✓'; btnClass = 'cooking'; }
+                    else btnText = 'รับออร์เดอร์ · เริ่มทำ';
+                } else { cardClass = (isCancel ? 'cancel ' : '') + 'completed'; btnText = order.status === 'canceled' ? 'ยกเลิกแล้ว' : 'เสร็จสิ้น ✓'; btnClass = 'completed'; }
+
+                let mins = 0, waitHtml = '';
+                if (main && order.timestamp) {
+                    mins = Math.max(0, Math.floor((now - order.timestamp) / 60000));
+                    if (!isCancel) cardClass += mins >= 20 ? ' late' : (mins >= 10 ? ' warn' : '');
+                    waitHtml = `<div class="k-wait"><b class="num">${mins}</b><span>นาที</span></div>`;
+                } else if (order.timestamp) {
+                    waitHtml = `<div class="k-wait"><span class="order-time num">${timeHHMM(order.timestamp)}</span></div>`;
+                }
 
                 let itemsHtml = '';
                 Object.values(order.items || {}).forEach(item => {
-                    const details = [item.variant].concat(Object.values(item.modifiers || {}).map(m => m.option)).filter(Boolean).join(' | ');
-                    itemsHtml += `<div class="order-item-row"><div><div class="item-name-qty"><b>${esc(item.quantity)}x</b> ${esc(item.name)} ${details ? '(' + esc(details) + ')' : ''}</div>${item.note ? '<div class="item-note">Note: ' + esc(item.note) + '</div>' : ''}</div></div>`;
+                    const details = [item.variant].concat(Object.values(item.modifiers || {}).map(m => m.option)).filter(Boolean).join(' · ');
+                    itemsHtml += `<div class="order-item-row"><div class="k-q num">${esc(item.quantity)}</div><div><div class="item-name-qty">${esc(item.name)}</div>${details ? '<div class="k-mods">' + esc(details) + '</div>' : ''}${item.note ? '<div class="item-note">หมายเหตุ: ' + esc(item.note) + '</div>' : ''}</div></div>`;
                 });
 
-                let waitHtml = '';
-                if (currentTab === 'main' && order.timestamp) {
-                    const mins = Math.floor((now - order.timestamp) / 60000);
-                    const cls = mins >= 20 ? 'late' : (mins >= 10 ? 'warn' : '');
-                    waitHtml = `<span class="wait-badge ${cls}">รอ ${mins} นาที</span>`;
-                }
-                const noHtml = order.orderNo ? `<span class="order-no">#${esc(order.orderNo)}</span>` : '';
-                const kindBadge = isCancel ? '<span class="kind-badge cancel">ยกเลิก</span>' : (order.kind === 'add' ? '<span class="kind-badge add">เพิ่ม รอบ ' + esc(order.round || '') + '</span>' : '');
-                const noteHtml = isCancel && order.note ? `<div class="cancel-note">${esc(order.note)}</div>` : '';
-                const undo = (currentTab === 'main' && status === 'cooking') ? `<button class="undo-btn" title="ย้อนกลับเป็นรอรับ" onclick="revertStatus('${esc(order.id)}')">↩</button>` : '';
+                let tags = '';
+                if (isCancel) tags += '<span class="k-tag cancel">ยกเลิก</span>';
+                else if (main && status === 'cooking') tags += '<span class="k-tag cook">กำลังทำ</span>';
+                if (order.kind === 'add') tags += '<span class="k-tag add">เพิ่ม รอบ ' + esc(order.round || '') + '</span>';
+                tags += '<span class="k-tag' + ((order.source || 'store') !== 'store' ? ' src' : '') + '">' + esc(srcLabel(order.source)) + '</span>';
+                if (order.orderType) tags += '<span class="k-tag">' + esc(typeLabel(order.orderType)) + '</span>';
+
+                const noHtml = order.orderNo ? `<div class="order-no num">${esc(order.orderNo)}</div>` : '';
+                const noteHtml = isCancel && order.note ? `<div class="cancel-note">เหตุผล: ${esc(order.note)}</div>` : '';
+                const undo = (main && status === 'cooking' && !isCancel) ? `<button class="undo-btn" title="ย้อนกลับเป็นรอรับ" aria-label="ย้อนกลับเป็นรอรับ" onclick="revertStatus('${esc(order.id)}')">${UNDO_SVG}</button>` : '';
+                const act = main ? `onclick="advanceOrderStatus('${esc(order.id)}', '${esc(status)}', '${isCancel ? 'c' : ''}')"` : 'disabled';
 
                 html += `<div class="order-card ${cardClass}">
-                    <div class="order-card-header">
-                        <span class="order-table-badge">${esc(order.name || 'ลูกค้าทั่วไป')}${noHtml}${kindBadge}</span>
-                        <span class="order-time">${order.timestamp ? timeHHMM(order.timestamp) : esc(order.date || '')}${waitHtml}</span>
-                    </div>
+                    <div class="order-card-header">${noHtml}<div class="k-who"><span class="order-table-badge">${esc(order.name || 'ลูกค้าทั่วไป')}</span><div class="k-tags">${tags}</div></div>${waitHtml}</div>
                     <div class="order-card-body">${noteHtml}${itemsHtml}</div>
-                    <div class="order-card-footer">
-                        <span><span class="order-source-badge">${esc(order.source || 'store')} (${esc(order.orderType || '-')})</span></span>
-                        <div class="footer-btns">${undo}<button class="action-btn ${btnClass}" onclick="advanceOrderStatus('${esc(order.id)}', '${esc(status)}', '${isCancel ? 'c' : ''}')">${btnText}</button></div>
-                    </div>
+                    <div class="order-card-footer"><div class="footer-btns">${undo}<button class="action-btn ${btnClass}" ${act}>${btnText}</button></div></div>
                 </div>`;
             });
 
             if (list.length === 0) {
-                const msg = currentTab === 'main' ? '🎉 ไม่มีออร์เดอร์ค้างในขณะนี้ เรียบร้อยดีครับ!' : '📜 ไม่พบประวัติออร์เดอร์ในวันที่เลือก';
-                container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; color:#94a3b8; padding:80px; font-size:1.2rem;">${msg}</div>`;
+                const msg = currentTab === 'main' ? 'ไม่มีออร์เดอร์ค้าง' : 'ไม่พบประวัติออร์เดอร์ในวันที่เลือก';
+                container.innerHTML = `<div class="k-empty">${msg}</div>`;
             } else container.innerHTML = html;
         }
 
@@ -375,7 +421,6 @@
 if(app||!document.documentElement.requestFullscreen)return;
 document.addEventListener('click',function f(){document.removeEventListener('click',f,true);document.documentElement.requestFullscreen().catch(function(){});},true);})();
 </script>
-    <script src="theme7.js"></script>
 <script src="i18n-dict.js"></script>
 <script src="i18n.js"></script>
 <script src="old-ios.js"></script>
