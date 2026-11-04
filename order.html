@@ -342,6 +342,8 @@ pre.msg { margin: 0; white-space: pre-wrap; word-break: break-word; background: 
   --solid: #1f3a6b; --solid-ink: #ffffff; --hi: #8ec3f5; --code-bg: #0f1a2e;
 }
 ::selection { background: var(--brand); color: #fff; }
+.ico { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: .35em; fill: currentColor; flex: none; }
+
 header.band { background: var(--bg); color: var(--ink); padding: 22px 20px 0; }
 .band-inner { align-items: flex-start; }
 header.band .i18n-sel { background: none; color: var(--ink); border: 1.5px solid var(--ink); border-radius: 0; }
@@ -525,6 +527,9 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
   var ship = { mode: 'pickup', ll: null, km: null, spot: 'gate', spotText: '', place: '', err: '' };
   // จำจุดส่งล่าสุดไว้ในมือถือลูกค้า สั่งครั้งหน้าไม่ต้องปักใหม่
   (function () { var o = null; try { if (!TEST) o = JSON.parse(localStorage.getItem('augx-ship')); } catch (e) {} if (o && o.ll) { ship.ll = o.ll; ship.place = o.place || ''; ship.spot = o.spot || 'gate'; ship.spotText = o.spotText || ''; } })();
+  // Solid icon set (DESIGN.md: no emoji as icons). ico('home') → inline SVG that follows the text colour.
+  var ICONS = { home: '<path d="M12 3.2 3.5 10v9.3c0 .9.7 1.7 1.7 1.7h4.3v-6h5v6h4.3c.9 0 1.7-.8 1.7-1.7V10z"/>', scooter: '<circle cx="5.5" cy="17.5" r="2.8"/><circle cx="18.5" cy="17.5" r="2.8"/><rect x="3.5" y="9" width="6.5" height="2.2" rx="1.1"/><path d="M14 4h3.4c.5 0 .9.3 1 .8l2.7 9.4-1.9.6-1.7-5.7L14.2 15H3v-2.4h10.2l2.5-6.2H14z"/>', pin: '<path d="M12 2a7.5 7.5 0 0 0-7.5 7.5C4.5 15.3 12 22 12 22s7.5-6.7 7.5-12.5A7.5 7.5 0 0 0 12 2zm0 10.3a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6z"/>', history: '<path d="M12 3a9 9 0 1 1-8.5 12l1.9-.6A7 7 0 1 0 6.6 7.4L9 9.8H3V3.8l2.2 2.2A9 9 0 0 1 12 3zm-1 4.5h2v4.1l3 1.8-1 1.7-4-2.4z"/>', alert: '<path d="M10.3 3.7a2 2 0 0 1 3.4 0l8.4 14.5a2 2 0 0 1-1.7 3H3.6a2 2 0 0 1-1.7-3zM11 9v5h2V9zm0 7v2h2v-2z"/>', chat: '<path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/>', layers: '<path d="M12 2.5 2 8l10 5.5L22 8z"/><path d="m4.4 11.3-2.4 1.3 10 5.5 10-5.5-2.4-1.3-7.6 4.2z"/><path d="m4.4 15.9-2.4 1.3 10 5.3 10-5.3-2.4-1.3-7.6 4.2z"/>', map: '<path d="M9 3.5 3 5.8v14.7l6-2.3 6 2.3 6-2.3V3.5l-6 2.3zm1 2.2 4 1.5v11.1l-4-1.5z"/>' };
+  function ico(n) { return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; }
   var photoCache = {};
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -699,7 +704,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     if (!h.length) { box.hidden = true; return; }
     box.hidden = false;
     var open = store('augx-re-open') === true;
-    box.innerHTML = '<details class="re-box"' + (open ? ' open' : '') + '><summary>🕘 ສັ່ງຄືເກົ່າ <small>' + h.length + ' ອໍເດີຫຼ້າສຸດ</small><span class="chev">›</span></summary><div class="list">' + h.map(function (o, i) {
+    box.innerHTML = '<details class="re-box"' + (open ? ' open' : '') + '><summary>' + ico('history') + 'ສັ່ງຄືເກົ່າ <small>' + h.length + ' ອໍເດີຫຼ້າສຸດ</small><span class="chev">›</span></summary><div class="list">' + h.map(function (o, i) {
       var names = o.lines.map(function (l) { return l.qty + '× ' + l.name; }).join(', ');
       var d = new Date(o.at);
       return '<div class="item re"><span class="txt"><span class="en" style="font-size:15px">' + esc(names) + '</span><br><span class="lo">' + ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + ' · ' + money2(o.total, o.cur) + '</span></span>' +
@@ -857,7 +862,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     if (!(shoeGrid(it) && (draft.variant == null || (isPoVar(it, draft.variant) && preOf(it, draft.variant) == null)))) h += '<div class="qty"><button type="button" data-q="-1" aria-label="ລົດ">−</button><b class="num">' + draft.qty + '</b><button type="button" data-q="1" aria-label="ເພີ່ມ">+</button></div>';
     h += '<div class="err" id="item-err"></div>';
     if (shoeGrid(it) && draft.variant == null) h += '<button class="primary" type="button" disabled>ເລືອກໄຊສ໌</button>';
-    else if (shoeGrid(it) && isPoVar(it, draft.variant) && preOf(it, draft.variant) == null) h += '<button class="primary wa" type="button" data-act="ask">💬 ສອບຖາມລາຄາ · ໄຊສ໌ ' + esc(draft.variant) + '</button>';
+    else if (shoeGrid(it) && isPoVar(it, draft.variant) && preOf(it, draft.variant) == null) h += '<button class="primary wa" type="button" data-act="ask">' + ico('chat') + 'ສອບຖາມລາຄາ · ໄຊສ໌ ' + esc(draft.variant) + '</button>';
     else h += '<button class="primary" type="button" data-act="add">' + (shoeGrid(it) && isPoVar(it, draft.variant) ? 'ສັ່ງຈອງ · ໄຊສ໌ ' + esc(draft.variant) + ' · ' : shoeGrid(it) ? 'ໃສ່ກະຕ່າ · ໄຊສ໌ ' + esc(draft.variant) + ' · ' : 'ໃສ່ກະຕ່າ · ') + '<span class="num">' + money2(draftLine().unitPrice * draft.qty, itCur(it)) + '</span></button>';
     var open = !$('sheet').hidden;
     openSheet(h);
@@ -894,7 +899,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
       return '<button class="zc' + (left > 0 ? ' in' : '') + '" type="button" data-var="' + i + '" aria-pressed="' + (draft.variant === v.label) + '"' + (left === 0 && !it.preorder ? ' disabled' : '') + '>' + esc(v.label) + '</button>';
     }).join('') + '</div></div>';
     if (draft.variant != null && isPoVar(it, draft.variant)) {
-      h += '<div class="notice warn" style="margin-top:12px">⚠️ ' + PRE_WARN + '<br><span style="font-size:12.5px">ໄຊສ໌ ' + esc(draft.variant) + ' ເປັນ PRE-ORDER · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ</span>' + (it.preFrom ? '<br><b style="font-size:12.5px">ລາຄາເລີ່ມຕົ້ນ · ທາງຮ້ານຈະແຈ້ງລາຄາຈິງກ່ອນຢືນຢັນອໍເດີ</b>' : '') + '</div>';
+      h += '<div class="notice warn" style="margin-top:12px">' + ico('alert') + PRE_WARN + '<br><span style="font-size:12.5px">ໄຊສ໌ ' + esc(draft.variant) + ' ເປັນ PRE-ORDER · ເຄື່ອງຮອດ 7–14 ວັນເຮັດການ</span>' + (it.preFrom ? '<br><b style="font-size:12.5px">ລາຄາເລີ່ມຕົ້ນ · ທາງຮ້ານຈະແຈ້ງລາຄາຈິງກ່ອນຢືນຢັນອໍເດີ</b>' : '') + '</div>';
     } else if (draft.variant != null) {
       h += '<p class="hint" style="margin:10px 0 0;color:var(--ok);font-weight:700">✓ ໄຊສ໌ ' + esc(draft.variant) + ' ມີເຄື່ອງພ້ອມສົ່ງ</p>';
     }
@@ -976,7 +981,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
   function freeBar(sub) {
     if (sub >= DLV.freeMin) return '<div class="free ok">✓ ຈັດສົ່ງຟຣີ · ຮ້ານອອກຄ່າສົ່ງໃຫ້ສູງສຸດ ' + kip(DLV.freeCap) + '</div>';
     return '<div class="free"><div class="fbar"><i style="width:' + Math.round(sub / DLV.freeMin * 100) + '%"></i></div>' +
-      '<span>🛵 ສັ່ງເພີ່ມອີກ <b class="num">' + kip(DLV.freeMin - sub) + '</b> ຈັດສົ່ງຟຣີ</span></div>';
+      '<span>' + ico('scooter') + 'ສັ່ງເພີ່ມອີກ <b class="num">' + kip(DLV.freeMin - sub) + '</b> ຈັດສົ່ງຟຣີ</span></div>';
   }
   function keepContact() {
     if ($('cname')) saved.name = $('cname').value;
@@ -1003,12 +1008,12 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     if (CFG.beta !== false) h += '<div class="notice">ລະບົບສັ່ງອອນລາຍນີ້ຢູ່ໃນຊ່ວງທົດລອງໃຊ້ (BETA) · ຖ້າມີບັນຫາ ທັກ WhatsApp ຮ້ານໄດ້ເລີຍ</div>';
     if (DLV.enabled) {
       h += '<div class="group"><h3>ວິທີຮັບ</h3><div class="seg">' +
-        '<button class="opt" type="button" data-ship="pickup" aria-pressed="' + (ship.mode === 'pickup') + '"><b>🏠 ຮັບທີ່ຮ້ານ</b><span>ພ້ອມແລ້ວແຈ້ງເຕືອນ</span></button>' +
-        '<button class="opt" type="button" data-ship="delivery" aria-pressed="' + (ship.mode === 'delivery') + '"><b>🛵 ຈັດສົ່ງ</b><span>ບໍ່ເກີນ ' + DLV.maxKm + ' ກມ.</span></button></div></div>';
+        '<button class="opt" type="button" data-ship="pickup" aria-pressed="' + (ship.mode === 'pickup') + '"><b>' + ico('home') + 'ຮັບທີ່ຮ້ານ</b><span>ພ້ອມແລ້ວແຈ້ງເຕືອນ</span></button>' +
+        '<button class="opt" type="button" data-ship="delivery" aria-pressed="' + (ship.mode === 'delivery') + '"><b>' + ico('scooter') + 'ຈັດສົ່ງ</b><span>ບໍ່ເກີນ ' + DLV.maxKm + ' ກມ.</span></button></div></div>';
     }
     if (DLV.enabled && ship.mode === 'delivery') {
       shipKm();
-      h += '<button class="' + (ship.ll ? 'ghost' : 'primary') + '" type="button" data-act="map">🗺️ ' + (ship.ll ? 'ປ່ຽນຈຸດສົ່ງໃນແຜນທີ່' : 'ເລືອກຈຸດສົ່ງໃນແຜນທີ່') + '</button>';
+      h += '<button class="' + (ship.ll ? 'ghost' : 'primary') + '" type="button" data-act="map">' + ico('pin') + (ship.ll ? 'ປ່ຽນຈຸດສົ່ງໃນແຜນທີ່' : 'ເລືອກຈຸດສົ່ງໃນແຜນທີ່') + '</button>';
       if (ship.err) h += '<div class="err-inline">' + esc(ship.err) + '</div>';
       h += quoteBox();
       if (ship.km != null && ship.km <= DLV.maxKm) {
@@ -1206,7 +1211,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     else if (fi >= 0 && fi < 4) {
       var cond = (d.auth ? AUTH_LO : AUTH_LO.slice(2));
       h += '<div class="policy"><b>' + (d.auth ? '✓ ເກີບຂອງແທ້ 100%' : 'ເງື່ອນໄຂການສັ່ງຈອງ') + '</b><ol>' + cond.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol>' +
-        '<p style="margin:6px 0 0;font-weight:700">⚠️ ມັດຈຳແລ້ວ ບໍ່ສາມາດຍົກເລີກ ແລະ ບໍ່ຄືນເງິນມັດຈຳ</p></div>';
+        '<p style="margin:6px 0 0;font-weight:700">' + ico('alert') + 'ມັດຈຳແລ້ວ ບໍ່ສາມາດຍົກເລີກ ແລະ ບໍ່ຄືນເງິນມັດຈຳ</p></div>';
     }
     var wa = 'https://wa.me/' + waNum(d.store !== 'cafe') + '?text=' + encodeURIComponent('ສະບາຍດີ ສອບຖາມໃບສັ່ງຈອງ ' + d.bill);
     h += '<a class="primary wa" href="' + esc(wa) + '" target="_blank" rel="noopener">ທັກ WhatsApp ຮ້ານ</a>';
@@ -1301,7 +1306,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     }
     h += '</div>';
     if (dl && d.status !== 'rejected') {
-      h += '<div class="panel dbox"><h3><span>🛵 ຈັດສົ່ງ</span><span class="num">' + kmText(dl.km) + ' ກມ.</span></h3>' +
+      h += '<div class="panel dbox"><h3><span>' + ico('scooter') + 'ຈັດສົ່ງ</span><span class="num">' + kmText(dl.km) + ' ກມ.</span></h3>' +
         '<div class="qrow"><span>ຈຸດຮັບເຄື່ອງ</span><b>' + esc(dl.spot) + '</b></div>' +
         '<div class="qrow"><span>' + (q.actual ? 'ຄ່າສົ່ງຕົວຈິງ' : 'ຄ່າສົ່ງປະມານ') + '</span><b class="num">' + kip(q.fee) + '</b></div>' +
         (q.shop ? '<div class="qrow ok"><span>ຮ້ານອອກໃຫ້</span><b class="num">−' + kip(q.shop) + '</b></div>' : '') +
@@ -1385,7 +1390,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     if (!w) {
       w = document.createElement('div'); w.id = 'mapwrap'; w.className = 'mapwrap';
       w.innerHTML = '<div class="mapbox"><div id="map"></div><div class="pin-dot"></div><div class="pin" id="pin">' + PIN + '</div>' +
-        '<div class="maptop"><button class="mbtn round" type="button" id="map-x" aria-label="ປິດ">×</button><button class="mbtn" type="button" id="map-layer">🛰️ ດາວທຽມ</button></div>' +
+        '<div class="maptop"><button class="mbtn round" type="button" id="map-x" aria-label="ປິດ">×</button><button class="mbtn" type="button" id="map-layer">' + ico('layers') + 'ດາວທຽມ</button></div>' +
         '<div class="mapside"><button class="mbtn round" type="button" id="map-me" aria-label="ຕຳແໜ່ງຂອງຂ້ອຍ">◎</button></div></div>' +
         '<div class="mappanel"><p class="hint">ເລື່ອນແຜນທີ່ໃຫ້ໝຸດສີແດງຢູ່ຈຸດທີ່ຈະຮັບເຄື່ອງ ເຊັ່ນ ປະຕູໃຫຍ່ ຫຼື ປ້ອມຍາມ</p>' +
         '<div class="mapmsg num" id="map-msg">ກຳລັງໂຫຼດແຜນທີ່…</div>' +
@@ -1427,7 +1432,7 @@ input.in:focus, textarea.in:focus { border-color: var(--ink); outline: none; }
     if (!mapObj) return;
     mapObj.removeLayer(mapLayers.street); mapObj.removeLayer(mapLayers.sat);
     (mapSat ? mapLayers.sat : mapLayers.street).addTo(mapObj);
-    $('map-layer').textContent = mapSat ? '🗺️ ແຜນທີ່' : '🛰️ ດາວທຽມ';
+    $('map-layer').innerHTML = mapSat ? ico('map') + 'ແຜນທີ່' : ico('layers') + 'ດາວທຽມ';
   }
   function locateMe(force) {
     if (!navigator.geolocation) return;
