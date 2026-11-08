@@ -291,3 +291,61 @@ test.describe('hiw ranking (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// 🎨 ສີ / ເບີ: ສິນຄ້າທີ່ມີ opts ຕ້ອງເລືອກສີກ່ອນໃສ່ກະຕ່າ · ສີຕິດໄປກັບອໍເດີ
+function shadeData() {
+    const d = hiwData();
+    d.hiw.pub.products.l1 = { name: 'Shade Tint', cat: 'makeup', sell: 250000, opts: ['01 Peach', '02 Rose'] };
+    return d;
+}
+
+test.describe('hiw shades (customer)', () => {
+    test.use({ db: shadeData(), user: null });
+
+    test('a shade must be chosen; each shade is its own cart line and goes into the order', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        const card = page.locator('.p', { hasText: 'Shade Tint' });
+        await expect(card.locator('.nopt')).toContainText('2');
+        await card.locator('button.add').click();
+        await page.locator('.sheet [data-a=needopt]').click();
+        await expect(page.locator('.toast')).toContainText('ເລືອກສີ');
+        await page.locator('.sheet [data-a=opt][data-v="02 Rose"]').click();
+        await page.locator('.sheet [data-a=cp]').click();
+        await card.locator('button.add').click();
+        await page.locator('.sheet [data-a=opt][data-v="01 Peach"]').click();
+        await page.locator('.sheet [data-a=cp]').click();
+        await expect(card.locator('button.add')).toContainText('2');
+        await page.click('[data-a=cart]');
+        await expect(page.locator('.sheet .li')).toHaveCount(2);
+        await expect(page.locator('.sheet .lopt').nth(0)).toContainText('02 Rose');
+        await page.click('[data-a=checkout]');
+        await page.fill('#f_n', 'Nina');
+        await page.fill('#f_p', '02055551234');
+        await page.locator('input[data-f=slip]').setInputFiles({ name: 'slip.png', mimeType: 'image/png', buffer: PNG });
+        await expect(page.locator('.sheet .up img')).toBeVisible();
+        await page.click('[data-a=place]');
+        await expect(page.locator('.sheet')).toContainText('ສັ່ງສຳເລັດ');
+        const orders = await fakeDb(page, 'hiw/orders');
+        const its = Object.values(orders)[0].items;
+        expect(its.map((i) => i.n).sort()).toEqual(['Shade Tint — 01 Peach', 'Shade Tint — 02 Rose']);
+        expect(its.every((i) => i.pid === 'l1' && i.o)).toBe(true);
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw shades (owner)', () => {
+    test.use({ db: shadeData(), user: OWNER });
+
+    test('shade list is edited one per line', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await page.locator('.card[data-a=pedit]', { hasText: 'Shade Tint' }).click();
+        await expect(page.locator('#e_op')).toHaveValue('01 Peach\n02 Rose');
+        await page.fill('#e_op', '01 Peach\n03 Berry | Matte\n01 Peach\n');
+        await page.click('[data-a=psave]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/products/l1/opts')).toEqual(['01 Peach', '03 Berry / Matte']);
+        expect(errors).toEqual([]);
+    });
+});

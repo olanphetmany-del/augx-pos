@@ -125,7 +125,11 @@
   function daysLeft() { var c = round().close; if (!c) return null; return Math.ceil((new Date(c + 'T23:59:59') - Date.now()) / DAY); }
 
   /* ---------- cart ---------- */
-  function cLines() { return Object.keys(S.cart).map(function (id) { return { p: P(id), q: S.cart[id] }; }).filter(function (l) { return l.p && !l.p.hidden && l.p.sell > 0 && l.q > 0; }); }
+  // ສີ/ເບີ: ກະຕ່າໃຊ້ key "pid|ສີ" ສຳລັບສິນຄ້າທີ່ມີ p.opts · ສິນຄ້າທີ່ມີສີ ຕ້ອງເລືອກສີກ່ອນ
+  function opts(p) { return Array.isArray(p && p.opts) ? p.opts.filter(Boolean).map(String) : []; }
+  function kSplit(k) { k = String(k); var i = k.indexOf('|'); return i < 0 ? { id: k, o: '' } : { id: k.slice(0, i), o: k.slice(i + 1) }; }
+  function inCart(id) { return Object.keys(S.cart).reduce(function (a, k) { return a + (kSplit(k).id === id ? +S.cart[k] || 0 : 0); }, 0); }
+  function cLines() { return Object.keys(S.cart).map(function (k) { var x = kSplit(k); return { k: k, p: P(x.id), o: x.o, q: S.cart[k] }; }).filter(function (l) { return l.p && !l.p.hidden && l.p.sell > 0 && l.q > 0 && (opts(l.p).length ? opts(l.p).indexOf(l.o) >= 0 : !l.o); }); }
   function cTotal() { return cLines().reduce(function (a, l) { return a + l.p.sell * l.q; }, 0); }
   function cCount() { return cLines().reduce(function (a, l) { return a + l.q; }, 0); }
   function saveCart() { store('hiw-cart', S.cart); store('hiw-form', S.form); }
@@ -154,10 +158,11 @@
   }
   function feeP(p) { return Math.min(Math.max(+p.fee || 0, 0), +p.sell || 0); }
   function pcard(p) {
-    var q = S.cart[p.id] || 0;
+    var q = inCart(p.id), op = opts(p).length;
     return '<div class="p">' + (p.best > 0 && p.best <= 5 ? '<span class="badge">🔥 ຂາຍດີ #' + p.best + '</span>' : p.isNew ? '<span class="badge new">✨ ໃໝ່</span>' : '') +
       '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + (p.size ? '<div class="psz">📦 ' + esc(p.size) + '</div>' : '') + (p.heavy ? '<div class="pheavy">⚖️ ສິນຄ້າມີນ້ຳໜັກ</div>' : '') + price(p) +
-      (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
+      (op ? '<div class="nopt">🎨 ' + op + ' ສີ / ເບີ</div><button class="add" data-a="pview" data-id="' + esc(p.id) + '">' + (q ? '✓ ໃນກະຕ່າ ' + q + ' · ເລືອກເພີ່ມ' : '🎨 ເລືອກສີ') + '</button>'
+        : q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
         : '<button class="add" data-a="cp" data-id="' + esc(p.id) + '">+ ເພີ່ມໃສ່ກະຕ່າ</button>') + '</div></div>';
   }
   // ແບຣນ: ໃຊ້ p.brand ຖ້າມີ, ບໍ່ດັ່ງນັ້ນເດົາຈາກຊື່ສິນຄ້າ (ແບຣນທີ່ມີຫຼາຍຄຳ ຢູ່ໃນ BR2, ນອກນັ້ນໃຊ້ຄຳທຳອິດ)
@@ -194,7 +199,7 @@
     return '<section class="rank"><div class="rkh"><h2>🏆 Today\'s Ranking</h2>' + at + '</div><p class="rks">ສະກິນແຄທີ່ ພ.ສ ເກົາຫຼີກຳລັງນິຍົມ · ຂາຍດີທີ່ສຸດໃນ Olive Young</p>' +
       (cats.length > 1 ? '<div class="chips"><button class="chip ' + (S.rk === 'all' ? 'on' : '') + '" data-a="rk" data-v="all">ທັງໝົດ</button>' + cats.map(function (c) { return '<button class="chip ' + (S.rk === c[0] ? 'on' : '') + '" data-a="rk" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' : '') +
       shown.map(function (p, i) {
-        var n = i + 1, q = S.cart[p.id] || 0, off = p.wonFull > p.won ? Math.round((1 - p.won / p.wonFull) * 100) : 0;
+        var n = i + 1, q = opts(p).length ? 0 : inCart(p.id), off = p.wonFull > p.won ? Math.round((1 - p.won / p.wonFull) * 100) : 0;
         return '<div class="rrow"><div class="rn n' + n + '">' + n + (S.rk === 'all' ? moveTag(p) : '') + '</div>' +
           '<div class="th" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div>' +
           '<div class="ri" data-a="pview" data-id="' + esc(p.id) + '"><div class="rb">' + esc(brandOf(p)) + (p.heavy ? ' · <span class="hv">⚖️ ຂອງໜັກ</span>' : '') + '</div>' +
@@ -202,7 +207,7 @@
           (p.size ? '<div class="psz">📦 ' + esc(p.size) + '</div>' : '') + stars(p) + boughtTag(p) +
           '<div class="rp">' + (p.won > 0 ? (off ? '<s>₩' + fm(p.wonFull) + '</s> ' : '') + '₩' + fm(p.won) + ' · ' : '') + '<b>' + kip(p.sell) + '</b></div></div>' +
           (q ? '<div class="qty v"><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button><b>' + q + '</b><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button></div>'
-            : '<button class="radd" data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມໃສ່ກະຕ່າ">+</button>') + '</div>';
+            : '<button class="radd" data-a="' + (opts(p).length ? 'pview' : 'cp') + '" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມໃສ່ກະຕ່າ">+</button>') + '</div>';
       }).join('') +
       (L.length > 5 ? '<button class="rkmore" data-a="rkmore">' + (S.rkMore ? 'ຫຍໍ້ລົງ ▲' : 'ເບິ່ງອັນດັບ 6–' + Math.min(10, L.length) + ' ▼') + '</button>' : '') + '</section>';
   }
@@ -229,11 +234,12 @@
     return h;
   }
   function mPview(p) {
-    var r = round();
+    var r = round(); if (S.pickId !== p.id) { S.pickId = p.id; S.pick = ''; }
     modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
       '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
-      '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button><button class="btn" data-a="cp" data-id="' + esc(p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ</button></div>');
+      (opts(p).length ? '<div class="opth">🎨 ເລືອກສີ / ເບີ <span>' + opts(p).length + ' ແບບ</span></div><div class="opts">' + opts(p).map(function (o) { return '<button class="opt' + (S.pick === o ? ' on' : '') + '" data-a="opt" data-id="' + esc(p.id) + '" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button>' + (opts(p).length && !S.pick ? '<button class="btn" data-a="needopt">🎨 ເລືອກສີກ່ອນ</button>' : '<button class="btn" data-a="cp" data-id="' + esc(opts(p).length ? p.id + '|' + S.pick : p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ' + (opts(p).length ? ' · ' + esc(S.pick) : '') + '</button>') + '</div>');
   }
   function feeRows(L) {
     var fee = L.reduce(function (a, l) { return a + feeP(l.p) * l.q; }, 0), n = L.reduce(function (a, l) { return a + (feeP(l.p) ? l.q : 0); }, 0);
@@ -243,8 +249,8 @@
   function mCart() {
     var L = cLines(); if (!L.length) { closeM(); return; }
     modal('<h2>🛒 ກະຕ່າຂອງທ່ານ</h2>' + L.map(function (l) {
-      return '<div class="li"><div class="th">' + img(l.p) + '</div><div class="nm">' + esc(l.p.name) + '<small><b style="color:var(--ink)">' + kip(l.p.sell * l.q) + '</b></small></div>' +
-        '<div class="qty"><button data-a="cm" data-id="' + esc(l.p.id) + '" aria-label="ລົບ 1">−</button><b>' + l.q + '</b><button data-a="cp" data-id="' + esc(l.p.id) + '" aria-label="ເພີ່ມ 1">+</button></div><button class="x" data-a="crm" data-id="' + esc(l.p.id) + '" aria-label="ເອົາອອກ">✕</button></div>';
+      return '<div class="li"><div class="th">' + img(l.p) + '</div><div class="nm">' + esc(l.p.name) + (l.o ? '<span class="lopt">🎨 ' + esc(l.o) + '</span>' : '') + '<small><b style="color:var(--ink)">' + kip(l.p.sell * l.q) + '</b></small></div>' +
+        '<div class="qty"><button data-a="cm" data-id="' + esc(l.k) + '" aria-label="ລົບ 1">−</button><b>' + l.q + '</b><button data-a="cp" data-id="' + esc(l.k) + '" aria-label="ເພີ່ມ 1">+</button></div><button class="x" data-a="crm" data-id="' + esc(l.k) + '" aria-label="ເອົາອອກ">✕</button></div>';
     }).join('') + feeRows(L) + '<div class="tot"><span>ລວມ</span><span>' + kip(cTotal()) + '</span></div>' +
       '<button class="btn w" data-a="checkout">ສັ່ງຊື້ ແລະ ຈ່າຍເງິນ →</button><button class="btn ghost w" style="margin-top:8px" data-a="close">← ເລືອກເພີ່ມ</button>');
   }
@@ -284,7 +290,7 @@
     var L = cLines(); if (!L.length) { closeM(); return; }
     S.busy = true; mCheckout();
     var total = cTotal(), tok = rnd(20), id = db.ref('hiw/orders').push().key, no;
-    var items = L.map(function (l) { return { pid: l.p.id, n: l.p.name, q: l.q, s: l.p.sell, st: 'wait' }; });
+    var items = L.map(function (l) { var it = { pid: l.p.id, n: l.p.name + (l.o ? ' — ' + l.o : ''), q: l.q, s: l.p.sell, st: 'wait' }; if (l.o) it.o = l.o; return it; });
     db.ref('hiw/seq').transaction(function (v) { return (Number(v) || 1000) + 1; }).then(function (r) {
       no = r.snapshot.val();
       var o = { no: no, tok: tok, name: f.n.trim().slice(0, 60), phone: f.p.trim().slice(0, 30), items: items, total: total, pay: 'pend', slip: S.slip,
@@ -385,7 +391,9 @@
       case 'rk': S.rk = v; S.rkMore = false; render(); break;
       case 'rkmore': S.rkMore = !S.rkMore; render(); break;
       case 'pview': { var p = P(id); if (p) mPview(p); break; }
-      case 'cp': S.cart[id] = (S.cart[id] || 0) + 1; saveCart(); if (b.dataset.close) { closeM(); toast('ເພີ່ມແລ້ວ ✓'); } else if ($('#layer').innerHTML) mCart(); render(); break;
+      case 'opt': { S.pick = v; var po = P(id); if (po) mPview(po); break; }
+      case 'needopt': toast('ກະລຸນາເລືອກສີ / ເບີກ່ອນ'); break;
+      case 'cp': if (opts(P(id)).length) { mPview(P(id)); break; } S.cart[id] = (S.cart[id] || 0) + 1; saveCart(); if (b.dataset.close) { closeM(); toast('ເພີ່ມແລ້ວ ✓'); } else if ($('#layer').innerHTML) mCart(); render(); break;
       case 'cm': S.cart[id] = Math.max(0, (S.cart[id] || 0) - 1); if (!S.cart[id]) delete S.cart[id]; saveCart(); if ($('#layer').innerHTML) mCart(); render(); break;
       case 'crm': delete S.cart[id]; saveCart(); mCart(); render(); break;
       case 'cart': mCart(); break;
