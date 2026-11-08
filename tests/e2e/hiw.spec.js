@@ -175,6 +175,11 @@ test.describe('hiw baht service fee (owner)', () => {
         expect(await fakeDb(page, 'hiw/pub/products/p4/sell')).toBe(232000);
         expect(await fakeDb(page, 'hiw/pub/products/p4/fee')).toBe(68000);
         expect(await fakeDb(page, 'hiw/pub/products/p4/won')).toBe(10000);
+        // product list explains the price: ₩ → item + fee (baht) = sell
+        await page.click('[data-a=sub][data-v=""]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await expect(page.locator('.card', { hasText: 'Fee Tint' })).toContainText('₩10,000 → ของ 164,000 + หิ้ว 68,000 (100฿) = 232,000');
+        await expect(page.locator('.card', { hasText: 'Fee Tint' })).not.toContainText('ยังไม่อัปเดต');
         expect(errors).toEqual([]);
     });
 });

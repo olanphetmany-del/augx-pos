@@ -277,13 +277,20 @@
     return '<div class="menu">' + M.map(function (m) { return '<button data-a="sub" data-v="' + m[0] + '"><b>' + m[1] + '</b>' + m[2] + '<small>' + m[3] + '</small></button>'; }).join('') + '</div>' +
       '<button class="btn ghost w" style="margin-top:14px" data-a="logout">ออกจากระบบ</button>';
   }
+  // ₩ → ของ + หิ้ว (บาท) = ราคาขาย · เตือนเมื่อราคาที่ขายอยู่ไม่ตรงสูตร
+  function priceLine(p) {
+    if (!p.won) return '<b style="color:var(--ink)">' + kip(p.sell) + '</b> · ⚠️ ไม่มีราคาวอน';
+    var s = sets(), c = catOf(p), fee = feeOf(p.won, s, c, p.ft), want = autoSell(p.won, s, c, p.ft);
+    return won(p.won) + ' → ของ ' + fm(p.sell - fee) + ' + หิ้ว ' + fm(fee) + ' (' + fm(isLite(c, p.ft) ? s.feeLite : s.feeThb) + '฿) = <b style="color:var(--ink)">' + kip(p.sell) + '</b>' +
+      (p.sell !== want ? ' · <b style="color:var(--red)">⚠️ ยังไม่อัปเดตราคา (สูตรได้ ' + fm(want) + ')</b>' : '');
+  }
   function sProd() {
     var st = stores(), L = plist().sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
     return '<div class="row"><button class="btn" data-a="pedit" data-id="">+ เพิ่มสินค้า</button><label class="btn ghost nf">📥 นำเข้า<input type="file" accept=".json,application/json" data-f="import" hidden></label></div>' +
       st.map(function (s) {
         var G = L.filter(function (p) { return p.store === s; });
         return G.length ? '<div class="sec"><h2>🏬 ' + E(s) + '</h2><span>' + G.length + ' รายการ</span></div>' + G.map(function (p) {
-          return '<div class="card li" data-a="pedit" data-id="' + E(p.id) + '" style="cursor:pointer;padding:10px 12px' + (p.hidden ? ';opacity:.5' : '') + '"><div class="th">' + img(p) + '</div><div class="nm"><b>' + E(p.name) + '</b><small>' + (p.won ? won(p.won) + ' → ' : '') + '<b style="color:var(--ink)">' + kip(p.sell) + '</b>' + (p.won ? ' · กำไร ~' + kip(p.sell - costOf(p.won)) : ' · ⚠️ ไม่มีราคาวอน') + (p.best ? ' · 🔥#' + E(p.best) : '') + (p.isNew ? ' · ✨ใหม่' : '') + (p.hidden ? ' · ซ่อนอยู่' : '') + '</small></div>›</div>';
+          return '<div class="card li" data-a="pedit" data-id="' + E(p.id) + '" style="cursor:pointer;padding:10px 12px' + (p.hidden ? ';opacity:.5' : '') + '"><div class="th">' + img(p) + '</div><div class="nm"><b>' + E(p.name) + '</b><small>' + priceLine(p) + (p.best ? ' · 🔥#' + E(p.best) : '') + (p.isNew ? ' · ✨ใหม่' : '') + (p.hidden ? ' · ซ่อนอยู่' : '') + '</small></div>›</div>';
         }).join('') : '';
       }).join('');
   }
@@ -301,7 +308,7 @@
       '<div class="row" style="margin-top:14px">' + (p ? '<button class="btn red nf" data-a="pdel" data-id="' + E(p.id) + '">🗑</button>' : '') + '<button class="btn ghost" data-a="close">ยกเลิก</button><button class="btn" data-a="psave">บันทึก</button></div>');
     updPv();
   }
-  function updPv() { var e = $('#e_pv'); if (!e) return; var w = num(($('#e_w') || {}).value), c = ($('#e_c') || {}).value, ft = ($('#e_ft') || {}).value || '', s = num(($('#e_p') || {}).value) || autoSell(w, null, c, ft); e.innerHTML = w ? 'ขายลูกค้า <b>' + kip(s) + '</b> · ต้นทุน ' + kip(costOf(w)) + ' · ค่าหิ้ว ' + kip(feeOf(w, null, c, ft)) + ' · กำไร ~' + kip(s - costOf(w)) : 'ใส่ราคาวอน ระบบคิดราคาขายให้'; }
+  function updPv() { var e = $('#e_pv'); if (!e) return; var w = num(($('#e_w') || {}).value), c = ($('#e_c') || {}).value, ft = ($('#e_ft') || {}).value || '', s = num(($('#e_p') || {}).value) || autoSell(w, null, c, ft); e.innerHTML = w ? won(w) + ' → ของ ' + fm(costOf(w)) + ' + หิ้ว ' + fm(feeOf(w, null, c, ft)) + ' (' + fm(isLite(c, ft) ? sets().feeLite : sets().feeThb) + '฿) = ขายลูกค้า <b>' + kip(s) + '</b>' : 'ใส่ราคาวอน ระบบคิดราคาขายให้'; }
   function pvText(s) { return 'ตัวอย่าง ₩10,000 → สกินแคร์ ' + kip(autoSell(10000, s, 'skin')) + ' · เมกอัพ ' + kip(autoSell(10000, s, 'makeup')); }
   function sCust() {
     var m = {};
