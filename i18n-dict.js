@@ -90,3 +90,5 @@ window.I18N_DICT.cust.push(["ລວມຄ່າຫິ້ວ", "รวมค่�
 window.I18N_DICT.cust.push(["ຕິດຕັ້ງແອັບ AUGUSTX Pre-order", "ติดตั้งแอป AUGUSTX Pre-order", "Install the AUGUSTX Pre-order app"]);
 window.I18N_DICT.staff.push(["⚠️ ไม่มีราคาวอน", "⚠️ ບໍ່ມີລາຄາວອນ", "⚠️ No won price"]);
 window.I18N_DICT.cust.push(["ລາຄາລວມຄ່າຫິ້ວ", "ราคารวมค่าหิ้ว", "price incl. service fee"]);
+window.I18N_DICT.staff.push(["ราคาเต็ม (วอน) ไม่ลด = ว่าง", "ລາຄາເຕັມ (ວອນ) ບໍ່ຫຼຸດ = ວ່າງ", "Full price (won), blank if not on sale"]);
+window.I18N_DICT.staff.push(["ราคาที่ซื้อ (วอน · ราคาลด)", "ລາຄາທີ່ຊື້ (ວອນ · ລາຄາຫຼຸດ)", "Price paid (won, sale price)"]);

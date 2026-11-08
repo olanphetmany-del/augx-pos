@@ -148,7 +148,9 @@
   // ₩ ເດັ່ນ + ≈ ກີບ (ລວມຄ່າຫິ້ວ) · ສິນຄ້າທີ່ບໍ່ມີ won ໂຊກີບຄືເກົ່າ
   function price(p, big) {
     if (!(p.won > 0)) return big ? '<div class="big" style="color:var(--g)">' + kip(p.sell) + '</div>' : '<div class="pr">' + kip(p.sell) + '</div>';
-    return '<div class="' + (big ? 'big' : 'pr') + '"' + (big ? ' style="color:var(--g)"' : '') + '>₩' + fm(p.won) + '</div><div class="prk">' + kip(p.sell) + ' <span>ລາຄາລວມຄ່າຫິ້ວ</span></div>';
+    var off = p.wonFull > p.won ? Math.round((1 - p.won / p.wonFull) * 100) : 0;
+    return (off ? '<div class="pfull"><s>₩' + fm(p.wonFull) + '</s> <b>-' + off + '%</b></div>' : '') +
+      '<div class="' + (big ? 'big' : 'pr') + '"' + (big ? ' style="color:var(--g)"' : '') + '>₩' + fm(p.won) + '</div><div class="prk">' + kip(p.sell) + ' <span>ລາຄາລວມຄ່າຫິ້ວ</span></div>';
   }
   function feeP(p) { return Math.min(Math.max(+p.fee || 0, 0), +p.sell || 0); }
   function pcard(p) {
