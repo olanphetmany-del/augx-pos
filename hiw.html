@@ -128,10 +128,16 @@
     $('#app').innerHTML = h;
     if (focus) { q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); }
   }
+  // ₩ ເດັ່ນ + ≈ ກີບ (ລວມຄ່າຫິ້ວ) · ສິນຄ້າທີ່ບໍ່ມີ won ໂຊກີບຄືເກົ່າ
+  function price(p, big) {
+    if (!(p.won > 0)) return big ? '<div class="big" style="color:var(--g)">' + kip(p.sell) + '</div>' : '<div class="pr">' + kip(p.sell) + '</div>';
+    return '<div class="' + (big ? 'big' : 'pr') + '"' + (big ? ' style="color:var(--g)"' : '') + '>₩' + fm(p.won) + '</div><div class="prk">≈ ' + kip(p.sell) + ' <span>ລວມຄ່າຫິ້ວ</span></div>';
+  }
+  function feeP(p) { return Math.min(Math.max(+p.fee || 0, 0), +p.sell || 0); }
   function pcard(p) {
     var q = S.cart[p.id] || 0;
     return '<div class="p">' + (p.best > 0 && p.best <= 5 ? '<span class="badge">🔥 ຂາຍດີ #' + p.best + '</span>' : p.isNew ? '<span class="badge new">✨ ໃໝ່</span>' : '') +
-      '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div><div class="pr">' + kip(p.sell) + '</div>' +
+      '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + price(p) +
       (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
         : '<button class="add" data-a="cp" data-id="' + esc(p.id) + '">+ ເພີ່ມໃສ່ກະຕ່າ</button>') + '</div></div>';
   }
@@ -157,16 +163,21 @@
   function mPview(p) {
     var r = round();
     modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
-      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2><div class="big" style="color:var(--g)">' + kip(p.sell) + '</div>' +
+      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button><button class="btn" data-a="cp" data-id="' + esc(p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ</button></div>');
+  }
+  function feeRows(L) {
+    var fee = L.reduce(function (a, l) { return a + feeP(l.p) * l.q; }, 0), n = L.reduce(function (a, l) { return a + (feeP(l.p) ? l.q : 0); }, 0);
+    if (!fee) return '';
+    return '<div class="sub2"><span>ລາຄາສິນຄ້າ</span><span>' + kip(cTotal() - fee) + '</span></div><div class="sub2"><span>ຄ່າຫິ້ວ (' + n + ' ກ່ອງ)</span><span>' + kip(fee) + '</span></div>';
   }
   function mCart() {
     var L = cLines(); if (!L.length) { closeM(); return; }
     modal('<h2>🛒 ກະຕ່າຂອງທ່ານ</h2>' + L.map(function (l) {
       return '<div class="li"><div class="th">' + img(l.p) + '</div><div class="nm">' + esc(l.p.name) + '<small><b style="color:var(--ink)">' + kip(l.p.sell * l.q) + '</b></small></div>' +
         '<div class="qty"><button data-a="cm" data-id="' + esc(l.p.id) + '" aria-label="ລົບ 1">−</button><b>' + l.q + '</b><button data-a="cp" data-id="' + esc(l.p.id) + '" aria-label="ເພີ່ມ 1">+</button></div><button class="x" data-a="crm" data-id="' + esc(l.p.id) + '" aria-label="ເອົາອອກ">✕</button></div>';
-    }).join('') + '<div class="tot"><span>ລວມ</span><span>' + kip(cTotal()) + '</span></div>' +
+    }).join('') + feeRows(L) + '<div class="tot"><span>ລວມ</span><span>' + kip(cTotal()) + '</span></div>' +
       '<button class="btn w" data-a="checkout">ສັ່ງຊື້ ແລະ ຈ່າຍເງິນ →</button><button class="btn ghost w" style="margin-top:8px" data-a="close">← ເລືອກເພີ່ມ</button>');
   }
   function mCheckout() {

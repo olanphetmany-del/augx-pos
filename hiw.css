@@ -28,6 +28,9 @@ main{max-width:720px;margin:0 auto;padding:12px 12px 120px}
 .p .b{padding:8px 10px 10px;display:flex;flex-direction:column;flex:1}
 .p .nm{font-size:13.5px;line-height:1.35;flex:1}
 .p .pr{font-weight:700;color:var(--g);margin:6px 0 8px;font-size:15.5px}
+.prk{font-size:13px;color:var(--ink);margin:-4px 0 8px;font-weight:600}
+.prk span{font-weight:400;color:var(--mut);font-size:12px}
+.sub2{display:flex;justify-content:space-between;font-size:14px;color:var(--mut);margin:8px 0 0}
 .add{border:0;background:var(--g);color:#fff;border-radius:10px;padding:9px;font-weight:600}
 .qty{display:flex;align-items:center;justify-content:space-between;background:var(--g2);border-radius:10px}
 .qty button{border:0;background:none;width:40px;height:38px;font-size:20px;color:var(--g)}

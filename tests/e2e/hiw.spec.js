@@ -118,6 +118,57 @@ test.describe('hiw-admin.html (owner)', () => {
 
 });
 
+// ค่าหิ้วเป็นบาทต่อชิ้น: ของปกติ 200 บาท · เมกอัพ/เล็บ 100 บาท · หน้าร้านโชว์ ₩ + ≈ กีบรวมค่าหิ้ว
+function feeData() {
+    const d = hiwData();
+    d.hiw.pub.products = {
+        p1: { name: 'Fee Toner', cat: 'skin', sell: 546000, won: 25000, fee: 136000 },
+        p4: { name: 'Fee Tint', cat: 'makeup', sell: 232000, won: 10000, fee: 68000 },
+    };
+    d.hiw.priv = { settings: { rate: 15.9, buffer: 3, fee: 0, step: 1000, thb: 680, feeThb: 200, feeLite: 100 }, pmeta: { p1: { store: 'Olive Young', won: 25000 }, p4: { store: 'Olive Young', won: 10000 } } };
+    return d;
+}
+
+test.describe('hiw baht service fee (customer)', () => {
+    test.use({ db: feeData(), user: null });
+
+    test('card shows won with kip incl. fee; cart splits item price and fee', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        await expect(page.locator('.p', { hasText: 'Fee Toner' })).toContainText('₩25,000');
+        await expect(page.locator('.p', { hasText: 'Fee Toner' }).locator('.prk')).toContainText('546,000');
+        await page.locator('[data-a=cp][data-id=p1]').first().click();
+        await page.locator('[data-a=cp][data-id=p4]').first().click();
+        await page.click('[data-a=cart]');
+        const sheet = page.locator('.sheet');
+        await expect(sheet.locator('.sub2').nth(0)).toContainText('574,000');
+        await expect(sheet.locator('.sub2').nth(1)).toContainText('204,000');
+        await expect(sheet.locator('.sub2').nth(1)).toContainText('2');
+        await expect(sheet.locator('.tot')).toContainText('778,000');
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw baht service fee (owner)', () => {
+    const d = feeData();
+    d.hiw.pub.products.p1.sell = 1; d.hiw.pub.products.p4.sell = 1;
+    test.use({ db: d, user: OWNER });
+
+    test('reprice uses 200 baht per item and 100 baht for makeup', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=set]');
+        await expect(page.locator('#s_feeThb')).toHaveValue('200');
+        await page.click('[data-a=reprice]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/products/p1/sell')).toBe(546000);
+        expect(await fakeDb(page, 'hiw/pub/products/p1/fee')).toBe(136000);
+        expect(await fakeDb(page, 'hiw/pub/products/p4/sell')).toBe(232000);
+        expect(await fakeDb(page, 'hiw/pub/products/p4/fee')).toBe(68000);
+        expect(await fakeDb(page, 'hiw/pub/products/p4/won')).toBe(10000);
+        expect(errors).toEqual([]);
+    });
+});
+
 test.describe('hiw-admin.html (staff account)', () => {
     test.use({ db: hiwData(), user: STAFF });
     test('non-owner accounts are refused', async ({ page, errors }) => {
