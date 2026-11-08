@@ -88,3 +88,5 @@ window.I18N_DICT.staff.push(["วันนี้ต้องทำอะไร",
 window.I18N_DICT.staff.push(["ค่าหิ้ว", "ຄ່າຫິ້ວ", "Service fee"], ["อัตโนมัติตามหมวด (เมกอัพ/เล็บ = ของเบา)", "ອັດຕະໂນມັດຕາມໝວດ (ເມກອັບ/ເລັບ = ຂອງເບົາ)", "Auto by category (makeup/nails = light)"], ["ค่าหิ้วต่อชิ้น (บาท)", "ຄ່າຫິ້ວຕໍ່ຊິ້ນ (ບາດ)", "Service fee per item (baht)"], ["ค่าหิ้วของเบา เมกอัพ/เล็บ (บาท)", "ຄ່າຫິ້ວຂອງເບົາ ເມກອັບ/ເລັບ (ບາດ)", "Light-item fee, makeup/nails (baht)"], ["1 บาท = กีบ", "1 ບາດ = ກີບ", "1 baht = kip"], ["ค่าหิ้วเพิ่มเป็น % (ไม่ใช้ใส่ 0)", "ຄ່າຫິ້ວເພີ່ມເປັນ % (ບໍ່ໃຊ້ໃສ່ 0)", "Extra fee % (0 if unused)"]);
 window.I18N_DICT.cust.push(["ລວມຄ່າຫິ້ວ", "รวมค่าหิ้ว", "incl. service fee"], ["ລາຄາສິນຄ້າ", "ราคาสินค้า", "Item price"]);
 window.I18N_DICT.cust.push(["ຕິດຕັ້ງແອັບ AUGUSTX Pre-order", "ติดตั้งแอป AUGUSTX Pre-order", "Install the AUGUSTX Pre-order app"]);
+window.I18N_DICT.staff.push(["⚠️ ไม่มีราคาวอน", "⚠️ ບໍ່ມີລາຄາວອນ", "⚠️ No won price"]);
+window.I18N_DICT.cust.push(["ລາຄາລວມຄ່າຫິ້ວ", "ราคารวมค่าหิ้ว", "price incl. service fee"]);
