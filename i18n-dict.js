@@ -97,3 +97,4 @@ window.I18N_DICT.staff.push(["แบรนด์ (ว่าง = เดาจา
 window.I18N_DICT.staff.push(["ปริมาณต่อชิ้น × จำนวน (เช่น 50ml × 2)", "ປະລິມານຕໍ່ຊິ້ນ × ຈຳນວນ (ເຊັ່ນ 50ml × 2)", "Size per unit × count (e.g. 50ml × 2)"], ["⚠️ ยังไม่ใส่ปริมาณ", "⚠️ ຍັງບໍ່ໃສ່ປະລິມານ", "⚠️ No size yet"]);
 window.I18N_DICT.cust.push(["ປະລິມານ", "ปริมาณ", "Size"]);
 window.I18N_DICT.staff.push(["ค่าหิ้วของหนัก (บาท)", "ຄ່າຫິ້ວຂອງໜັກ (ບາດ)", "Heavy-item fee (baht)"], ["ของหนัก = ปริมาณรวมตั้งแต่ (ml/g)", "ຂອງໜັກ = ປະລິມານລວມຕັ້ງແຕ່ (ml/g)", "Heavy = total size from (ml/g)"]);
+window.I18N_DICT.cust.push(["⚖️ ສິນຄ້າມີນ້ຳໜັກ", "⚖️ สินค้ามีน้ำหนัก", "⚖️ Heavy item"], ["⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ", "⚖️ สินค้ามีน้ำหนัก — ค่าหิ้วอาจสูงกว่านี้ กรุณาสอบถามร้านอีกครั้ง", "⚖️ Heavy item — the carry fee may be higher; please check with the shop"]);
