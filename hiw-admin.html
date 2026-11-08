@@ -66,7 +66,7 @@
   function isLite(cat, ft) { return ft === 'l' || (ft !== 'n' && LITE.indexOf(cat) >= 0); }
   function feeOf(w, s, cat, ft) { s = s || sets(); if (!num(w)) return 0; return Math.round(num(s.thb) * num(isLite(cat, ft) ? s.feeLite : s.feeThb) + costOf(w, s) * num(s.fee) / 100); }
   function autoSell(w, s, cat, ft) { s = s || sets(); if (!num(w)) return 0; var r = num(s.step) || 1; return Math.ceil((costOf(w, s) + feeOf(w, s, cat, ft)) / r) * r; }
-  function P(id) { var p = S.products && S.products[id]; if (!p) return null; var m = (S.meta && S.meta[id]) || {}; return Object.assign({ id: id, store: m.store || 'อื่นๆ', ft: m.ft || '' }, p, { won: num(m.won) || num(p.won) }); }
+  function P(id) { var p = S.products && S.products[id]; if (!p) return null; var m = (S.meta && S.meta[id]) || {}; return Object.assign({ id: id, store: m.store || 'อื่นๆ', ft: m.ft || '' }, p, { won: num(m.won) || num(p.won), wonFull: num(m.wonFull) || num(p.wonFull) }); }
   function plist() { return Object.keys(S.products || {}).map(P).filter(Boolean); }
   function catOf(p) { return CATS.some(function (c) { return c[0] === p.cat; }) ? p.cat : 'other'; }
   function catIc(p) { var c = CATS.filter(function (x) { return x[0] === catOf(p); })[0]; return c ? c[1] : '✨'; }
@@ -281,7 +281,7 @@
   function priceLine(p) {
     if (!p.won) return '<b style="color:var(--ink)">' + kip(p.sell) + '</b> · ⚠️ ไม่มีราคาวอน';
     var s = sets(), c = catOf(p), fee = feeOf(p.won, s, c, p.ft), want = autoSell(p.won, s, c, p.ft);
-    return won(p.won) + ' → ของ ' + fm(p.sell - fee) + ' + หิ้ว ' + fm(fee) + ' (' + fm(isLite(c, p.ft) ? s.feeLite : s.feeThb) + '฿) = <b style="color:var(--ink)">' + kip(p.sell) + '</b>' +
+    return (p.wonFull > p.won ? '<s>' + won(p.wonFull) + '</s> ' : '') + won(p.won) + ' → ของ ' + fm(p.sell - fee) + ' + หิ้ว ' + fm(fee) + ' (' + fm(isLite(c, p.ft) ? s.feeLite : s.feeThb) + '฿) = <b style="color:var(--ink)">' + kip(p.sell) + '</b>' +
       (p.sell !== want ? ' · <b style="color:var(--red)">⚠️ ยังไม่อัปเดตราคา (สูตรได้ ' + fm(want) + ')</b>' : '');
   }
   function sProd() {
@@ -302,7 +302,8 @@
       '<div><label style="margin-top:0">ชื่อสินค้า</label><input id="e_n" value="' + E(p ? p.name : '') + '"></div></div>' +
       '<div class="row"><div><label>ร้านที่ซื้อ (ลูกค้าไม่เห็น)</label><input id="e_s" list="e_sl" value="' + E(p ? p.store : st[0]) + '"><datalist id="e_sl">' + st.map(function (s) { return '<option value="' + E(s) + '">'; }).join('') + '</datalist></div>' +
       '<div><label>หมวด</label><select id="e_c">' + CATS.map(function (c) { return '<option value="' + c[0] + '"' + (p && catOf(p) === c[0] ? ' selected' : '') + '>' + c[1] + ' ' + c[2] + '</option>'; }).join('') + '</select></div></div>' +
-      '<div class="row"><div><label>ราคาป้าย (วอน)</label><input id="e_w" inputmode="numeric" value="' + (p && p.won ? p.won : '') + '"></div><div><label>ราคาขาย (กีบ) ว่าง = อัตโนมัติ</label><input id="e_p" inputmode="numeric" value="' + (p && p.sell && p.sell !== autoSell(p.won, null, catOf(p), p.ft) ? p.sell : '') + '"></div></div><p class="mut" id="e_pv"></p>' +
+      '<div class="row"><div><label>ราคาเต็ม (วอน) ไม่ลด = ว่าง</label><input id="e_wf" inputmode="numeric" value="' + (p && p.wonFull ? p.wonFull : '') + '"></div><div></div></div>' +
+      '<div class="row"><div><label>ราคาที่ซื้อ (วอน · ราคาลด)</label><input id="e_w" inputmode="numeric" value="' + (p && p.won ? p.won : '') + '"></div><div><label>ราคาขาย (กีบ) ว่าง = อัตโนมัติ</label><input id="e_p" inputmode="numeric" value="' + (p && p.sell && p.sell !== autoSell(p.won, null, catOf(p), p.ft) ? p.sell : '') + '"></div></div><p class="mut" id="e_pv"></p>' +
       '<label>ค่าหิ้ว</label><select id="e_ft"><option value="">อัตโนมัติตามหมวด (เมกอัพ/เล็บ = ของเบา)</option><option value="l"' + (p && p.ft === 'l' ? ' selected' : '') + '>ของเบา ' + fm(sets().feeLite) + ' บาท</option><option value="n"' + (p && p.ft === 'n' ? ' selected' : '') + '>ปกติ ' + fm(sets().feeThb) + ' บาท</option></select>' +
       '<div class="row"><div><label>อันดับขายดี (0 = ไม่แสดง)</label><input id="e_b" inputmode="numeric" value="' + (p ? num(p.best) : 0) + '"></div><div><label>ป้าย / การแสดง</label><select id="e_x"><option value="">ปกติ</option><option value="new"' + (p && p.isNew ? ' selected' : '') + '>✨ ใหม่</option><option value="hide"' + (p && p.hidden ? ' selected' : '') + '>🙈 ซ่อนจากหน้าร้าน</option></select></div></div>' +
       '<div class="row" style="margin-top:14px">' + (p ? '<button class="btn red nf" data-a="pdel" data-id="' + E(p.id) + '">🗑</button>' : '') + '<button class="btn ghost" data-a="close">ยกเลิก</button><button class="btn" data-a="psave">บันทึก</button></div>');
@@ -418,9 +419,9 @@
       L.forEach(function (x) {
         if (!x || !x.name) return;
         var id = String(x.id || db.ref('hiw/pub/products').push().key).replace(/[.#$/[\]]/g, '_');
-        var w = num(x.won), xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc);
-        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, sell: sell, won: w, fee: Math.min(sell, feeOf(w, null, xc)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
-        up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w };
+        var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc);
+        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
+        up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
         if (x.img) up['hiw/pub/pimg/' + id] = x.img;
         n++;
       });
@@ -467,11 +468,11 @@
       case 'refpaid': o = O(id); its = items(o).map(function (i) { return Object.assign({}, i); }); its[+b.dataset.k].refPaid = true; o.items = its; run(saveOrder(o), 'บันทึกคืนเงินแล้ว'); break;
       case 'pedit': mPedit(id ? P(id) : null); break;
       case 'psave': {
-        var nm = $('#e_n').value.trim(), w = num($('#e_w').value), ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft), x = $('#e_x').value;
+        var nm = $('#e_n').value.trim(), w = num($('#e_w').value), wf = num($('#e_wf').value) > w ? num($('#e_wf').value) : 0, ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft), x = $('#e_x').value;
         if (!nm || !sell) { say('ใส่ชื่อ และราคาวอน (หรือราคาขาย)', false); return; }
         var pid = S.editP.id || db.ref('hiw/pub/products').push().key, ex = P(pid), u = {};
-        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, sell: sell, won: w, fee: Math.min(sell, feeOf(w, null, ec, eft)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
-        u['hiw/priv/pmeta/' + pid] = { store: $('#e_s').value.trim() || 'อื่นๆ', won: w, ft: eft };
+        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
+        u['hiw/priv/pmeta/' + pid] = { store: $('#e_s').value.trim() || 'อื่นๆ', won: w, wonFull: wf, ft: eft };
         if (S.editP.img) { u['hiw/pub/pimg/' + pid] = S.editP.img; S.img[pid] = S.editP.img; }
         closeM(); run(db.ref().update(u), 'บันทึกแล้ว · ขึ้นหน้าร้านทันที'); break;
       }
@@ -497,7 +498,7 @@
       }
       case 'reprice': {
         s = sets(); var up3 = {}, cnt = 0;
-        plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft); up3[b + 'won'] = p.won; cnt++; } });
+        plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft); up3[b + 'won'] = p.won; up3[b + 'wonFull'] = p.wonFull > p.won ? p.wonFull : 0; cnt++; } });
         if (!cnt) { say('ไม่มีสินค้าที่ใส่ราคาวอน', false); return; }
         run(db.ref().update(up3), 'คิดราคาใหม่ ' + cnt + ' รายการ ✓'); break;
       }
