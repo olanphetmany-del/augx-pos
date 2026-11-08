@@ -185,8 +185,6 @@
     modal('<button class="back" data-a="cart">← ກັບໄປກະຕ່າ</button><h2>ຂໍ້ມູນຜູ້ສັ່ງ</h2>' +
       '<label>ຊື່ *</label><input id="f_n" value="' + esc(f.n) + '" autocomplete="name">' +
       '<label>ເບີ WhatsApp *</label><input id="f_p" inputmode="tel" value="' + esc(f.p) + '" placeholder="020 …" autocomplete="tel">' +
-      '<label>ຮັບຂອງແບບໃດ</label><div class="radio"><button class="' + (f.deliv === 'pick' ? 'on' : '') + '" data-a="deliv" data-v="pick">🏪 ມາຮັບເອງ</button><button class="' + (f.deliv === 'send' ? 'on' : '') + '" data-a="deliv" data-v="send">🚚 ສົ່ງ (ຄ່າສົ່ງຈ່າຍປາຍທາງ)</button></div>' +
-      (f.deliv === 'send' ? '<label>ທີ່ຢູ່ / ສາຂາຂົນສົ່ງ *</label><input id="f_a" value="' + esc(f.addr) + '" placeholder="ບ້ານ, ເມືອງ, ແຂວງ ຫຼື ສາຂາຂົນສົ່ງ">' : '') +
       '<label>ໝາຍເຫດ (ສີ, ເບີ…)</label><input id="f_m" value="' + esc(f.note) + '">' +
       '<div class="pay"><b>① ໂອນເງິນ ' + kip(t) + '</b>' +
       (s.accNo ? '<div style="margin-top:6px">' + esc(s.bank) + '</div><div class="acc">' + esc(s.accNo) + ' <button class="mini" data-a="copyacc">ກັອບປີ້</button></div><div>' + esc(s.accName) + '</div>' : '<div class="mut" style="margin-top:6px">ກະລຸນາສອບຖາມເລກບັນຊີກັບຮ້ານ</div>') +
@@ -213,7 +211,7 @@
     readForm();
     var f = S.form, ph = digits(f.p);
     if (!f.n.trim() || ph.length < 8) { toast('ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທໃຫ້ຖືກ'); return; }
-    if (f.deliv === 'send' && !f.addr.trim()) { toast('ກະລຸນາໃສ່ທີ່ຢູ່ຈັດສົ່ງ'); return; }
+    f.deliv = 'pick'; f.addr = ''; // ບໍ່ໃຫ້ເລືອກວິທີຮັບຂອງແລ້ວ · ຕົກລົງກັບຮ້ານທາງແຊັດ
     if (!S.slip) { toast('ກະລຸນາແນບຮູບສະລິບ'); return; }
     var L = cLines(); if (!L.length) { closeM(); return; }
     S.busy = true; mCheckout();
@@ -276,7 +274,7 @@
             : '<div class="info" style="margin-top:0">😢 ສິນຄ້ານີ້ໝົດຢູ່ຮ້ານ ເລືອກໄດ້ເລີຍ:<div class="row" style="margin-top:8px"><button class="btn sm lite" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="wait">⏳ ລໍຮອບໜ້າ</button><button class="btn sm amb" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="refund">💸 ຄືນເງິນ ' + kip(i.s * i.q) + '</button></div></div>') : '');
       }).join('') +
       '<div class="tot" style="font-size:15px"><span>ລວມ</span><span>' + kip((t.total || 0) - refund) + (refund ? ' <small class="mut">(ຄືນ ' + fm(refund) + ')</small>' : '') + '</span></div>' +
-      '<p class="mut">' + (t.deliv === 'send' ? '🚚 ສົ່ງຕາມທີ່ຢູ່' : '🏪 ມາຮັບເອງທີ່ຮ້ານ') + '</p></div>';
+      (t.deliv === 'send' ? '<p class="mut">🚚 ສົ່ງຕາມທີ່ຢູ່</p>' : '') + '</div>';
   }
 
   /* ---------- request ---------- */
@@ -321,7 +319,6 @@
       case 'crm': delete S.cart[id]; saveCart(); mCart(); render(); break;
       case 'cart': mCart(); break;
       case 'checkout': mCheckout(); break;
-      case 'deliv': readForm(); S.form.deliv = v; saveCart(); mCheckout(); break;
       case 'copyacc': copy(digits(S.set.accNo), 'ກັອບປີ້ເລກບັນຊີແລ້ວ ✓'); break;
       case 'copyamt': copy(String(cTotal()), 'ກັອບປີ້ຍອດແລ້ວ ✓'); break;
       case 'copylink': copy(v, 'ກັອບປີ້ລິ້ງແລ້ວ ✓'); break;
