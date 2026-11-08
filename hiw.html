@@ -52,9 +52,14 @@
   var TS = firebase.database.ServerValue.TIMESTAMP;
   var DAY = 864e5;
   var CATS = [['skin', '💧', 'ສະກິນແຄຣ'], ['sun', '☀️', 'ກັນແດດ'], ['mask', '🩹', 'ມາສກ໌ & ແຜ່ນແປະ'], ['clean', '🫧', 'ຄລີນຊິ່ງ'], ['makeup', '💄', 'ເມກອັບ'], ['nail', '💅', 'ເລັບ'], ['body', '🧴', 'ບໍດີ້ & ຜົມ'], ['other', '✨', 'ອື່ນໆ']];
+  // ໝວດຍ່ອຍ (ໜ້າໝວດ): [key, icon, ລາວ, ไทย]
+  var SUBS = {
+    makeup: [['lip', '💋', 'ລິບ', 'ลิป'], ['base', '✨', 'ເບສ', 'เบส'], ['eye', '👁️', 'ຕາ', 'ตา'], ['cheek', '🌸', 'ແກ້ມ', 'แก้ม']],
+    skin: [['toner', '💧', 'ໂທນເນີ', 'โทนเนอร์'], ['serum', '🧪', 'ເຊຣັ່ມ / ແອມພູນ', 'เซรั่ม / แอมพูล'], ['cream', '🫙', 'ຄຣີມ / ໂລຊັ່ນ', 'ครีม / โลชั่น'], ['pad', '🧻', 'ໂທນເນີແພດ', 'โทนเนอร์แพด']]
+  };
   var STL = { wait: 'ລໍຖ້າຊື້', got: 'ຊື້ແລ້ວ', arrived: 'ຮອດລາວແລ້ວ', done: 'ສຳເລັດ', ask: 'ໝົດ · ກະລຸນາເລືອກ', refund: 'ຄືນເງິນ' };
 
-  var S = { set: null, products: null, img: {}, track: {}, ct: 'shop', cat: 'all', brand: 'all', rk: 'all', rkMore: false, q: '', cart: {}, form: { n: '', p: '', deliv: 'pick', addr: '', note: '' }, slip: '', busy: false, req: { w: '', q: '1', p: '', n: '', img: '' }, toks: [] };
+  var S = { set: null, products: null, img: {}, track: {}, ct: 'shop', cat: 'all', brand: 'all', rk: 'all', rkMore: false, sub: '', th: -1, q: '', cart: {}, form: { n: '', p: '', deliv: 'pick', addr: '', note: '' }, slip: '', busy: false, req: { w: '', q: '1', p: '', n: '', img: '' }, toks: [] };
 
   /* ---------- utils ---------- */
   function $(s) { return document.querySelector(s); }
@@ -211,6 +216,21 @@
       }).join('') +
       (L.length > 5 ? '<button class="rkmore" data-a="rkmore">' + (S.rkMore ? 'ຫຍໍ້ລົງ ▲' : 'ເບິ່ງອັນດັບ 6–' + Math.min(10, L.length) + ' ▼') + '</button>' : '') + '</section>';
   }
+  // 🗂️ ໜ້າໝວດ (ແບບ Olive Young): ໝວດຍ່ອຍ · ແບນເນີ · ວົງມົນທີມ · ສິນຄ້າ — ຂໍ້ມູນຈາກ hiw/pub/settings/cpage/<ໝວດ>
+  function vCat(cat, L) {
+    var cp = ((S.set && S.set.cpage) || {})[cat] || {}, subs = (SUBS[cat] || []).filter(function (x) { return L.some(function (p) { return p.sub === x[0]; }); });
+    var bn = (Array.isArray(cp.banners) ? cp.banners : []).map(function (b) { return b && Object.assign({}, b, { p: P(b.pid) }); }).filter(function (b) { return b && b.p && !b.p.hidden; });
+    var th = (Array.isArray(cp.themes) ? cp.themes : []).map(function (t) { var ids = Array.isArray(t && t.ids) ? t.ids : []; return t && { name: String(t.name || ''), ids: ids, p: ids.map(P).filter(function (x) { return x && !x.hidden; })[0] }; }).filter(function (t) { return t && t.name && t.p; });
+    if (S.th >= th.length) S.th = -1;
+    var G = L.filter(function (p) { return (!S.sub || p.sub === S.sub) && (S.th < 0 || th[S.th].ids.indexOf(p.id) >= 0); });
+    var c = CATS.filter(function (x) { return x[0] === cat; })[0] || ['', '✨', ''];
+    var h = '<div class="cph"><h2>' + c[1] + ' ' + c[2] + '</h2><span>' + G.length + ' ລາຍການ</span></div>';
+    if (subs.length) h += '<div class="chips subs"><button class="chip ' + (!S.sub ? 'on' : '') + '" data-a="sub" data-v="">ທັງໝົດ</button>' + subs.map(function (x) { return '<button class="chip ' + (S.sub === x[0] ? 'on' : '') + '" data-a="sub" data-v="' + x[0] + '">' + x[1] + ' ' + x[2] + '</button>'; }).join('') + '</div>';
+    if (bn.length && !S.sub && S.th < 0) h += '<div class="bnr">' + bn.map(function (b, i) { return '<div class="bn c' + (i % 3) + '" data-a="pview" data-id="' + esc(b.p.id) + '"><div class="bt"><b>' + esc(b.t1 || b.p.name) + '</b>' + (b.t2 ? '<span>' + esc(b.t2) + '</span>' : '') + '<small>' + (bn.length > 1 ? (i + 1) + ' / ' + bn.length : '') + '</small></div><div class="bi">' + img(b.p) + '</div></div>'; }).join('') + '</div>';
+    if (th.length) h += '<div class="thh">ຕອນນີ້ ພ.ສ ເກົາຫຼີຊອກຫາຫຼາຍທີ່ສຸດ</div><div class="ths">' + th.map(function (t, i) { return '<button class="thc' + (S.th === i ? ' on' : '') + '" data-a="th" data-v="' + i + '"><span class="ci">' + img(t.p) + '</span>' + esc(t.name) + '</button>'; }).join('') + '</div>';
+    if (S.th >= 0) h += '<div class="info">🎯 ' + esc(th[S.th].name) + ' · <button class="mini" data-a="th" data-v="-1">ເບິ່ງທັງໝົດ</button></div>';
+    return h + (G.length ? '<div class="grid">' + G.map(pcard).join('') + '</div>' : '<div class="empty"><b>🔍</b>ບໍ່ພົບສິນຄ້າ</div>');
+  }
   function vShop() {
     var all = plist(), q = S.q.toLowerCase().trim();
     if (!all.length) return '<div class="empty"><b>🧴</b>ຍັງບໍ່ມີສິນຄ້າ — ລໍຖ້າບໍ່ດົນ</div>';
@@ -226,6 +246,7 @@
     if (!q && S.cat === 'all' && S.brand === 'all') h += vRank(all);
     var showBest = !q && S.cat === 'all' && S.brand === 'all' && best.length;
     if (showBest) h += '<div class="sec"><h2>🔥 ຂາຍດີປະຈຳຮອບ</h2><span>ຄົນສັ່ງຫຼາຍທີ່ສຸດ</span></div><div class="grid">' + best.map(pcard).join('') + '</div>';
+    if (!q && S.cat !== 'all') return h + vCat(S.cat, L);
     used.forEach(function (c) {
       var G = L.filter(function (p) { return catOf(p) === c[0] && (!showBest || best.indexOf(p) < 0 && !best.some(function (b) { return b.id === p.id; })); });
       if (G.length) h += '<div class="sec"><h2>' + c[1] + ' ' + c[2] + '</h2><span>' + G.length + ' ລາຍການ</span></div><div class="grid">' + G.map(pcard).join('') + '</div>';
@@ -386,7 +407,9 @@
     switch (a) {
       case 'close': closeM(); render(); break;
       case 'ct': S.ct = v; closeM(); render(); scrollTo(0, 0); break;
-      case 'cat': S.cat = v; render(); break;
+      case 'cat': S.cat = v; S.sub = ''; S.th = -1; render(); break;
+      case 'sub': S.sub = v; S.th = -1; render(); break;
+      case 'th': S.th = +v; S.sub = ''; render(); break;
       case 'brand': S.brand = v; render(); break;
       case 'rk': S.rk = v; S.rkMore = false; render(); break;
       case 'rkmore': S.rkMore = !S.rkMore; render(); break;

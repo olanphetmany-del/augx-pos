@@ -36,6 +36,11 @@
   var db = firebase.database();
   var STORES = ['Olive Young', 'Daiso', 'Musinsa', 'Coupang', 'อื่นๆ'];
   var CATS = [['skin', '💧', 'สกินแคร์'], ['sun', '☀️', 'กันแดด'], ['mask', '🩹', 'มาสก์ & แผ่นแปะ'], ['clean', '🫧', 'คลีนซิ่ง'], ['makeup', '💄', 'เมกอัพ'], ['nail', '💅', 'เล็บ'], ['body', '🧴', 'บอดี้ & ผม'], ['other', '✨', 'อื่นๆ']];
+  // ໝວດຍ່ອຍ (ໜ້າໝວດ): [key, icon, ລາວ, ไทย]
+  var SUBS = {
+    makeup: [['lip', '💋', 'ລິບ', 'ลิป'], ['base', '✨', 'ເບສ', 'เบส'], ['eye', '👁️', 'ຕາ', 'ตา'], ['cheek', '🌸', 'ແກ້ມ', 'แก้ม']],
+    skin: [['toner', '💧', 'ໂທນເນີ', 'โทนเนอร์'], ['serum', '🧪', 'ເຊຣັ່ມ / ແອມພູນ', 'เซรั่ม / แอมพูล'], ['cream', '🫙', 'ຄຣີມ / ໂລຊັ່ນ', 'ครีม / โลชั่น'], ['pad', '🧻', 'ໂທນເນີແພດ', 'โทนเนอร์แพด']]
+  };
   var STT = { wait: 'รอซื้อ', got: 'ซื้อแล้ว', arrived: 'ถึงลาว', done: 'ส่งแล้ว', ask: 'หมด · รอลูกค้าเลือก', refund: 'คืนเงิน' };
   var STL = { wait: 'ລໍຖ້າຊື້', got: 'ຊື້ແລ້ວ', arrived: 'ຮອດລາວແລ້ວ', done: 'ສຳເລັດ', ask: 'ໝົດ', refund: 'ຄືນເງິນ' };
   var BAD = ['ຍອດເງິນບໍ່ຕົງ', 'ຮູບສະລິບບໍ່ຊັດ', 'ບໍ່ພົບເງິນເຂົ້າບັນຊີ', 'ສະລິບຊ້ຳກັບອໍເດີອື່ນ'];
@@ -79,6 +84,7 @@
   }
   // สี/เบอร์: ข้อความหลายบรรทัด (หรือคั่นด้วย , ) → array ไม่ซ้ำ · ห้ามมี | (ใช้แยก key ในตะกร้า)
   function optList(v) { var a = Array.isArray(v) ? v : String(v || '').split(/[\n,]/); var seen = {}; return a.map(function (x) { return String(x).replace(/\|/g, '/').trim().slice(0, 40); }).filter(function (x) { if (!x || seen[x]) return false; seen[x] = 1; return true; }).slice(0, 60); }
+  function subOk(cat, v) { return (SUBS[cat] || []).some(function (x) { return x[0] === v; }) ? v : ''; }
   function todayDm() { var d = new Date(); return d.getDate() + '/' + (d.getMonth() + 1); }
   // นับลูกค้า (เบอร์ไม่ซ้ำ) ที่สั่งแต่ละสินค้า ไม่นับที่คืนเงิน → hiw/pub/settings/ordered ให้หน้าร้านโชว์ "ຄົນລາວສັ່ງແລ້ວ"
   function orderedCounts(orders) {
@@ -296,9 +302,9 @@
 
   /* ---------- more ---------- */
   function oMore(c) {
-    if (S.sub) return '<button class="back" data-a="sub" data-v="">← เมนู</button>' + ({ prod: sProd, cust: sCust, acct: sAcct, refund: sRefund, round: sRound, mkt: sMkt, req: sReq, set: sSet, sec: sSec }[S.sub])(c);
+    if (S.sub) return '<button class="back" data-a="sub" data-v="">← เมนู</button>' + ({ prod: sProd, cust: sCust, acct: sAcct, refund: sRefund, round: sRound, mkt: sMkt, cpage: sCpage, req: sReq, set: sSet, sec: sSec }[S.sub])(c);
     var M = [['prod', '📦', 'สินค้า', plist().length + ' รายการ'], ['cust', '👥', 'ลูกค้า', 'ประวัติ · ยอดซื้อ'], ['acct', '💰', 'บัญชี', 'กำไรรอบนี้'], ['refund', '💸', 'คืนเงิน', c.ref + ' รายการ'], ['round', '✈️', 'รอบหิ้ว', 'วันบิน · วันปิดรับ'],
-      ['mkt', '📣', 'การตลาด', 'โพสต์ · ลูกค้าประจำ'], ['req', '🙋', 'ฝากหาของ', c.req + ' รอตอบ'], ['set', '⚙️', 'ตั้งค่าร้าน', 'บัญชี · QR · ราคา'], ['sec', '🔒', 'ความปลอดภัย', 'สลิปซ้ำ · สำรองข้อมูล']];
+      ['cpage', '🗂️', 'หน้าหมวด', 'แบนเนอร์ · ธีม'], ['mkt', '📣', 'การตลาด', 'โพสต์ · ลูกค้าประจำ'], ['req', '🙋', 'ฝากหาของ', c.req + ' รอตอบ'], ['set', '⚙️', 'ตั้งค่าร้าน', 'บัญชี · QR · ราคา'], ['sec', '🔒', 'ความปลอดภัย', 'สลิปซ้ำ · สำรองข้อมูล']];
     return '<div class="menu">' + M.map(function (m) { return '<button data-a="sub" data-v="' + m[0] + '"><b>' + m[1] + '</b>' + m[2] + '<small>' + m[3] + '</small></button>'; }).join('') + '</div>' +
       '<button class="btn ghost w" style="margin-top:14px" data-a="logout">ออกจากระบบ</button>';
   }
@@ -327,6 +333,7 @@
       '<div><label style="margin-top:0">ชื่อสินค้า</label><input id="e_n" value="' + E(p ? p.name : '') + '"><label>แบรนด์ (ว่าง = เดาจากชื่อ)</label><input id="e_br" value="' + E(p && p.brand ? p.brand : '') + '"><label>ปริมาณต่อชิ้น × จำนวน (เช่น 50ml × 2)</label><input id="e_sz" value="' + E(p && p.size ? p.size : '') + '" placeholder="50ml × 2"></div></div>' +
       '<div class="row"><div><label>ร้านที่ซื้อ (ลูกค้าไม่เห็น)</label><input id="e_s" list="e_sl" value="' + E(p ? p.store : st[0]) + '"><datalist id="e_sl">' + st.map(function (s) { return '<option value="' + E(s) + '">'; }).join('') + '</datalist></div>' +
       '<div><label>หมวด</label><select id="e_c">' + CATS.map(function (c) { return '<option value="' + c[0] + '"' + (p && catOf(p) === c[0] ? ' selected' : '') + '>' + c[1] + ' ' + c[2] + '</option>'; }).join('') + '</select></div></div>' +
+      '<label>หมวดย่อย (หน้าหมวด)</label><select id="e_sb"><option value="">— ไม่ระบุ —</option>' + Object.keys(SUBS).map(function (k) { var c = CATS.filter(function (x) { return x[0] === k; })[0] || [k, '', k]; return '<optgroup label="' + E(c[1] + ' ' + c[2]) + '">' + SUBS[k].map(function (x) { return '<option value="' + x[0] + '"' + (p && p.sub === x[0] ? ' selected' : '') + '>' + x[1] + ' ' + x[3] + '</option>'; }).join('') + '</optgroup>'; }).join('') + '</select>' +
       '<div class="row"><div><label>ราคาเต็ม (วอน) ไม่ลด = ว่าง</label><input id="e_wf" inputmode="numeric" value="' + (p && p.wonFull ? p.wonFull : '') + '"></div><div></div></div>' +
       '<div class="row"><div><label>ราคาที่ซื้อ (วอน · ราคาลด)</label><input id="e_w" inputmode="numeric" value="' + (p && p.won ? p.won : '') + '"></div><div><label>ราคาขาย (กีบ) ว่าง = อัตโนมัติ</label><input id="e_p" inputmode="numeric" value="' + (p && p.sell && p.sell !== autoSell(p.won, null, catOf(p), p.ft, p.size) ? p.sell : '') + '"></div></div><p class="mut" id="e_pv"></p>' +
       '<label>ค่าหิ้ว</label><select id="e_ft"><option value="">อัตโนมัติ (เมกอัพ/เล็บ = ของเบา · ปริมาณรวม ≥ ' + fm(sets().heavyMl) + 'ml = ของหนัก)</option><option value="l"' + (p && p.ft === 'l' ? ' selected' : '') + '>ของเบา ' + fm(sets().feeLite) + ' บาท</option><option value="n"' + (p && p.ft === 'n' ? ' selected' : '') + '>ปกติ ' + fm(sets().feeThb) + ' บาท</option><option value="h"' + (p && p.ft === 'h' ? ' selected' : '') + '>ของหนัก ' + fm(sets().feeHeavy) + ' บาท</option></select>' +
@@ -383,6 +390,17 @@
       (b.length ? '\n🔥 ຂາຍດີ:\n' + b.map(function (p) { return '• ' + p.name + ' — ' + fm(p.sell) + ' ກີບ'; }).join('\n') + '\n' : '') +
       '\n🛒 ສັ່ງເອງໄດ້ເລີຍ ຈ່າຍ + ແນບສະລິບໃນໜ້າດຽວ\n👉 ' + STORE_URL + '\n\n🙋 ຢາກໄດ້ຕົວອື່ນ ກົດ “ຝາກຫາຂອງ” ໄດ້ເລີຍ';
   }
+  // 🗂️ หน้าหมวด: แบนเนอร์ (สูงสุด 3) + วงกลมธีม (สูงสุด 8) ต่อหมวด → hiw/pub/settings/cpage/<หมวด>
+  function sCpage() {
+    var cat = S.cpc || 'makeup', cp = ((S.pub && S.pub.cpage) || {})[cat] || {}, ps = plist().filter(function (p) { return catOf(p) === cat; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var bn = Array.isArray(cp.banners) ? cp.banners : [], th = Array.isArray(cp.themes) ? cp.themes : [];
+    var opt = function (sel) { return '<option value="">— ไม่ใช้ —</option>' + ps.map(function (p) { return '<option value="' + E(p.id) + '"' + (p.id === sel ? ' selected' : '') + '>' + E(p.name) + '</option>'; }).join(''); };
+    var h = '<h2>🗂️ หน้าหมวด</h2><p class="mut">ลูกค้ากดหมวดในหน้าร้าน จะเห็นแบนเนอร์ด้านบน แล้ววงกลมธีม “ຕອນນີ້ ພ.ສ ເກົາຫຼີຊອກຫາຫຼາຍທີ່ສຸດ”</p>' +
+      '<label>หมวด</label><select id="cpc">' + CATS.map(function (c) { return '<option value="' + c[0] + '"' + (c[0] === cat ? ' selected' : '') + '>' + c[1] + ' ' + c[2] + '</option>'; }).join('') + '</select>';
+    h += '<h3>แบนเนอร์ (ปัดดูได้)</h3>' + [0, 1, 2].map(function (i) { var b = bn[i] || {}; return '<div class="card"><label style="margin-top:0">แบนเนอร์ ' + (i + 1) + ' · สินค้า</label><select id="cb_p' + i + '">' + opt(b.pid) + '</select><div class="row"><div><label>หัวข้อ (ลาว)</label><input id="cb_a' + i + '" maxlength="40" value="' + E(b.t1 || '') + '"></div><div><label>บรรทัดรอง (ลาว)</label><input id="cb_b' + i + '" maxlength="50" value="' + E(b.t2 || '') + '"></div></div></div>'; }).join('');
+    h += '<h3>วงกลมธีม</h3><p class="mut">รูปวงกลม = สินค้าตัวแรกที่เลือก · กด Ctrl / ค้างเพื่อเลือกหลายตัว</p>' + [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { var t = th[i] || {}, ids = Array.isArray(t.ids) ? t.ids : []; return '<div class="card"><label style="margin-top:0">ธีม ' + (i + 1) + ' · ชื่อ (ลาว)</label><input id="ct_n' + i + '" maxlength="20" value="' + E(t.name || '') + '"><select id="ct_p' + i + '" multiple size="4">' + ps.map(function (p) { return '<option value="' + E(p.id) + '"' + (ids.indexOf(p.id) >= 0 ? ' selected' : '') + '>' + E(p.name) + '</option>'; }).join('') + '</select></div>'; }).join('');
+    return h + '<button class="btn w" data-a="cpsave">บันทึกหน้าหมวด</button>';
+  }
   function sMkt() {
     var m = {};
     olist().forEach(function (o) { var k = digits(o.phone).slice(-8); if (!k) return; (m[k] = m[k] || { name: o.name, phone: o.phone, n: 0 }).n++; });
@@ -432,6 +450,7 @@
   document.addEventListener('change', function (e) {
     var t = e.target;
     if (t.id === 'e_c' || t.id === 'e_ft') { updPv(); return; }
+    if (t.id === 'cpc') { S.cpc = t.value; render(); return; }
     if (t.dataset && t.dataset.a === 'ist') { var o = O(t.dataset.id); var its = items(o).map(function (i) { return Object.assign({}, i); }); its[+t.dataset.k].st = t.value; o.items = its; run(saveOrder(o), 'เปลี่ยนเป็น ' + STT[t.value]); return; }
     var k = t.dataset && t.dataset.f; if (!k || !t.files || !t.files[0]) return;
     if (k === 'import') { importFile(t.files[0]); return; }
@@ -452,6 +471,7 @@
         var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc, '', x.size);
         up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), size: String(x.size || '').slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc, '', x.size)), heavy: tier(xc, '', x.size) === 'h', best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
         up['hiw/pub/products/' + id].opts = optList(x.opts);
+        up['hiw/pub/products/' + id].sub = subOk(xc, x.sub);
         Object.assign(up['hiw/pub/products/' + id], rankFields(P(id), num(x.rank), x.hook, x.rating, x.reviews));
         up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
         if (x.img) up['hiw/pub/pimg/' + id] = x.img;
@@ -475,6 +495,11 @@
       case 'of': S.of = v; render(); break;
       case 'store': S.store = v; render(); break;
       case 'sub': S.sub = v || null; render(); scrollTo(0, 0); break;
+      case 'cpsave': {
+        var cat = S.cpc || 'makeup', bns = [0, 1, 2].map(function (i) { return { pid: $('#cb_p' + i).value, t1: $('#cb_a' + i).value.trim().slice(0, 40), t2: $('#cb_b' + i).value.trim().slice(0, 50) }; }).filter(function (x) { return x.pid; });
+        var ths = [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { return { name: $('#ct_n' + i).value.trim().slice(0, 20), ids: [].slice.call($('#ct_p' + i).selectedOptions).map(function (o) { return o.value; }) }; }).filter(function (x) { return x.name && x.ids.length; });
+        run(db.ref('hiw/pub/settings/cpage/' + cat).set({ banners: bns, themes: ths }), 'บันทึกหน้าหมวดแล้ว ✓'); break;
+      }
       case 'zoom': modal('<img src="' + E(b.getAttribute('src')) + '" style="width:100%;border-radius:12px" alt=""><button class="btn ghost w" style="margin-top:10px" data-a="close">ปิด</button>'); break;
       case 'copystore': copy(STORE_URL, 'คัดลอกลิงก์หน้าร้านแล้ว ✓'); break;
       case 'okpay': o = O(id); o.pay = 'ok'; o.badWhy = ''; o.okAt = Date.now(); run(saveOrder(o), 'ยืนยัน #' + o.no + ' ✓ เข้ารายการซื้อแล้ว'); break;
@@ -505,6 +530,7 @@
         var pid = S.editP.id || db.ref('hiw/pub/products').push().key, ex = P(pid), u = {};
         u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, brand: $('#e_br').value.trim().slice(0, 40), size: $('#e_sz').value.trim().slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft, $('#e_sz').value)), heavy: tier(ec, eft, $('#e_sz').value) === 'h', best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
         u['hiw/pub/products/' + pid].opts = optList($('#e_op').value);
+        u['hiw/pub/products/' + pid].sub = subOk(ec, $('#e_sb').value);
         Object.assign(u['hiw/pub/products/' + pid], rankFields(ex, num($('#e_rk').value), $('#e_hk').value, $('#e_rt').value, $('#e_rv').value));
         if (num($('#e_rk').value) !== num(ex && ex.rank)) u['hiw/pub/settings/rankAt'] = todayDm();
         u['hiw/priv/pmeta/' + pid] = { store: $('#e_s').value.trim() || 'อื่นๆ', won: w, wonFull: wf, ft: eft };

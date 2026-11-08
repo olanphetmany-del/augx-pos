@@ -155,3 +155,15 @@ textarea.cap{height:200px;font-size:14px}
 .opt{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;color:var(--ink)}
 .opt.on{border-color:var(--pur);background:var(--pur2);color:var(--pur);font-weight:700}
 .lopt{display:block;font-size:12px;color:var(--pur);font-weight:600}
+/* 🗂️ ໜ້າໝວດ */
+.cph{display:flex;align-items:baseline;justify-content:space-between;margin:14px 2px 6px}.cph h2{margin:0;font-size:20px}.cph span{font-size:12px;color:var(--mut)}
+.bnr{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:8px -14px 4px;padding:0 14px 4px}
+.bn{flex:0 0 88%;scroll-snap-align:center;display:flex;align-items:center;gap:8px;border-radius:16px;padding:16px;min-height:150px;cursor:pointer}
+.bn.c0{background:#fde7ef}.bn.c1{background:#e6efff}.bn.c2{background:#fff1dc}
+.bt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.bt b{font-size:17px;line-height:1.3}.bt span{font-size:13px;color:#555}.bt small{font-size:11px;color:#888;margin-top:6px}
+.bi{width:120px;height:120px;flex:none;border-radius:12px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:34px}.bi img{width:100%;height:100%;object-fit:cover}
+.thh{text-align:center;font-weight:700;font-size:16px;margin:16px 0 10px}
+.ths{display:flex;gap:12px;overflow-x:auto;padding:0 2px 8px}
+.thc{flex:none;width:76px;border:0;background:none;font:inherit;font-size:12px;color:var(--ink);text-align:center;padding:0}
+.thc .ci{display:flex;width:68px;height:68px;margin:0 auto 4px;border-radius:50%;overflow:hidden;background:#f1f2f4;align-items:center;justify-content:center;font-size:26px;border:2px solid transparent}
+.thc .ci img{width:100%;height:100%;object-fit:cover}.thc.on .ci{border-color:var(--pur)}.thc.on{color:var(--pur);font-weight:700}
