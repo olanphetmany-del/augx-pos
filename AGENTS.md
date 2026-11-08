@@ -1,14 +1,15 @@
 # AUGUSTX POS — agent instructions
 
-Plain HTML/JS, no build step. GitHub Pages serves `main` directly to the
-live shop, and every page uses one production Firebase database.
+Plain HTML/JS, no build step. Every merge to `main` deploys to the live
+shop (Firebase Hosting, augustxshop.com), and every page uses one
+production Firebase database.
 
 - Work on a branch and open a pull request. Never push to `main`.
 - Run `npm run check` before finishing (Node 24). It must pass.
 - Never write to the real Firebase from tests or scripts; tests use the
   fake one in `tests/e2e/`.
-- The repo is public for now (we plan to move hosting and make it
-  private). Until then, everything committed is visible to anyone: never
+- The repo is public for now (it goes private once GitHub Pages is
+  turned off). Until then, everything committed is visible to anyone: never
   commit customer data or internal notes. Never commit keys or passwords,
   even after the repo goes private.
 - Escape customer or database text with `esc()` before using `innerHTML`.
