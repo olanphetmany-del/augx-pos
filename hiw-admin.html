@@ -70,12 +70,32 @@
   function items(o) { return Array.isArray(o.items) ? o.items : Object.keys(o.items || {}).map(function (k) { return o.items[k]; }); }
   function live(i) { return i.st !== 'refund'; }
   function sumItems(o, f) { return items(o).filter(f || live).reduce(function (a, i) { return a + num(i.s) * num(i.q); }, 0); }
+  // ย่อรูปเป็น JPEG · ถ้าเบราว์เซอร์เปิดรูปจาก blob ไม่ได้ ลองอ่านเป็น dataURL · ถ้ายังไม่ได้และไฟล์เล็กพอ ใช้รูปเดิม
   function compress(file, max, q) {
-    return new Promise(function (res, rej) {
-      var im = new Image(), u = URL.createObjectURL(file);
-      im.onload = function () { var sc = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc); var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', q || 0.75)); };
-      im.onerror = function () { URL.revokeObjectURL(u); rej(new Error('img')); };
-      im.src = u;
+    function draw(src) {
+      return new Promise(function (res, rej) {
+        var im = new Image();
+        im.onload = function () {
+          try {
+            var sc = Math.min(1, max / Math.max(im.width || 1, im.height || 1)), c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(im.width * sc)); c.height = Math.max(1, Math.round(im.height * sc));
+            var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+            res(c.toDataURL('image/jpeg', q || 0.72));
+          } catch (e) { rej(e); }
+        };
+        im.onerror = function () { rej(new Error('img')); };
+        im.src = src;
+      });
+    }
+    function asDataUrl() {
+      return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(String(r.result || '')); }; r.onerror = function () { rej(new Error('read')); }; r.readAsDataURL(file); });
+    }
+    var u = URL.createObjectURL(file);
+    return draw(u).then(function (d) { URL.revokeObjectURL(u); return d; }, function () {
+      URL.revokeObjectURL(u);
+      return asDataUrl().then(function (raw) {
+        return draw(raw).then(null, function () { if (/^data:image\//.test(raw) && raw.length < 350000) return raw; throw new Error('img'); });
+      });
     });
   }
   function copy(t, ok) { try { navigator.clipboard.writeText(t).then(function () { say(ok || 'คัดลอกแล้ว ✓'); }, function () { say('คัดลอกไม่ได้ — กดค้างที่ข้อความแทน', false); }); } catch (e) { say('คัดลอกไม่ได้', false); } }

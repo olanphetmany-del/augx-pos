@@ -52,7 +52,7 @@ test.describe('hiw.html (customer)', () => {
         const o = Object.values(orders)[0];
         expect(o).toMatchObject({ no: 1001, name: 'Bibi', total: 942000, pay: 'pend' });
         expect(o.items).toEqual([{ pid: 'p1', n: 'Smoke Toner', q: 2, s: 471000, st: 'wait' }]);
-        expect(o.slip).toMatch(/^data:image\/jpeg/);
+        expect(o.slip).toMatch(/^data:image\//);
         const track = await fakeDb(page, 'hiw/track/' + o.tok);
         expect(track).toMatchObject({ no: 1001, pay: 'pend', total: 942000 });
         expect(JSON.stringify(track)).not.toContain('Bibi'); // no name/phone on the public tracking record
