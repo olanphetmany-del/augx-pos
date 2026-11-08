@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="color-scheme" content="light">
+<title>ຮັບຫິ້ວສິນຄ້າເກົາຫຼີ</title>
+<meta name="description" content="ສັ່ງສິນຄ້າແທ້ຈາກເກົາຫຼີ · ຈ່າຍ ແລະ ແນບສະລິບໃນໜ້າດຽວ">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="hiw.css">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+<div class="langslot" data-i18n-slot></div>
+<div id="app"><div class="empty"><b>⏳</b>ກຳລັງໂຫຼດ…</div></div>
+<div id="layer"></div>
+<script>
+/* hiw.html — หน้าร้านรับหิ้ว (ลูกค้า · ภาษาลาว)
+   ข้อมูลอยู่ใต้ hiw/ ใน Firebase (ดูกฎในคำอธิบาย PR):
+   - อ่าน: hiw/pub/settings, hiw/pub/products, hiw/pub/pimg/<id>, hiw/track/<รหัสสุ่ม>
+   - เขียนได้อย่างเดียว (สร้างใหม่): hiw/orders/<id>, hiw/track/<รหัส>, hiw/requests/<id>, hiw/throttle/<เบอร์>, hiw/seq
+   - ลูกค้าตอบของหมด / ส่งสลิปใหม่: hiw/track/<รหัส>/req/<k>, hiw/track/<รหัส>/reslip (หลังร้านเป็นคนนำไปใช้) */
+(function () {
+  'use strict';
+  var cfg = {
+    apiKey: 'AIzaSyDAJUEFUWkieMGFxRIZ6vRwzLbXF31c_BM',
+    authDomain: 'augx-d75c2.firebaseapp.com',
+    databaseURL: 'https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app',
+    projectId: 'augx-d75c2'
+  };
+  if (!firebase.apps.length) firebase.initializeApp(cfg);
+  var db = firebase.database();
+  var TS = firebase.database.ServerValue.TIMESTAMP;
+  var DAY = 864e5;
+  var CATS = [['skin', '💧', 'ສະກິນແຄຣ'], ['sun', '☀️', 'ກັນແດດ'], ['mask', '🩹', 'ມາສກ໌ & ແຜ່ນແປະ'], ['clean', '🫧', 'ຄລີນຊິ່ງ'], ['makeup', '💄', 'ເມກອັບ'], ['nail', '💅', 'ເລັບ'], ['body', '🧴', 'ບໍດີ້ & ຜົມ'], ['other', '✨', 'ອື່ນໆ']];
+  var STL = { wait: 'ລໍຖ້າຊື້', got: 'ຊື້ແລ້ວ', arrived: 'ຮອດລາວແລ້ວ', done: 'ສຳເລັດ', ask: 'ໝົດ · ກະລຸນາເລືອກ', refund: 'ຄືນເງິນ' };
+
+  var S = { set: null, products: null, img: {}, track: {}, ct: 'shop', cat: 'all', q: '', cart: {}, form: { n: '', p: '', deliv: 'pick', addr: '', note: '' }, slip: '', busy: false, req: { w: '', q: '1', p: '', n: '', img: '' }, toks: [] };
+
+  /* ---------- utils ---------- */
+  function $(s) { return document.querySelector(s); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function num(v) { var x = parseFloat(String(v == null ? '' : v).replace(/[, ]/g, '')); return isFinite(x) ? x : 0; }
+  function fm(v) { return Math.round(v).toLocaleString('en-US'); }
+  function kip(v) { return fm(v) + ' ₭'; }
+  function digits(s) { return String(s || '').replace(/\D/g, ''); }
+  function waNum(p) { var d = digits(p); if (!d) return ''; if (d.indexOf('856') === 0) return d; if (d.charAt(0) === '0') d = d.slice(1); return '856' + d; }
+  function dmy(s) { var d = new Date(s + 'T00:00:00'); return isNaN(d) ? '' : d.getDate() + '/' + (d.getMonth() + 1); }
+  function plusDays(s, n) { var d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function dstr(t) { var d = new Date(t); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function rnd(n) { var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = new Uint32Array(n), s = ''; crypto.getRandomValues(b); for (var i = 0; i < n; i++) s += abc[b[i] % abc.length]; return s; }
+  function toast(t) { var d = document.createElement('div'); d.className = 'toast'; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 2600); }
+  function modal(h) { $('#layer').innerHTML = '<div class="modal" data-a="bg"><div class="sheet">' + h + '</div></div>'; }
+  function closeM() { $('#layer').innerHTML = ''; }
+  function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* โหมดส่วนตัว: ไม่จำก็ได้ */ } }
+  function load(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function P(id) { return S.products && S.products[id] ? Object.assign({ id: id }, S.products[id]) : null; }
+  function plist() { return Object.keys(S.products || {}).map(P).filter(function (p) { return p && !p.hidden && p.sell > 0; }); }
+  function catOf(p) { return CATS.some(function (c) { return c[0] === p.cat; }) ? p.cat : 'other'; }
+  function catIc(p) { var c = CATS.filter(function (x) { return x[0] === catOf(p); })[0]; return c ? c[1] : '✨'; }
+  function img(p) {
+    if (!p) return '✨';
+    if (p.hasImg && S.img[p.id]) return '<img src="' + esc(S.img[p.id]) + '" alt="" loading="lazy">';
+    if (p.hasImg && S.img[p.id] === undefined) loadImg(p.id);
+    return catIc(p);
+  }
+  function loadImg(id) {
+    S.img[id] = null;
+    db.ref('hiw/pub/pimg/' + id).once('value').then(function (s) { var v = s.val(); if (typeof v === 'string' && /^data:image\//.test(v)) { S.img[id] = v; schedule(); } }, function (e) { console.warn('img', id, e); });
+  }
+  var rq = false;
+  function schedule() { if (rq) return; rq = true; setTimeout(function () { rq = false; render(); }, 60); }
+  function compress(file, max) {
+    return new Promise(function (res, rej) {
+      var im = new Image(), u = URL.createObjectURL(file);
+      im.onload = function () {
+        var sc = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
+        var x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', 0.72));
+      };
+      im.onerror = function () { URL.revokeObjectURL(u); rej(new Error('img')); };
+      im.src = u;
+    });
+  }
+  function copy(t, ok) {
+    var done = function () { toast(ok || 'ກັອບປີ້ແລ້ວ ✓'); };
+    try { navigator.clipboard.writeText(t).then(done, function () { toast(t); }); } catch (e) { toast(t); }
+  }
+  function round() { return (S.set && S.set.round) || {}; }
+  function daysLeft() { var c = round().close; if (!c) return null; return Math.ceil((new Date(c + 'T23:59:59') - Date.now()) / DAY); }
+
+  /* ---------- cart ---------- */
+  function cLines() { return Object.keys(S.cart).map(function (id) { return { p: P(id), q: S.cart[id] }; }).filter(function (l) { return l.p && !l.p.hidden && l.p.sell > 0 && l.q > 0; }); }
+  function cTotal() { return cLines().reduce(function (a, l) { return a + l.p.sell * l.q; }, 0); }
+  function cCount() { return cLines().reduce(function (a, l) { return a + l.q; }, 0); }
+  function saveCart() { store('hiw-cart', S.cart); store('hiw-form', S.form); }
+
+  /* ---------- render ---------- */
+  function render() {
+    if (!S.set || !S.products) return;
+    var st = S.set, r = round(), dl = daysLeft();
+    var arrive = r.fly ? dmy(plusDays(r.fly, 3)) : '';
+    var h = '<div class="hero"><div class="row" style="align-items:flex-start"><h1>' + esc(st.shop || 'ຮັບຫິ້ວສິນຄ້າເກົາຫຼີ') + '</h1></div><p>' + esc(st.tag || '') + '</p>' +
+      (r.name ? '<div class="round"><div><b>✈️ ' + esc(r.name) + (r.fly ? ' · ບິນ ' + dmy(r.fly) : '') + '</b>' + (r.close ? 'ປິດຮັບອໍເດີ ' + dmy(r.close) : '') + (arrive ? ' · ຮອດລາວປະມານ ' + arrive : '') + '</div>' +
+        (dl != null ? '<div class="cd">' + Math.max(0, dl) + '<small>ມື້ກ່ອນປິດ</small></div>' : '') + '</div>' : '') + '</div>' +
+      '<div class="ctabs">' + [['shop', '🛍️ ຮ້ານ'], ['track', '📦 ຕິດຕາມອໍເດີ'], ['req', '🙋 ຝາກຫາຂອງ']].map(function (t) { return '<button class="' + (S.ct === t[0] ? 'on' : '') + '" data-a="ct" data-v="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+      '<main>' + (S.ct === 'shop' ? vShop() : S.ct === 'track' ? vTrack() : vReq()) + '</main>' +
+      (S.ct === 'shop' && cCount() ? '<div class="cbar"><div>🛒 ' + cCount() + ' ອັນ<b>' + kip(cTotal()) + '</b></div><button class="btn" data-a="cart">ເບິ່ງກະຕ່າ →</button></div>' : '');
+    var q = $('#q'), focus = q && document.activeElement === q, pos = focus ? q.selectionStart : 0;
+    $('#app').innerHTML = h;
+    if (focus) { q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); }
+  }
+  function pcard(p) {
+    var q = S.cart[p.id] || 0;
+    return '<div class="p">' + (p.best > 0 && p.best <= 5 ? '<span class="badge">🔥 ຂາຍດີ #' + p.best + '</span>' : p.isNew ? '<span class="badge new">✨ ໃໝ່</span>' : '') +
+      '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div><div class="pr">' + kip(p.sell) + '</div>' +
+      (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
+        : '<button class="add" data-a="cp" data-id="' + esc(p.id) + '">+ ເພີ່ມໃສ່ກະຕ່າ</button>') + '</div></div>';
+  }
+  function vShop() {
+    var all = plist(), q = S.q.toLowerCase().trim();
+    if (!all.length) return '<div class="empty"><b>🧴</b>ຍັງບໍ່ມີສິນຄ້າ — ລໍຖ້າບໍ່ດົນ</div>';
+    var used = CATS.filter(function (c) { return all.some(function (p) { return catOf(p) === c[0]; }); });
+    var L = all.filter(function (p) { return (!q || p.name.toLowerCase().indexOf(q) >= 0) && (S.cat === 'all' || catOf(p) === S.cat); }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var best = all.filter(function (p) { return p.best > 0; }).sort(function (a, b) { return a.best - b.best; }).slice(0, 6);
+    var dl = daysLeft();
+    var h = (dl != null && dl < 0 ? '<div class="info">ຮອບນີ້ປິດຮັບແລ້ວ — ສັ່ງໄວ້ໄດ້ ຈະເຂົ້າຮອບຕໍ່ໄປ</div>' : '') +
+      '<input class="search" id="q" placeholder="🔍 ຊອກຫາສິນຄ້າ" value="' + esc(S.q) + '"><div class="chips"><button class="chip ' + (S.cat === 'all' ? 'on' : '') + '" data-a="cat" data-v="all">ທັງໝົດ</button>' +
+      used.map(function (c) { return '<button class="chip ' + (S.cat === c[0] ? 'on' : '') + '" data-a="cat" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>';
+    var showBest = !q && S.cat === 'all' && best.length;
+    if (showBest) h += '<div class="sec"><h2>🔥 ຂາຍດີປະຈຳຮອບ</h2><span>ຄົນສັ່ງຫຼາຍທີ່ສຸດ</span></div><div class="grid">' + best.map(pcard).join('') + '</div>';
+    used.forEach(function (c) {
+      var G = L.filter(function (p) { return catOf(p) === c[0] && (!showBest || best.indexOf(p) < 0 && !best.some(function (b) { return b.id === p.id; })); });
+      if (G.length) h += '<div class="sec"><h2>' + c[1] + ' ' + c[2] + '</h2><span>' + G.length + ' ລາຍການ</span></div><div class="grid">' + G.map(pcard).join('') + '</div>';
+    });
+    if (!L.length) h += '<div class="empty"><b>🔍</b>ບໍ່ພົບສິນຄ້າ<br><button class="btn sm lite" style="margin-top:10px" data-a="ct" data-v="req">🙋 ຝາກຫາຂອງ</button></div>';
+    return h;
+  }
+  function mPview(p) {
+    var r = round();
+    modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
+      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2><div class="big" style="color:var(--g)">' + kip(p.sell) + '</div>' +
+      '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
+      '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button><button class="btn" data-a="cp" data-id="' + esc(p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ</button></div>');
+  }
+  function mCart() {
+    var L = cLines(); if (!L.length) { closeM(); return; }
+    modal('<h2>🛒 ກະຕ່າຂອງທ່ານ</h2>' + L.map(function (l) {
+      return '<div class="li"><div class="th">' + img(l.p) + '</div><div class="nm">' + esc(l.p.name) + '<small><b style="color:var(--ink)">' + kip(l.p.sell * l.q) + '</b></small></div>' +
+        '<div class="qty"><button data-a="cm" data-id="' + esc(l.p.id) + '" aria-label="ລົບ 1">−</button><b>' + l.q + '</b><button data-a="cp" data-id="' + esc(l.p.id) + '" aria-label="ເພີ່ມ 1">+</button></div><button class="x" data-a="crm" data-id="' + esc(l.p.id) + '" aria-label="ເອົາອອກ">✕</button></div>';
+    }).join('') + '<div class="tot"><span>ລວມ</span><span>' + kip(cTotal()) + '</span></div>' +
+      '<button class="btn w" data-a="checkout">ສັ່ງຊື້ ແລະ ຈ່າຍເງິນ →</button><button class="btn ghost w" style="margin-top:8px" data-a="close">← ເລືອກເພີ່ມ</button>');
+  }
+  function mCheckout() {
+    var f = S.form, s = S.set, t = cTotal();
+    modal('<button class="back" data-a="cart">← ກັບໄປກະຕ່າ</button><h2>ຂໍ້ມູນຜູ້ສັ່ງ</h2>' +
+      '<label>ຊື່ *</label><input id="f_n" value="' + esc(f.n) + '" autocomplete="name">' +
+      '<label>ເບີ WhatsApp *</label><input id="f_p" inputmode="tel" value="' + esc(f.p) + '" placeholder="020 …" autocomplete="tel">' +
+      '<label>ຮັບຂອງແບບໃດ</label><div class="radio"><button class="' + (f.deliv === 'pick' ? 'on' : '') + '" data-a="deliv" data-v="pick">🏪 ມາຮັບເອງ</button><button class="' + (f.deliv === 'send' ? 'on' : '') + '" data-a="deliv" data-v="send">🚚 ສົ່ງ (ຄ່າສົ່ງຈ່າຍປາຍທາງ)</button></div>' +
+      (f.deliv === 'send' ? '<label>ທີ່ຢູ່ / ສາຂາຂົນສົ່ງ *</label><input id="f_a" value="' + esc(f.addr) + '" placeholder="ບ້ານ, ເມືອງ, ແຂວງ ຫຼື ສາຂາຂົນສົ່ງ">' : '') +
+      '<label>ໝາຍເຫດ (ສີ, ເບີ…)</label><input id="f_m" value="' + esc(f.note) + '">' +
+      '<div class="pay"><b>① ໂອນເງິນ ' + kip(t) + '</b>' +
+      (s.accNo ? '<div style="margin-top:6px">' + esc(s.bank) + '</div><div class="acc">' + esc(s.accNo) + ' <button class="mini" data-a="copyacc">ກັອບປີ້</button></div><div>' + esc(s.accName) + '</div>' : '<div class="mut" style="margin-top:6px">ກະລຸນາສອບຖາມເລກບັນຊີກັບຮ້ານ</div>') +
+      (s.qr ? '<img src="' + esc(s.qr) + '" alt="QR">' : '') +
+      '<button class="mini" style="margin-top:8px" data-a="copyamt">ກັອບປີ້ຍອດ ' + fm(t) + '</button></div>' +
+      '<label style="margin-top:14px">② ແນບຮູບສະລິບ *</label>' +
+      '<label class="up">' + (S.slip ? '<img src="' + esc(S.slip) + '" alt="">ປ່ຽນຮູບ' : '📎 ແຕະເພື່ອເລືອກຮູບສະລິບ') + '<input type="file" accept="image/*" data-f="slip" hidden></label>' +
+      '<button class="btn w" style="margin-top:14px" data-a="place"' + (S.busy ? ' disabled' : '') + '>' + (S.busy ? 'ກຳລັງສົ່ງ…' : '③ ຢືນຢັນສັ່ງຊື້ ' + kip(t)) + '</button>' +
+      '<p class="mut" style="text-align:center">ບໍ່ຕ້ອງສົ່ງແຊັດ — ອໍເດີຈະເຂົ້າຫາຮ້ານທັນທີ</p>');
+  }
+  function readForm() {
+    var map = { f_n: 'n', f_p: 'p', f_a: 'addr', f_m: 'note' };
+    Object.keys(map).forEach(function (id) { var e = $('#' + id); if (e) S.form[map[id]] = e.value; });
+    saveCart();
+  }
+  function fail(e) {
+    S.busy = false;
+    var denied = e && /permission|PERMISSION/.test(String(e.code || e.message || ''));
+    toast(denied ? 'ສົ່ງບໍ່ໄດ້ · ຖ້າຫາກໍ່ສັ່ງ ກະລຸນາລໍຖ້າ 1 ນາທີ ແລ້ວລອງໃໝ່' : 'ສົ່ງບໍ່ສຳເລັດ · ກວດອິນເຕີເນັດ ແລ້ວລອງໃໝ່');
+    mCheckout();
+  }
+  function place() {
+    if (S.busy) return;
+    readForm();
+    var f = S.form, ph = digits(f.p);
+    if (!f.n.trim() || ph.length < 8) { toast('ກະລຸນາໃສ່ຊື່ ແລະ ເບີໂທໃຫ້ຖືກ'); return; }
+    if (f.deliv === 'send' && !f.addr.trim()) { toast('ກະລຸນາໃສ່ທີ່ຢູ່ຈັດສົ່ງ'); return; }
+    if (!S.slip) { toast('ກະລຸນາແນບຮູບສະລິບ'); return; }
+    var L = cLines(); if (!L.length) { closeM(); return; }
+    S.busy = true; mCheckout();
+    var total = cTotal(), tok = rnd(20), id = db.ref('hiw/orders').push().key, no;
+    var items = L.map(function (l) { return { pid: l.p.id, n: l.p.name, q: l.q, s: l.p.sell, st: 'wait' }; });
+    db.ref('hiw/seq').transaction(function (v) { return (Number(v) || 1000) + 1; }).then(function (r) {
+      no = r.snapshot.val();
+      var o = { no: no, tok: tok, name: f.n.trim().slice(0, 60), phone: f.p.trim().slice(0, 30), items: items, total: total, pay: 'pend', slip: S.slip,
+        deliv: f.deliv, addr: f.deliv === 'send' ? f.addr.trim().slice(0, 200) : '', note: f.note.trim().slice(0, 200), at: TS };
+      var t = { no: no, at: TS, total: total, pay: 'pend', deliv: f.deliv, items: items.map(function (i) { return { n: i.n, q: i.q, s: i.s, st: 'wait' }; }) };
+      var up = {};
+      up['hiw/orders/' + id] = o; up['hiw/track/' + tok] = t; up['hiw/throttle/' + ph] = TS;
+      return db.ref().update(up);
+    }).then(function () {
+      S.toks = [tok].concat(S.toks.filter(function (x) { return x !== tok; })).slice(0, 20); store('hiw-toks', S.toks); watchTrack(tok);
+      S.cart = {}; S.slip = ''; S.busy = false; saveCart();
+      var link = location.href.split('#')[0] + '#t=' + tok;
+      var wa = waNum(S.set.wa), msg = 'ສະບາຍດີ 🙏 ສັ່ງອໍເດີ #' + no + ' (' + fm(total) + ' ກີບ) ແລະ ແນບສະລິບແລ້ວ\n' + link;
+      modal('<div style="text-align:center;padding:10px 0"><div style="font-size:56px">🎉</div><h2>ສັ່ງສຳເລັດ!</h2><p>ເລກອໍເດີ <b>#' + no + '</b> · ' + kip(total) + '</p>' +
+        '<p class="mut">ຮ້ານຈະກວດສະລິບ ແລະ ຢືນຢັນໃຫ້ໄວທີ່ສຸດ<br>ເບິ່ງສະຖານະໄດ້ຕະຫຼອດທີ່ແຖບ “ຕິດຕາມອໍເດີ”</p>' +
+        '<button class="btn w" data-a="gotrack">📦 ຕິດຕາມອໍເດີ</button>' +
+        '<button class="btn lite w" style="margin-top:8px" data-a="copylink" data-v="' + esc(link) + '">🔗 ກັອບປີ້ລິ້ງຕິດຕາມ (ເປີດໃນເຄື່ອງອື່ນໄດ້)</button>' +
+        (wa ? '<a class="btn wa w" style="margin-top:8px" href="https://wa.me/' + wa + '?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">💬 ແຈ້ງຮ້ານທາງ WhatsApp (ບໍ່ບັງຄັບ)</a>' : '') +
+        '<button class="btn ghost w" style="margin-top:8px" data-a="close">ກັບໄປຮ້ານ</button></div>');
+      render();
+    }).catch(fail);
+  }
+
+  /* ---------- track ---------- */
+  function watchTrack(tok) {
+    if (S.track[tok] !== undefined) return;
+    S.track[tok] = null;
+    db.ref('hiw/track/' + tok).on('value', function (s) { S.track[tok] = s.val() || false; schedule(); }, function () { S.track[tok] = false; schedule(); });
+  }
+  function stage(t) {
+    if (t.pay !== 'ok') return 0;
+    var L = (t.items || []).filter(function (i) { return i.st !== 'refund'; });
+    if (!L.length) return -1;
+    var m = { wait: 1, ask: 1, got: 2, arrived: 3, done: 4 };
+    return Math.min.apply(null, L.map(function (i) { return m[i.st] || 1; }));
+  }
+  function vTrack() {
+    var T = S.toks.map(function (k) { return [k, S.track[k]]; }).filter(function (x) { return x[1]; }).sort(function (a, b) { return (b[1].at || 0) - (a[1].at || 0); });
+    if (!S.toks.length) return '<div class="empty"><b>📭</b>ຍັງບໍ່ມີອໍເດີໃນເຄື່ອງນີ້<br><span class="mut">ຖ້າສັ່ງຈາກເຄື່ອງອື່ນ ໃຫ້ເປີດລິ້ງຕິດຕາມທີ່ໄດ້ຫຼັງສັ່ງ</span></div>';
+    if (!T.length) return '<div class="empty"><b>⏳</b>ກຳລັງໂຫຼດ…</div>';
+    return T.map(function (x) { return tcard(x[0], x[1]); }).join('');
+  }
+  function tcard(tok, t) {
+    var sg = stage(t), steps = ['ສັ່ງແລ້ວ', 'ຢືນຢັນເງິນ', 'ຊື້ຂອງແລ້ວ', 'ຮອດລາວ', 'ສຳເລັດ'], req = t.req || {};
+    var items = t.items || [];
+    var refund = items.reduce(function (a, i) { return a + (i.st === 'refund' ? i.s * i.q : 0); }, 0);
+    return '<div class="card"><div class="row"><b>ອໍເດີ #' + esc(t.no) + '</b><span class="mut" style="text-align:right">' + (t.at ? dstr(t.at) : '') + '</span></div>' +
+      (t.pay === 'bad' ? (t.reslip ? '<div class="info">📨 ສົ່ງສະລິບໃໝ່ແລ້ວ · ລໍຖ້າຮ້ານກວດ</div>' : '<div class="warn">❌ ສະລິບບໍ່ຜ່ານ: ' + esc(t.badWhy || '') + ' — ກະລຸນາແນບສະລິບໃໝ່</div><label class="up" style="margin-bottom:6px">📎 ແນບສະລິບໃໝ່<input type="file" accept="image/*" data-f="reslip" data-id="' + esc(tok) + '" hidden></label>') : '') +
+      (sg >= 0 ? '<div class="steps">' + steps.map(function (s, k) { return '<div class="' + (k <= sg ? 'on' : '') + '"><i>' + (k < sg || sg === 4 ? '✓' : k + 1) + '</i>' + s + '</div>'; }).join('') + '</div>' : '<div class="info">ອໍເດີນີ້ຍົກເລີກ ແລະ ຄືນເງິນແລ້ວ</div>') +
+      (t.pay === 'pend' ? '<p class="mut" style="text-align:center">⏳ ຮ້ານກຳລັງກວດສະລິບ</p>' : '') +
+      items.map(function (i, k) {
+        var asked = i.st === 'ask';
+        return '<div class="li"><div class="nm">' + esc(i.n) + ' × ' + esc(i.q) + '<small>' + kip(i.s * i.q) + '</small></div><span class="st ' + esc(i.st) + '">' + (STL[i.st] || '') + '</span></div>' +
+          (asked ? (req[k] ? '<div class="info" style="margin-top:0">✓ ເລືອກແລ້ວ: ' + (req[k] === 'refund' ? '💸 ຄືນເງິນ' : '⏳ ລໍຮອບໜ້າ') + ' · ລໍຖ້າຮ້ານຢືນຢັນ</div>'
+            : '<div class="info" style="margin-top:0">😢 ສິນຄ້ານີ້ໝົດຢູ່ຮ້ານ ເລືອກໄດ້ເລີຍ:<div class="row" style="margin-top:8px"><button class="btn sm lite" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="wait">⏳ ລໍຮອບໜ້າ</button><button class="btn sm amb" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="refund">💸 ຄືນເງິນ ' + kip(i.s * i.q) + '</button></div></div>') : '');
+      }).join('') +
+      '<div class="tot" style="font-size:15px"><span>ລວມ</span><span>' + kip((t.total || 0) - refund) + (refund ? ' <small class="mut">(ຄືນ ' + fm(refund) + ')</small>' : '') + '</span></div>' +
+      '<p class="mut">' + (t.deliv === 'send' ? '🚚 ສົ່ງຕາມທີ່ຢູ່' : '🏪 ມາຮັບເອງທີ່ຮ້ານ') + '</p></div>';
+  }
+
+  /* ---------- request ---------- */
+  function vReq() {
+    var r = S.req;
+    return '<div class="card"><h3>🙋 ຝາກຫາຂອງທີ່ບໍ່ມີໃນຮ້ານ</h3><p class="mut">ສົ່ງຊື່ ຫຼື ລິ້ງ ຫຼື ຮູບສິນຄ້າ — ຮ້ານຈະແຈ້ງລາຄາກັບທາງ WhatsApp</p>' +
+      '<label>ຊື່ສິນຄ້າ / ລິ້ງ *</label><input id="r_w" value="' + esc(r.w) + '" placeholder="ເຊັ່ນ Laneige Lip Sleeping Mask">' +
+      '<label>ຮູບ (ຖ້າມີ)</label><label class="up">' + (r.img ? '<img src="' + esc(r.img) + '" alt="">ປ່ຽນຮູບ' : '📷 ແຕະເພື່ອເລືອກຮູບ') + '<input type="file" accept="image/*" data-f="reqimg" hidden></label>' +
+      '<div class="row"><div><label>ຈຳນວນ</label><input id="r_q" inputmode="numeric" value="' + esc(r.q) + '"></div><div><label>ເບີ WhatsApp *</label><input id="r_p" inputmode="tel" value="' + esc(r.p || S.form.p) + '"></div></div>' +
+      '<label>ຊື່ຂອງທ່ານ</label><input id="r_n" value="' + esc(r.n || S.form.n) + '">' +
+      '<button class="btn w" style="margin-top:12px" data-a="reqsend"' + (S.busy ? ' disabled' : '') + '>ສົ່ງຄຳຂໍ</button></div>';
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'q') { S.q = t.value; render(); return; }
+    if (/^f_/.test(t.id)) readForm();
+    var rk = { r_w: 'w', r_q: 'q', r_p: 'p', r_n: 'n' }[t.id]; if (rk) S.req[rk] = t.value;
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target, k = t.dataset && t.dataset.f; if (!k || !t.files || !t.files[0]) return;
+    compress(t.files[0], k === 'reqimg' ? 700 : 1100).then(function (im) {
+      if (k === 'slip') { readForm(); S.slip = im; mCheckout(); }
+      else if (k === 'reqimg') { S.req.img = im; render(); }
+      else if (k === 'reslip') {
+        db.ref('hiw/track/' + t.dataset.id + '/reslip').set(im).then(function () { toast('ສົ່ງສະລິບໃໝ່ແລ້ວ ✓'); }, function () { toast('ສົ່ງບໍ່ສຳເລັດ ລອງໃໝ່'); });
+      }
+    }, function () { toast('ເປີດຮູບນີ້ບໍ່ໄດ້'); });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-a]'); if (!b) return;
+    var a = b.dataset.a, id = b.dataset.id, v = b.dataset.v;
+    if (a === 'bg') { if (e.target === b) closeM(); return; }
+    switch (a) {
+      case 'close': closeM(); render(); break;
+      case 'ct': S.ct = v; closeM(); render(); scrollTo(0, 0); break;
+      case 'cat': S.cat = v; render(); break;
+      case 'pview': { var p = P(id); if (p) mPview(p); break; }
+      case 'cp': S.cart[id] = (S.cart[id] || 0) + 1; saveCart(); if (b.dataset.close) { closeM(); toast('ເພີ່ມແລ້ວ ✓'); } else if ($('#layer').innerHTML) mCart(); render(); break;
+      case 'cm': S.cart[id] = Math.max(0, (S.cart[id] || 0) - 1); if (!S.cart[id]) delete S.cart[id]; saveCart(); if ($('#layer').innerHTML) mCart(); render(); break;
+      case 'crm': delete S.cart[id]; saveCart(); mCart(); render(); break;
+      case 'cart': mCart(); break;
+      case 'checkout': mCheckout(); break;
+      case 'deliv': readForm(); S.form.deliv = v; saveCart(); mCheckout(); break;
+      case 'copyacc': copy(digits(S.set.accNo), 'ກັອບປີ້ເລກບັນຊີແລ້ວ ✓'); break;
+      case 'copyamt': copy(String(cTotal()), 'ກັອບປີ້ຍອດແລ້ວ ✓'); break;
+      case 'copylink': copy(v, 'ກັອບປີ້ລິ້ງແລ້ວ ✓'); break;
+      case 'place': place(); break;
+      case 'gotrack': S.ct = 'track'; closeM(); render(); scrollTo(0, 0); break;
+      case 'choose':
+        db.ref('hiw/track/' + id + '/req/' + b.dataset.k).set(v).then(function () { toast(v === 'refund' ? 'ຮ້ານຈະໂອນເງິນຄືນໃຫ້ ✓' : 'ຈະຊື້ໃຫ້ຮອບໜ້າ ✓'); }, function () { toast('ສົ່ງບໍ່ສຳເລັດ ລອງໃໝ່'); });
+        break;
+      case 'reqsend': {
+        var r = S.req;
+        if (!String(r.w).trim() || digits(r.p || S.form.p).length < 8) { toast('ກະລຸນາໃສ່ຊື່ສິນຄ້າ ແລະ ເບີ WhatsApp'); return; }
+        S.busy = true; render();
+        db.ref('hiw/requests').push({ name: String(r.n || S.form.n).trim().slice(0, 60), phone: String(r.p || S.form.p).trim().slice(0, 30), what: String(r.w).trim().slice(0, 300), qty: num(r.q) || 1, img: r.img || '', at: TS })
+          .then(function () { S.busy = false; S.req = { w: '', q: '1', p: '', n: '', img: '' }; toast('ສົ່ງແລ້ວ ✓ ຮ້ານຈະແຈ້ງລາຄາທາງ WhatsApp'); render(); },
+            function () { S.busy = false; toast('ສົ່ງບໍ່ສຳເລັດ ລອງໃໝ່'); render(); });
+        break;
+      }
+    }
+  });
+
+  /* ---------- start ---------- */
+  S.cart = load('hiw-cart', {}); S.form = Object.assign(S.form, load('hiw-form', {})); S.toks = load('hiw-toks', []);
+  var m = /#t=([A-Za-z0-9]{10,40})/.exec(location.hash);
+  if (m) { S.toks = [m[1]].concat(S.toks.filter(function (x) { return x !== m[1]; })).slice(0, 20); store('hiw-toks', S.toks); S.ct = 'track'; }
+  S.toks.forEach(watchTrack);
+  var timer = setTimeout(function () { if (!S.set || !S.products) $('#app').innerHTML = '<div class="empty"><b>📶</b>ເຊື່ອມຕໍ່ບໍ່ໄດ້ · ກວດອິນເຕີເນັດ ແລ້ວໂຫຼດໜ້າໃໝ່</div>'; }, 12000);
+  function ok() { if (S.set && S.products) clearTimeout(timer); schedule(); }
+  db.ref('hiw/pub/settings').on('value', function (s) { S.set = s.val() || {}; ok(); }, function (e) { console.warn(e); S.set = {}; ok(); });
+  db.ref('hiw/pub/products').on('value', function (s) { S.products = s.val() || {}; ok(); }, function (e) { console.warn(e); S.products = {}; ok(); });
+})();
+</script>
+<script>window.I18N_SET = "cust";</script>
+<script src="i18n-dict.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>
