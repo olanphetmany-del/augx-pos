@@ -426,7 +426,7 @@
         if (!x || !x.name) return;
         var id = String(x.id || db.ref('hiw/pub/products').push().key).replace(/[.#$/[\]]/g, '_');
         var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc, '', x.size);
-        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), size: String(x.size || '').slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc, '', x.size)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
+        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), size: String(x.size || '').slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc, '', x.size)), heavy: tier(xc, '', x.size) === 'h', best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
         up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
         if (x.img) up['hiw/pub/pimg/' + id] = x.img;
         n++;
@@ -477,7 +477,7 @@
         var nm = $('#e_n').value.trim(), w = num($('#e_w').value), wf = num($('#e_wf').value) > w ? num($('#e_wf').value) : 0, ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft, $('#e_sz').value), x = $('#e_x').value;
         if (!nm || !sell) { say('ใส่ชื่อ และราคาวอน (หรือราคาขาย)', false); return; }
         var pid = S.editP.id || db.ref('hiw/pub/products').push().key, ex = P(pid), u = {};
-        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, brand: $('#e_br').value.trim().slice(0, 40), size: $('#e_sz').value.trim().slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft, $('#e_sz').value)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
+        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, brand: $('#e_br').value.trim().slice(0, 40), size: $('#e_sz').value.trim().slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft, $('#e_sz').value)), heavy: tier(ec, eft, $('#e_sz').value) === 'h', best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
         u['hiw/priv/pmeta/' + pid] = { store: $('#e_s').value.trim() || 'อื่นๆ', won: w, wonFull: wf, ft: eft };
         if (S.editP.img) { u['hiw/pub/pimg/' + pid] = S.editP.img; S.img[pid] = S.editP.img; }
         closeM(); run(db.ref().update(u), 'บันทึกแล้ว · ขึ้นหน้าร้านทันที'); break;
@@ -504,7 +504,7 @@
       }
       case 'reprice': {
         s = sets(); var up3 = {}, cnt = 0;
-        plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft, p.size); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft, p.size); up3[b + 'won'] = p.won; up3[b + 'wonFull'] = p.wonFull > p.won ? p.wonFull : 0; cnt++; } });
+        plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft, p.size); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft, p.size); up3[b + 'heavy'] = tier(catOf(p), p.ft, p.size, s) === 'h'; up3[b + 'won'] = p.won; up3[b + 'wonFull'] = p.wonFull > p.won ? p.wonFull : 0; cnt++; } });
         if (!cnt) { say('ไม่มีสินค้าที่ใส่ราคาวอน', false); return; }
         run(db.ref().update(up3), 'คิดราคาใหม่ ' + cnt + ' รายการ ✓'); break;
       }
