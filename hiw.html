@@ -54,7 +54,7 @@
   var CATS = [['skin', '💧', 'ສະກິນແຄຣ'], ['sun', '☀️', 'ກັນແດດ'], ['mask', '🩹', 'ມາສກ໌ & ແຜ່ນແປະ'], ['clean', '🫧', 'ຄລີນຊິ່ງ'], ['makeup', '💄', 'ເມກອັບ'], ['nail', '💅', 'ເລັບ'], ['body', '🧴', 'ບໍດີ້ & ຜົມ'], ['other', '✨', 'ອື່ນໆ']];
   var STL = { wait: 'ລໍຖ້າຊື້', got: 'ຊື້ແລ້ວ', arrived: 'ຮອດລາວແລ້ວ', done: 'ສຳເລັດ', ask: 'ໝົດ · ກະລຸນາເລືອກ', refund: 'ຄືນເງິນ' };
 
-  var S = { set: null, products: null, img: {}, track: {}, ct: 'shop', cat: 'all', brand: 'all', q: '', cart: {}, form: { n: '', p: '', deliv: 'pick', addr: '', note: '' }, slip: '', busy: false, req: { w: '', q: '1', p: '', n: '', img: '' }, toks: [] };
+  var S = { set: null, products: null, img: {}, track: {}, ct: 'shop', cat: 'all', brand: 'all', rk: 'all', rkMore: false, q: '', cart: {}, form: { n: '', p: '', deliv: 'pick', addr: '', note: '' }, slip: '', busy: false, req: { w: '', q: '1', p: '', n: '', img: '' }, toks: [] };
 
   /* ---------- utils ---------- */
   function $(s) { return document.querySelector(s); }
@@ -174,6 +174,38 @@
     all.forEach(function (p) { var b = brandOf(p), k = bkey(b); if (!k) return; (m[k] = m[k] || { k: k, b: b, n: 0 }).n++; });
     return Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return b.n - a.n || a.b.localeCompare(b.b); });
   }
+  // 🏆 Today's Ranking: ສິນຄ້າທີ່ມີ p.rank (1–10) ຮຽງຕາມອັນດັບ · ເລືອກໝວດໄດ້ · ໂຊ 5 ອັນດັບກ່ອນ
+  function ordered(p) { var o = (S.set && S.set.ordered) || {}; return +o[p.id] || 0; }
+  function moveTag(p) {
+    if (p.rankPrev == null) return '';
+    var pv = +p.rankPrev || 0, d = pv - p.rank;
+    if (!pv) return '<span class="mv mvn">NEW</span>';
+    return d > 0 ? '<span class="mv mvu">▲' + d + '</span>' : d < 0 ? '<span class="mv mvd">▼' + (-d) + '</span>' : '<span class="mv">–</span>';
+  }
+  function stars(p) { return p.rating > 0 ? '<span class="rt">★ ' + (+p.rating).toFixed(1) + (p.reviews > 0 ? ' · ' + fm(p.reviews) + ' ລີວິວໃນເກົາຫຼີ' : '') + '</span>' : ''; }
+  function boughtTag(p) { var n = ordered(p); return n >= 5 ? '<span class="bought">🇱🇦 ຄົນລາວສັ່ງແລ້ວ ' + n + ' ຄົນ</span>' : ''; }
+  function vRank(all) {
+    var R = all.filter(function (p) { return p.rank > 0; }).sort(function (a, b) { return a.rank - b.rank; });
+    if (!R.length) return '';
+    var cats = CATS.filter(function (c) { return R.some(function (p) { return catOf(p) === c[0]; }); });
+    if (S.rk !== 'all' && !cats.some(function (c) { return c[0] === S.rk; })) S.rk = 'all';
+    var L = R.filter(function (p) { return S.rk === 'all' || catOf(p) === S.rk; }), shown = L.slice(0, S.rkMore ? 10 : 5);
+    var at = S.set && S.set.rankAt ? '<span class="rkat">ອັບເດດ ' + esc(S.set.rankAt) + '</span>' : '';
+    return '<section class="rank"><div class="rkh"><h2>🏆 Today\'s Ranking</h2>' + at + '</div><p class="rks">ສະກິນແຄທີ່ ພ.ສ ເກົາຫຼີກຳລັງນິຍົມ · ຂາຍດີທີ່ສຸດໃນ Olive Young</p>' +
+      (cats.length > 1 ? '<div class="chips"><button class="chip ' + (S.rk === 'all' ? 'on' : '') + '" data-a="rk" data-v="all">ທັງໝົດ</button>' + cats.map(function (c) { return '<button class="chip ' + (S.rk === c[0] ? 'on' : '') + '" data-a="rk" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' : '') +
+      shown.map(function (p, i) {
+        var n = i + 1, q = S.cart[p.id] || 0, off = p.wonFull > p.won ? Math.round((1 - p.won / p.wonFull) * 100) : 0;
+        return '<div class="rrow"><div class="rn n' + n + '">' + n + (S.rk === 'all' ? moveTag(p) : '') + '</div>' +
+          '<div class="th" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div>' +
+          '<div class="ri" data-a="pview" data-id="' + esc(p.id) + '"><div class="rb">' + esc(brandOf(p)) + (p.heavy ? ' · <span class="hv">⚖️ ຂອງໜັກ</span>' : '') + '</div>' +
+          '<div class="rnm">' + esc(p.name) + '</div>' + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') +
+          (p.size ? '<div class="psz">📦 ' + esc(p.size) + '</div>' : '') + stars(p) + boughtTag(p) +
+          '<div class="rp">' + (p.won > 0 ? (off ? '<s>₩' + fm(p.wonFull) + '</s> ' : '') + '₩' + fm(p.won) + ' · ' : '') + '<b>' + kip(p.sell) + '</b></div></div>' +
+          (q ? '<div class="qty v"><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button><b>' + q + '</b><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button></div>'
+            : '<button class="radd" data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມໃສ່ກະຕ່າ">+</button>') + '</div>';
+      }).join('') +
+      (L.length > 5 ? '<button class="rkmore" data-a="rkmore">' + (S.rkMore ? 'ຫຍໍ້ລົງ ▲' : 'ເບິ່ງອັນດັບ 6–' + Math.min(10, L.length) + ' ▼') + '</button>' : '') + '</section>';
+  }
   function vShop() {
     var all = plist(), q = S.q.toLowerCase().trim();
     if (!all.length) return '<div class="empty"><b>🧴</b>ຍັງບໍ່ມີສິນຄ້າ — ລໍຖ້າບໍ່ດົນ</div>';
@@ -186,6 +218,7 @@
       used.map(function (c) { return '<button class="chip ' + (S.cat === c[0] ? 'on' : '') + '" data-a="cat" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' +
       '<div class="chips brands"><button class="chip ' + (S.brand === 'all' ? 'on' : '') + '" data-a="brand" data-v="all">🏷️ ທຸກແບຣນ</button>' +
       brands(all).map(function (b) { return '<button class="chip ' + (S.brand === b.k ? 'on' : '') + '" data-a="brand" data-v="' + esc(b.k) + '">' + esc(b.b) + ' <small>' + b.n + '</small></button>'; }).join('') + '</div>';
+    if (!q && S.cat === 'all' && S.brand === 'all') h += vRank(all);
     var showBest = !q && S.cat === 'all' && S.brand === 'all' && best.length;
     if (showBest) h += '<div class="sec"><h2>🔥 ຂາຍດີປະຈຳຮອບ</h2><span>ຄົນສັ່ງຫຼາຍທີ່ສຸດ</span></div><div class="grid">' + best.map(pcard).join('') + '</div>';
     used.forEach(function (c) {
@@ -198,7 +231,7 @@
   function mPview(p) {
     var r = round();
     modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
-      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
+      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button><button class="btn" data-a="cp" data-id="' + esc(p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ</button></div>');
   }
@@ -349,6 +382,8 @@
       case 'ct': S.ct = v; closeM(); render(); scrollTo(0, 0); break;
       case 'cat': S.cat = v; render(); break;
       case 'brand': S.brand = v; render(); break;
+      case 'rk': S.rk = v; S.rkMore = false; render(); break;
+      case 'rkmore': S.rkMore = !S.rkMore; render(); break;
       case 'pview': { var p = P(id); if (p) mPview(p); break; }
       case 'cp': S.cart[id] = (S.cart[id] || 0) + 1; saveCart(); if (b.dataset.close) { closeM(); toast('ເພີ່ມແລ້ວ ✓'); } else if ($('#layer').innerHTML) mCart(); render(); break;
       case 'cm': S.cart[id] = Math.max(0, (S.cart[id] || 0) - 1); if (!S.cart[id]) delete S.cart[id]; saveCart(); if ($('#layer').innerHTML) mCart(); render(); break;
