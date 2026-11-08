@@ -156,7 +156,7 @@
   function pcard(p) {
     var q = S.cart[p.id] || 0;
     return '<div class="p">' + (p.best > 0 && p.best <= 5 ? '<span class="badge">🔥 ຂາຍດີ #' + p.best + '</span>' : p.isNew ? '<span class="badge new">✨ ໃໝ່</span>' : '') +
-      '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + price(p) +
+      '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + (p.size ? '<div class="psz">📦 ' + esc(p.size) + '</div>' : '') + price(p) +
       (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
         : '<button class="add" data-a="cp" data-id="' + esc(p.id) + '">+ ເພີ່ມໃສ່ກະຕ່າ</button>') + '</div></div>';
   }
@@ -198,7 +198,7 @@
   function mPview(p) {
     var r = round();
     modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
-      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + price(p, true) +
+      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button><button class="btn" data-a="cp" data-id="' + esc(p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ</button></div>');
   }

@@ -39,7 +39,7 @@
   var STT = { wait: 'รอซื้อ', got: 'ซื้อแล้ว', arrived: 'ถึงลาว', done: 'ส่งแล้ว', ask: 'หมด · รอลูกค้าเลือก', refund: 'คืนเงิน' };
   var STL = { wait: 'ລໍຖ້າຊື້', got: 'ຊື້ແລ້ວ', arrived: 'ຮອດລາວແລ້ວ', done: 'ສຳເລັດ', ask: 'ໝົດ', refund: 'ຄືນເງິນ' };
   var BAD = ['ຍອດເງິນບໍ່ຕົງ', 'ຮູບສະລິບບໍ່ຊັດ', 'ບໍ່ພົບເງິນເຂົ້າບັນຊີ', 'ສະລິບຊ້ຳກັບອໍເດີອື່ນ'];
-  var DEF = { rate: 15.9, buffer: 3, fee: 0, step: 1000, thb: 680, feeThb: 200, feeLite: 100 };
+  var DEF = { rate: 15.9, buffer: 3, fee: 0, step: 1000, thb: 680, feeThb: 200, feeLite: 100, feeHeavy: 300, heavyMl: 200 };
   var LITE = ['makeup', 'nail'];
   var STORE_URL = location.href.replace(/[^/]*([?#].*)?$/, 'hiw.html');
 
@@ -63,9 +63,14 @@
   function sets() { return Object.assign({}, DEF, S.priv || {}); }
   function costOf(w, s) { s = s || sets(); return num(w) * num(s.rate) * (1 + num(s.buffer) / 100); }
   // ค่าหิ้วต่อชิ้น (กีบ): บาท × เรทบาท · เมกอัพ/เล็บ = ของเบา · ft: '' อัตโนมัติ, 'l' ของเบา, 'n' ปกติ
-  function isLite(cat, ft) { return ft === 'l' || (ft !== 'n' && LITE.indexOf(cat) >= 0); }
-  function feeOf(w, s, cat, ft) { s = s || sets(); if (!num(w)) return 0; return Math.round(num(s.thb) * num(isLite(cat, ft) ? s.feeLite : s.feeThb) + costOf(w, s) * num(s.fee) / 100); }
-  function autoSell(w, s, cat, ft) { s = s || sets(); if (!num(w)) return 0; var r = num(s.step) || 1; return Math.ceil((costOf(w, s) + feeOf(w, s, cat, ft)) / r) * r; }
+  // ปริมาณรวม (ml/g) จากช่องปริมาณ เช่น "50ml × 2" = 100, "30ml + 10ml" = 40 · แผ่น/ชิ้น ไม่นับ
+  function sizeTotal(sz) { var t = 0; String(sz || '').replace(/(\d+(?:\.\d+)?)\s*(ml|g)\b(?:\s*[×x*]\s*(\d+))?/gi, function (_, a, u, x) { t += num(a) * (x ? num(x) : 1); return _; }); return t; }
+  // ขั้นค่าหิ้ว: l = ของเบา (เมกอัพ/เล็บ), h = ของหนัก (ปริมาณรวม ≥ heavyMl), n = ปกติ · ft บังคับเองได้
+  function tier(cat, ft, sz, s) { s = s || sets(); if (ft === 'l' || ft === 'n' || ft === 'h') return ft; if (LITE.indexOf(cat) >= 0) return 'l'; return num(s.heavyMl) > 0 && sizeTotal(sz) >= num(s.heavyMl) ? 'h' : 'n'; }
+  function tierBaht(t, s) { s = s || sets(); return num(t === 'l' ? s.feeLite : t === 'h' ? s.feeHeavy : s.feeThb); }
+  function isLite(cat, ft) { return tier(cat, ft) === 'l'; }
+  function feeOf(w, s, cat, ft, sz) { s = s || sets(); if (!num(w)) return 0; return Math.round(num(s.thb) * tierBaht(tier(cat, ft, sz, s), s) + costOf(w, s) * num(s.fee) / 100); }
+  function autoSell(w, s, cat, ft, sz) { s = s || sets(); if (!num(w)) return 0; var r = num(s.step) || 1; return Math.ceil((costOf(w, s) + feeOf(w, s, cat, ft, sz)) / r) * r; }
   function P(id) { var p = S.products && S.products[id]; if (!p) return null; var m = (S.meta && S.meta[id]) || {}; return Object.assign({ id: id, store: m.store || 'อื่นๆ', ft: m.ft || '' }, p, { won: num(m.won) || num(p.won), wonFull: num(m.wonFull) || num(p.wonFull) }); }
   function plist() { return Object.keys(S.products || {}).map(P).filter(Boolean); }
   function catOf(p) { return CATS.some(function (c) { return c[0] === p.cat; }) ? p.cat : 'other'; }
@@ -280,8 +285,8 @@
   // ₩ → ของ + หิ้ว (บาท) = ราคาขาย · เตือนเมื่อราคาที่ขายอยู่ไม่ตรงสูตร
   function priceLine(p) {
     if (!p.won) return '<b style="color:var(--ink)">' + kip(p.sell) + '</b> · ⚠️ ไม่มีราคาวอน';
-    var s = sets(), c = catOf(p), fee = feeOf(p.won, s, c, p.ft), want = autoSell(p.won, s, c, p.ft);
-    return (p.wonFull > p.won ? '<s>' + won(p.wonFull) + '</s> ' : '') + won(p.won) + ' → ของ ' + fm(p.sell - fee) + ' + หิ้ว ' + fm(fee) + ' (' + fm(isLite(c, p.ft) ? s.feeLite : s.feeThb) + '฿) = <b style="color:var(--ink)">' + kip(p.sell) + '</b>' +
+    var s = sets(), c = catOf(p), fee = feeOf(p.won, s, c, p.ft, p.size), want = autoSell(p.won, s, c, p.ft, p.size);
+    return (p.wonFull > p.won ? '<s>' + won(p.wonFull) + '</s> ' : '') + won(p.won) + ' → ของ ' + fm(p.sell - fee) + ' + หิ้ว ' + fm(fee) + ' (' + fm(tierBaht(tier(c, p.ft, p.size, s), s)) + '฿) = <b style="color:var(--ink)">' + kip(p.sell) + '</b>' +
       (p.sell !== want ? ' · <b style="color:var(--red)">⚠️ ยังไม่อัปเดตราคา (สูตรได้ ' + fm(want) + ')</b>' : '');
   }
   function sProd() {
@@ -290,7 +295,7 @@
       st.map(function (s) {
         var G = L.filter(function (p) { return p.store === s; });
         return G.length ? '<div class="sec"><h2>🏬 ' + E(s) + '</h2><span>' + G.length + ' รายการ</span></div>' + G.map(function (p) {
-          return '<div class="card li" data-a="pedit" data-id="' + E(p.id) + '" style="cursor:pointer;padding:10px 12px' + (p.hidden ? ';opacity:.5' : '') + '"><div class="th">' + img(p) + '</div><div class="nm"><b>' + E(p.name) + '</b><small>' + priceLine(p) + (p.best ? ' · 🔥#' + E(p.best) : '') + (p.isNew ? ' · ✨ใหม่' : '') + (p.hidden ? ' · ซ่อนอยู่' : '') + '</small></div>›</div>';
+          return '<div class="card li" data-a="pedit" data-id="' + E(p.id) + '" style="cursor:pointer;padding:10px 12px' + (p.hidden ? ';opacity:.5' : '') + '"><div class="th">' + img(p) + '</div><div class="nm"><b>' + E(p.name) + '</b><small>' + (p.size ? '📦 ' + E(p.size) + ' · ' : '<b style="color:var(--amb)">⚠️ ยังไม่ใส่ปริมาณ</b> · ') + priceLine(p) + (p.best ? ' · 🔥#' + E(p.best) : '') + (p.isNew ? ' · ✨ใหม่' : '') + (p.hidden ? ' · ซ่อนอยู่' : '') + '</small></div>›</div>';
         }).join('') : '';
       }).join('');
   }
@@ -299,18 +304,18 @@
     var st = stores();
     modal('<h2>' + (p ? '✏️ แก้สินค้า' : '+ เพิ่มสินค้า') + '</h2>' +
       '<div class="row" style="align-items:flex-start"><label class="up nf" style="width:96px;padding:8px" id="pimg">' + (p && p.hasImg && S.img[p.id] ? '<img src="' + E(S.img[p.id]) + '" alt="">' : '📷<br><small>รูป</small>') + '<input type="file" accept="image/*" data-f="pimg" hidden></label>' +
-      '<div><label style="margin-top:0">ชื่อสินค้า</label><input id="e_n" value="' + E(p ? p.name : '') + '"><label>แบรนด์ (ว่าง = เดาจากชื่อ)</label><input id="e_br" value="' + E(p && p.brand ? p.brand : '') + '"></div></div>' +
+      '<div><label style="margin-top:0">ชื่อสินค้า</label><input id="e_n" value="' + E(p ? p.name : '') + '"><label>แบรนด์ (ว่าง = เดาจากชื่อ)</label><input id="e_br" value="' + E(p && p.brand ? p.brand : '') + '"><label>ปริมาณต่อชิ้น × จำนวน (เช่น 50ml × 2)</label><input id="e_sz" value="' + E(p && p.size ? p.size : '') + '" placeholder="50ml × 2"></div></div>' +
       '<div class="row"><div><label>ร้านที่ซื้อ (ลูกค้าไม่เห็น)</label><input id="e_s" list="e_sl" value="' + E(p ? p.store : st[0]) + '"><datalist id="e_sl">' + st.map(function (s) { return '<option value="' + E(s) + '">'; }).join('') + '</datalist></div>' +
       '<div><label>หมวด</label><select id="e_c">' + CATS.map(function (c) { return '<option value="' + c[0] + '"' + (p && catOf(p) === c[0] ? ' selected' : '') + '>' + c[1] + ' ' + c[2] + '</option>'; }).join('') + '</select></div></div>' +
       '<div class="row"><div><label>ราคาเต็ม (วอน) ไม่ลด = ว่าง</label><input id="e_wf" inputmode="numeric" value="' + (p && p.wonFull ? p.wonFull : '') + '"></div><div></div></div>' +
-      '<div class="row"><div><label>ราคาที่ซื้อ (วอน · ราคาลด)</label><input id="e_w" inputmode="numeric" value="' + (p && p.won ? p.won : '') + '"></div><div><label>ราคาขาย (กีบ) ว่าง = อัตโนมัติ</label><input id="e_p" inputmode="numeric" value="' + (p && p.sell && p.sell !== autoSell(p.won, null, catOf(p), p.ft) ? p.sell : '') + '"></div></div><p class="mut" id="e_pv"></p>' +
-      '<label>ค่าหิ้ว</label><select id="e_ft"><option value="">อัตโนมัติตามหมวด (เมกอัพ/เล็บ = ของเบา)</option><option value="l"' + (p && p.ft === 'l' ? ' selected' : '') + '>ของเบา ' + fm(sets().feeLite) + ' บาท</option><option value="n"' + (p && p.ft === 'n' ? ' selected' : '') + '>ปกติ ' + fm(sets().feeThb) + ' บาท</option></select>' +
+      '<div class="row"><div><label>ราคาที่ซื้อ (วอน · ราคาลด)</label><input id="e_w" inputmode="numeric" value="' + (p && p.won ? p.won : '') + '"></div><div><label>ราคาขาย (กีบ) ว่าง = อัตโนมัติ</label><input id="e_p" inputmode="numeric" value="' + (p && p.sell && p.sell !== autoSell(p.won, null, catOf(p), p.ft, p.size) ? p.sell : '') + '"></div></div><p class="mut" id="e_pv"></p>' +
+      '<label>ค่าหิ้ว</label><select id="e_ft"><option value="">อัตโนมัติ (เมกอัพ/เล็บ = ของเบา · ปริมาณรวม ≥ ' + fm(sets().heavyMl) + 'ml = ของหนัก)</option><option value="l"' + (p && p.ft === 'l' ? ' selected' : '') + '>ของเบา ' + fm(sets().feeLite) + ' บาท</option><option value="n"' + (p && p.ft === 'n' ? ' selected' : '') + '>ปกติ ' + fm(sets().feeThb) + ' บาท</option><option value="h"' + (p && p.ft === 'h' ? ' selected' : '') + '>ของหนัก ' + fm(sets().feeHeavy) + ' บาท</option></select>' +
       '<div class="row"><div><label>อันดับขายดี (0 = ไม่แสดง)</label><input id="e_b" inputmode="numeric" value="' + (p ? num(p.best) : 0) + '"></div><div><label>ป้าย / การแสดง</label><select id="e_x"><option value="">ปกติ</option><option value="new"' + (p && p.isNew ? ' selected' : '') + '>✨ ใหม่</option><option value="hide"' + (p && p.hidden ? ' selected' : '') + '>🙈 ซ่อนจากหน้าร้าน</option></select></div></div>' +
       '<div class="row" style="margin-top:14px">' + (p ? '<button class="btn red nf" data-a="pdel" data-id="' + E(p.id) + '">🗑</button>' : '') + '<button class="btn ghost" data-a="close">ยกเลิก</button><button class="btn" data-a="psave">บันทึก</button></div>');
     updPv();
   }
-  function updPv() { var e = $('#e_pv'); if (!e) return; var w = num(($('#e_w') || {}).value), c = ($('#e_c') || {}).value, ft = ($('#e_ft') || {}).value || '', s = num(($('#e_p') || {}).value) || autoSell(w, null, c, ft); e.innerHTML = w ? won(w) + ' → ของ ' + fm(costOf(w)) + ' + หิ้ว ' + fm(feeOf(w, null, c, ft)) + ' (' + fm(isLite(c, ft) ? sets().feeLite : sets().feeThb) + '฿) = ขายลูกค้า <b>' + kip(s) + '</b>' : 'ใส่ราคาวอน ระบบคิดราคาขายให้'; }
-  function pvText(s) { return 'ตัวอย่าง ₩10,000 → สกินแคร์ ' + kip(autoSell(10000, s, 'skin')) + ' · เมกอัพ ' + kip(autoSell(10000, s, 'makeup')); }
+  function updPv() { var e = $('#e_pv'); if (!e) return; var w = num(($('#e_w') || {}).value), c = ($('#e_c') || {}).value, ft = ($('#e_ft') || {}).value || '', sz = ($('#e_sz') || {}).value || '', s = num(($('#e_p') || {}).value) || autoSell(w, null, c, ft, sz); e.innerHTML = w ? won(w) + ' → ของ ' + fm(costOf(w)) + ' + หิ้ว ' + fm(feeOf(w, null, c, ft, sz)) + ' (' + fm(tierBaht(tier(c, ft, sz))) + '฿) = ขายลูกค้า <b>' + kip(s) + '</b>' : 'ใส่ราคาวอน ระบบคิดราคาขายให้'; }
+  function pvText(s) { return 'ตัวอย่าง ₩10,000 → สกินแคร์ ' + kip(autoSell(10000, s, 'skin')) + ' · เมกอัพ ' + kip(autoSell(10000, s, 'makeup')) + ' · ของหนัก ' + kip(autoSell(10000, s, 'skin', 'h')); }
   function sCust() {
     var m = {};
     olist().forEach(function (o) { var k = digits(o.phone).slice(-8) || o.name; var c = m[k] || (m[k] = { name: o.name, phone: o.phone, n: 0, sum: 0, at: 0 }); c.n++; c.sum += o.pay === 'ok' ? sumItems(o) : 0; c.at = Math.max(c.at, o.at || 0); });
@@ -379,6 +384,7 @@
       '<label>QR รับเงิน</label><div class="row"><label class="up nf" style="width:120px;padding:8px">' + (s.qr ? '<img src="' + E(s.qr) + '" alt="">' : '＋ QR') + '<input type="file" accept="image/*" data-f="qr" hidden></label>' + (s.qr ? '<button class="btn sm red nf" data-a="qrdel">ลบ QR</button>' : '') + '<span></span></div></div>' +
       '<div class="card"><h3>💱 คิดราคา (ลูกค้าไม่เห็น)</h3><div class="row"><div>' + f('rate', '1 วอน = กีบ', p.rate, 'decimal') + '</div><div>' + f('buffer', 'เผื่อแลกเงิน %', p.buffer, 'decimal') + '</div></div>' +
       '<div class="row"><div>' + f('feeThb', 'ค่าหิ้วต่อชิ้น (บาท)', p.feeThb, 'numeric') + '</div><div>' + f('feeLite', 'ค่าหิ้วของเบา เมกอัพ/เล็บ (บาท)', p.feeLite, 'numeric') + '</div></div>' +
+      '<div class="row"><div>' + f('feeHeavy', 'ค่าหิ้วของหนัก (บาท)', p.feeHeavy, 'numeric') + '</div><div>' + f('heavyMl', 'ของหนัก = ปริมาณรวมตั้งแต่ (ml/g)', p.heavyMl, 'numeric') + '</div></div>' +
       '<div class="row"><div>' + f('thb', '1 บาท = กีบ', p.thb, 'decimal') + '</div><div>' + f('step', 'ปัดขึ้นทีละ (กีบ)', p.step, 'numeric') + '</div></div>' +
       f('fee', 'ค่าหิ้วเพิ่มเป็น % (ไม่ใช้ใส่ 0)', p.fee, 'decimal') +
       '<p class="mut" id="s_pv">' + pvText(sets()) + '</p></div>' +
@@ -396,8 +402,8 @@
   /* ---------- events ---------- */
   document.addEventListener('input', function (e) {
     var t = e.target;
-    if (t.id === 'e_w' || t.id === 'e_p' || t.id === 'e_c' || t.id === 'e_ft') return updPv();
-    if (['s_rate', 's_buffer', 's_fee', 's_step', 's_thb', 's_feeThb', 's_feeLite'].indexOf(t.id) >= 0) { var y = $('#s_pv'); if (y) { var o = {}; ['rate', 'buffer', 'fee', 'step', 'thb', 'feeThb', 'feeLite'].forEach(function (k) { o[k] = num($('#s_' + k).value); }); y.textContent = pvText(o); } return; }
+    if (t.id === 'e_w' || t.id === 'e_p' || t.id === 'e_c' || t.id === 'e_ft' || t.id === 'e_sz') return updPv();
+    if (['s_rate', 's_buffer', 's_fee', 's_step', 's_thb', 's_feeThb', 's_feeLite', 's_feeHeavy', 's_heavyMl'].indexOf(t.id) >= 0) { var y = $('#s_pv'); if (y) { var o = {}; ['rate', 'buffer', 'fee', 'step', 'thb', 'feeThb', 'feeLite', 'feeHeavy', 'heavyMl'].forEach(function (k) { o[k] = num($('#s_' + k).value); }); y.textContent = pvText(o); } return; }
   });
   document.addEventListener('change', function (e) {
     var t = e.target;
@@ -419,8 +425,8 @@
       L.forEach(function (x) {
         if (!x || !x.name) return;
         var id = String(x.id || db.ref('hiw/pub/products').push().key).replace(/[.#$/[\]]/g, '_');
-        var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc);
-        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
+        var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc, '', x.size);
+        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), size: String(x.size || '').slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc, '', x.size)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
         up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
         if (x.img) up['hiw/pub/pimg/' + id] = x.img;
         n++;
@@ -468,10 +474,10 @@
       case 'refpaid': o = O(id); its = items(o).map(function (i) { return Object.assign({}, i); }); its[+b.dataset.k].refPaid = true; o.items = its; run(saveOrder(o), 'บันทึกคืนเงินแล้ว'); break;
       case 'pedit': mPedit(id ? P(id) : null); break;
       case 'psave': {
-        var nm = $('#e_n').value.trim(), w = num($('#e_w').value), wf = num($('#e_wf').value) > w ? num($('#e_wf').value) : 0, ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft), x = $('#e_x').value;
+        var nm = $('#e_n').value.trim(), w = num($('#e_w').value), wf = num($('#e_wf').value) > w ? num($('#e_wf').value) : 0, ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft, $('#e_sz').value), x = $('#e_x').value;
         if (!nm || !sell) { say('ใส่ชื่อ และราคาวอน (หรือราคาขาย)', false); return; }
         var pid = S.editP.id || db.ref('hiw/pub/products').push().key, ex = P(pid), u = {};
-        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, brand: $('#e_br').value.trim().slice(0, 40), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
+        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, brand: $('#e_br').value.trim().slice(0, 40), size: $('#e_sz').value.trim().slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft, $('#e_sz').value)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
         u['hiw/priv/pmeta/' + pid] = { store: $('#e_s').value.trim() || 'อื่นๆ', won: w, wonFull: wf, ft: eft };
         if (S.editP.img) { u['hiw/pub/pimg/' + pid] = S.editP.img; S.img[pid] = S.editP.img; }
         closeM(); run(db.ref().update(u), 'บันทึกแล้ว · ขึ้นหน้าร้านทันที'); break;
@@ -492,13 +498,13 @@
       case 'ssave': {
         var up2 = {};
         ['shop', 'tag', 'wa', 'bank', 'accNo', 'accName'].forEach(function (k) { up2['hiw/pub/settings/' + k] = $('#s_' + k).value.trim().slice(0, 120); });
-        ['rate', 'buffer', 'fee', 'step', 'thb', 'feeThb', 'feeLite'].forEach(function (k) { up2['hiw/priv/settings/' + k] = num($('#s_' + k).value); });
+        ['rate', 'buffer', 'fee', 'step', 'thb', 'feeThb', 'feeLite', 'feeHeavy', 'heavyMl'].forEach(function (k) { up2['hiw/priv/settings/' + k] = num($('#s_' + k).value); });
         if (!up2['hiw/priv/settings/rate']) { say('ใส่เรทเงินก่อน', false); return; }
         run(db.ref().update(up2), 'บันทึกแล้ว'); break;
       }
       case 'reprice': {
         s = sets(); var up3 = {}, cnt = 0;
-        plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft); up3[b + 'won'] = p.won; up3[b + 'wonFull'] = p.wonFull > p.won ? p.wonFull : 0; cnt++; } });
+        plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft, p.size); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft, p.size); up3[b + 'won'] = p.won; up3[b + 'wonFull'] = p.wonFull > p.won ? p.wonFull : 0; cnt++; } });
         if (!cnt) { say('ไม่มีสินค้าที่ใส่ราคาวอน', false); return; }
         run(db.ref().update(up3), 'คิดราคาใหม่ ' + cnt + ' รายการ ✓'); break;
       }

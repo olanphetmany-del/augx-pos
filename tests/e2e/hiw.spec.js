@@ -141,10 +141,11 @@ test.describe('hiw-admin.html (owner)', () => {
 function feeData() {
     const d = hiwData();
     d.hiw.pub.products = {
-        p1: { name: 'Fee Toner', cat: 'skin', sell: 546000, won: 25000, fee: 136000 },
+        p1: { name: 'Fee Toner', cat: 'skin', sell: 546000, won: 25000, fee: 136000, size: '50ml × 2' },
         p4: { name: 'Fee Tint', cat: 'makeup', sell: 232000, won: 10000, wonFull: 16000, fee: 68000 },
+        p5: { name: 'Heavy Toner', cat: 'skin', sell: 1, won: 25000, fee: 0, size: '250ml' },
     };
-    d.hiw.priv = { settings: { rate: 15.9, buffer: 3, fee: 0, step: 1000, thb: 680, feeThb: 200, feeLite: 100 }, pmeta: { p1: { store: 'Olive Young', won: 25000 }, p4: { store: 'Olive Young', won: 10000, wonFull: 16000 } } };
+    d.hiw.priv = { settings: { rate: 15.9, buffer: 3, fee: 0, step: 1000, thb: 680, feeThb: 200, feeLite: 100, feeHeavy: 300, heavyMl: 200 }, pmeta: { p1: { store: 'Olive Young', won: 25000 }, p4: { store: 'Olive Young', won: 10000, wonFull: 16000 }, p5: { store: 'Olive Young', won: 25000 } } };
     return d;
 }
 
@@ -155,6 +156,7 @@ test.describe('hiw baht service fee (customer)', () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('hiw.html');
         await expect(page.locator('.p', { hasText: 'Fee Toner' })).toContainText('₩25,000');
+        await expect(page.locator('.p', { hasText: 'Fee Toner' }).locator('.psz')).toContainText('50ml × 2');
         await expect(page.locator('.p', { hasText: 'Fee Toner' }).locator('.prk')).toContainText('546,000');
         await expect(page.locator('.p', { hasText: 'Fee Tint' }).locator('.pfull')).toContainText('₩16,000');
         await expect(page.locator('.p', { hasText: 'Fee Tint' }).locator('.pfull')).toContainText('-38%');
@@ -188,6 +190,8 @@ test.describe('hiw baht service fee (owner)', () => {
         expect(await fakeDb(page, 'hiw/pub/products/p4/fee')).toBe(68000);
         expect(await fakeDb(page, 'hiw/pub/products/p4/won')).toBe(10000);
         expect(await fakeDb(page, 'hiw/pub/products/p4/wonFull')).toBe(16000);
+        expect(await fakeDb(page, 'hiw/pub/products/p5/sell')).toBe(614000); // 250ml ≥ 200ml → heavy 300 baht
+        expect(await fakeDb(page, 'hiw/pub/products/p5/fee')).toBe(204000);
         // product list explains the price: ₩ → item + fee (baht) = sell
         await page.click('[data-a=sub][data-v=""]');
         await page.click('[data-a=sub][data-v=prod]');
