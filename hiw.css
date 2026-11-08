@@ -128,3 +128,23 @@ textarea.cap{height:200px;font-size:14px}
 .psz{font-size:12px;color:var(--mut);margin-top:3px}
 .pheavy{display:inline-block;font-size:11px;font-weight:700;color:#9a3412;background:#ffedd5;border-radius:6px;padding:2px 6px;margin-top:4px}
 .pheavy.big{display:block;font-size:13px;padding:6px 8px;margin:6px 0}
+/* 🏆 Today's Ranking */
+.rank{background:#fff;border-radius:16px;padding:14px 12px 6px;margin:12px 0;border:1px solid var(--line)}
+.rkh{display:flex;align-items:baseline;gap:8px}.rkh h2{margin:0;font-size:18px}.rkat{margin-left:auto;font-size:12px;color:var(--mut)}
+.rks{margin:2px 0 8px;font-size:13px;color:var(--mut)}
+.rank .chips{margin:0 0 4px}
+.rrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.rn{width:30px;flex:none;text-align:center;font-weight:800;font-size:17px;line-height:1.1}
+.rn.n1{color:#c8930a;font-size:24px}.rn.n2{color:#8a8f98;font-size:22px}.rn.n3{color:#b5652b;font-size:21px}
+.mv{display:block;font-size:10px;font-weight:700;color:var(--mut);margin-top:2px}.mv.mvu{color:var(--red)}.mv.mvd{color:var(--blue)}.mv.mvn{color:#fff;background:var(--red);border-radius:4px;padding:0 3px;width:max-content;margin:2px auto 0}
+.rrow .th{width:68px;height:68px;border-radius:12px;cursor:pointer}.rrow .th img{width:100%;height:100%;object-fit:cover}
+.ri{flex:1;min-width:0;cursor:pointer}
+.rb{font-size:11px;color:var(--mut)}.rb .hv{color:#9a3412;font-weight:700}
+.rnm{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hook{font-size:12px;color:var(--pur);font-weight:600;margin-top:2px}
+.rt{display:inline-block;font-size:11px;color:var(--amb);margin:2px 8px 0 0}
+.bought{display:inline-block;font-size:11px;font-weight:700;color:var(--g);background:var(--g2);border-radius:6px;padding:1px 6px;margin-top:3px}
+.rp{font-size:12px;color:var(--mut);margin-top:3px}.rp s{color:#b0b4bb}.rp b{color:var(--g);font-size:14px}
+.radd{flex:none;width:38px;height:38px;border-radius:50%;border:0;background:var(--g);color:#fff;font-size:22px;line-height:1}
+.qty.v{flex-direction:column;width:38px;flex:none}.qty.v button{width:38px;height:30px}
+.rkmore{display:block;width:100%;border:0;background:none;color:var(--blue);font:inherit;font-size:14px;font-weight:600;padding:10px 0 6px}

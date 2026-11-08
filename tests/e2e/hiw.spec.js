@@ -214,3 +214,80 @@ test.describe('hiw-admin.html (staff account)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// 🏆 Today's Ranking: ອັນດັບ 1–10 ຈາກ Olive Young · ລູກສອນ ▲▼/NEW · ດາວ/ລີວິວ · ຈຸດເດັ່ນ · ຄົນລາວສັ່ງແລ້ວ (≥ 5 ຄົນ)
+function rankData() {
+    const d = hiwData();
+    const P = {};
+    for (let i = 1; i <= 7; i++) P['r' + i] = { name: 'Rank Item ' + i, brand: 'Brand' + i, cat: i === 7 ? 'sun' : 'skin', sell: 400000 + i * 1000, won: 20000, wonFull: 30000, rank: i, size: '50ml' };
+    Object.assign(P.r1, { rankPrev: 3, rating: 4.8, reviews: 22880, hook: 'ຮູຂຸມຂົນ' });
+    Object.assign(P.r2, { rankPrev: 0 });
+    P.u1 = { name: 'Unranked Cream', cat: 'skin', sell: 300000 };
+    d.hiw.pub.products = P;
+    Object.assign(d.hiw.pub.settings, { rankAt: '8/11', ordered: { r1: 6, r2: 2 } });
+    return d;
+}
+
+test.describe('hiw ranking (customer)', () => {
+    test.use({ db: rankData(), user: null });
+
+    test('ranking shows top 5 in order with movement, rating, hook and Lao order count', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        const rank = page.locator('section.rank');
+        await expect(rank).toContainText("Today's Ranking");
+        await expect(rank).toContainText('ອັບເດດ 8/11');
+        await expect(rank).toContainText('ສະກິນແຄທີ່ ພ.ສ ເກົາຫຼີກຳລັງນິຍົມ');
+        const rows = rank.locator('.rrow');
+        await expect(rows).toHaveCount(5);
+        await expect(rows.nth(0)).toContainText('Rank Item 1');
+        await expect(rows.nth(0).locator('.mv')).toHaveText('▲2');
+        await expect(rows.nth(1).locator('.mv')).toHaveText('NEW');
+        await expect(rows.nth(2).locator('.mv')).toHaveCount(0);
+        await expect(rows.nth(0)).toContainText('★ 4.8 · 22,880');
+        await expect(rows.nth(0)).toContainText('ຮູຂຸມຂົນ');
+        await expect(rows.nth(0).locator('.bought')).toContainText('6');
+        await expect(rows.nth(1).locator('.bought')).toHaveCount(0); // only 2 → hidden
+        await expect(rank).not.toContainText('Unranked Cream');
+        await rank.locator('[data-a=rkmore]').click();
+        await expect(rows).toHaveCount(7);
+        await rank.locator('[data-a=rk][data-v=sun]').click();
+        await expect(rows).toHaveCount(1);
+        await expect(rows.nth(0)).toContainText('Rank Item 7');
+        await expect(rows.nth(0).locator('.rn')).toHaveText('1');
+        await rows.nth(0).locator('[data-a=cp]').click();
+        await expect(page.locator('.cbar')).toContainText('1');
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw ranking (owner)', () => {
+    const d = rankData();
+    d.hiw.orders = {
+        o1: { no: 1001, phone: '020 1111 1111', items: [{ pid: 'r3', n: 'Rank Item 3', q: 1, s: 1, st: 'wait' }, { pid: 'r4', n: 'x', q: 1, s: 1, st: 'refund' }] },
+        o2: { no: 1002, phone: '02011111111', items: [{ pid: 'r3', n: 'Rank Item 3', q: 2, s: 1, st: 'got' }] },
+        o3: { no: 1003, phone: '02022222222', items: [{ pid: 'r3', n: 'Rank Item 3', q: 1, s: 1, st: 'wait' }] },
+    };
+    test.use({ db: d, user: OWNER });
+
+    test('order counts sync to the storefront; editing the rank keeps the old rank for the arrow', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/settings/ordered')).toEqual({ r3: 2 });
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await page.locator('.card[data-a=pedit]', { hasText: 'Rank Item 4' }).click();
+        await expect(page.locator('#e_rk')).toHaveValue('4');
+        await page.fill('#e_rk', '2');
+        await page.fill('#e_hk', 'ຜິວໃສ');
+        await page.fill('#e_rt', '4.66');
+        await page.fill('#e_rv', '1200');
+        await page.click('[data-a=psave]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/products/r4/rank')).toBe(2);
+        expect(await fakeDb(page, 'hiw/pub/products/r4/rankPrev')).toBe(4);
+        expect(await fakeDb(page, 'hiw/pub/products/r4/hook')).toBe('ຜິວໃສ');
+        expect(await fakeDb(page, 'hiw/pub/products/r4/rating')).toBe(4.7);
+        expect(await fakeDb(page, 'hiw/pub/products/r4/reviews')).toBe(1200);
+        expect(await fakeDb(page, 'hiw/pub/settings/rankAt')).toMatch(/^\d{1,2}\/\d{1,2}$/);
+        expect(errors).toEqual([]);
+    });
+});
