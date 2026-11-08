@@ -39,6 +39,7 @@ test.describe('hiw.html (customer)', () => {
         await page.click('.sheet [data-a=crm][data-id=p2]');
         await expect(page.locator('.sheet .tot')).toContainText('942,000');
         await page.click('[data-a=checkout]');
+        await expect(page.locator('[data-a=deliv]')).toHaveCount(0); // no pick-up/delivery choice
         await page.fill('#f_n', 'Bibi');
         await page.fill('#f_p', '020 5738 8383');
         await page.click('[data-a=place]'); // no slip yet → refused
@@ -50,7 +51,7 @@ test.describe('hiw.html (customer)', () => {
 
         const orders = await fakeDb(page, 'hiw/orders');
         const o = Object.values(orders)[0];
-        expect(o).toMatchObject({ no: 1001, name: 'Bibi', total: 942000, pay: 'pend' });
+        expect(o).toMatchObject({ no: 1001, name: 'Bibi', total: 942000, pay: 'pend', deliv: 'pick', addr: '' });
         expect(o.items).toEqual([{ pid: 'p1', n: 'Smoke Toner', q: 2, s: 471000, st: 'wait' }]);
         expect(o.slip).toMatch(/^data:image\//);
         const track = await fakeDb(page, 'hiw/track/' + o.tok);
