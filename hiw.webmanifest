@@ -1,17 +1,27 @@
 {
   "id": "./hiw.html",
-  "name": "ຮັບຫິ້ວສິນຄ້າເກົາຫຼີ",
-  "short_name": "ຮັບຫິ້ວ",
+  "name": "AUGUSTX Pre-order",
+  "short_name": "Pre-order",
   "description": "ສັ່ງສິນຄ້າແທ້ຈາກເກົາຫຼີ · ຈ່າຍ ແລະ ແນບສະລິບໃນໜ້າດຽວ",
   "lang": "lo",
   "start_url": "./hiw.html",
   "scope": "./hiw.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f6f7f8",
-  "theme_color": "#1f8a4c",
+  "background_color": "#ffffff",
+  "theme_color": "#004aad",
   "icons": [
-    { "src": "icon-hiw-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-hiw-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "icon-hiw-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-hiw-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

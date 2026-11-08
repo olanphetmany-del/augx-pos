@@ -116,6 +116,6 @@ textarea.cap{height:200px;font-size:14px}
 .appbar img{width:40px;height:40px;border-radius:10px;flex-shrink:0}
 .appbar .t{flex:1;min-width:0;font-size:13px;line-height:1.35}
 .appbar .t b{display:block;font-size:14px}
-.appbar .go{min-height:40px;padding:0 16px;border:0;border-radius:20px;background:var(--g);color:#fff;font:inherit;font-weight:700;white-space:nowrap}
+.appbar .go{min-height:40px;padding:0 16px;border:0;border-radius:20px;background:#004aad;color:#fff;font:inherit;font-weight:700;white-space:nowrap}
 .appbar .no{min-width:40px;min-height:40px;border:0;background:transparent;color:inherit;font-size:22px;opacity:.7}
 .appbar .ios{margin:0 auto;max-width:720px;padding:0 14px 12px;font-size:13px}

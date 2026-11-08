@@ -1,0 +1,27 @@
+{
+  "id": "./hiw-admin.html",
+  "name": "AUGUSTX Pre-order Admin",
+  "short_name": "Pre-order Admin",
+  "description": "หลังร้านรับหิ้ว",
+  "lang": "th",
+  "start_url": "./hiw-admin.html",
+  "scope": "./hiw-admin.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#d9d9d9",
+  "theme_color": "#004aad",
+  "icons": [
+    {
+      "src": "icon-hiw-admin-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-hiw-admin-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
