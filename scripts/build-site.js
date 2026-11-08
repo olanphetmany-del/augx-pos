@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 export const SITE = [
     // pages
     'index.html', 'order.html', 'cashier.html', 'kitchen.html', 'shop.html', 'admin.html',
+    // รับหิ้ว (pre-order from Korea): customer storefront + owner back office
+    'hiw.html', 'hiw-admin.html', 'hiw.css',
     // scripts and styles
     'shared.js', 'augustx-menu.js', 'i18n.js', 'i18n-dict.js', 'old-ios.js', 'online-cashier.js', 'preorder.js', 'theme7.js', 'theme7.css',
     // installable apps
