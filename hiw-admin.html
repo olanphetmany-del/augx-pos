@@ -299,7 +299,7 @@
     var st = stores();
     modal('<h2>' + (p ? '✏️ แก้สินค้า' : '+ เพิ่มสินค้า') + '</h2>' +
       '<div class="row" style="align-items:flex-start"><label class="up nf" style="width:96px;padding:8px" id="pimg">' + (p && p.hasImg && S.img[p.id] ? '<img src="' + E(S.img[p.id]) + '" alt="">' : '📷<br><small>รูป</small>') + '<input type="file" accept="image/*" data-f="pimg" hidden></label>' +
-      '<div><label style="margin-top:0">ชื่อสินค้า</label><input id="e_n" value="' + E(p ? p.name : '') + '"></div></div>' +
+      '<div><label style="margin-top:0">ชื่อสินค้า</label><input id="e_n" value="' + E(p ? p.name : '') + '"><label>แบรนด์ (ว่าง = เดาจากชื่อ)</label><input id="e_br" value="' + E(p && p.brand ? p.brand : '') + '"></div></div>' +
       '<div class="row"><div><label>ร้านที่ซื้อ (ลูกค้าไม่เห็น)</label><input id="e_s" list="e_sl" value="' + E(p ? p.store : st[0]) + '"><datalist id="e_sl">' + st.map(function (s) { return '<option value="' + E(s) + '">'; }).join('') + '</datalist></div>' +
       '<div><label>หมวด</label><select id="e_c">' + CATS.map(function (c) { return '<option value="' + c[0] + '"' + (p && catOf(p) === c[0] ? ' selected' : '') + '>' + c[1] + ' ' + c[2] + '</option>'; }).join('') + '</select></div></div>' +
       '<div class="row"><div><label>ราคาเต็ม (วอน) ไม่ลด = ว่าง</label><input id="e_wf" inputmode="numeric" value="' + (p && p.wonFull ? p.wonFull : '') + '"></div><div></div></div>' +
@@ -420,7 +420,7 @@
         if (!x || !x.name) return;
         var id = String(x.id || db.ref('hiw/pub/products').push().key).replace(/[.#$/[\]]/g, '_');
         var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc);
-        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
+        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc)), best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
         up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
         if (x.img) up['hiw/pub/pimg/' + id] = x.img;
         n++;
@@ -471,7 +471,7 @@
         var nm = $('#e_n').value.trim(), w = num($('#e_w').value), wf = num($('#e_wf').value) > w ? num($('#e_wf').value) : 0, ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft), x = $('#e_x').value;
         if (!nm || !sell) { say('ใส่ชื่อ และราคาวอน (หรือราคาขาย)', false); return; }
         var pid = S.editP.id || db.ref('hiw/pub/products').push().key, ex = P(pid), u = {};
-        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
+        u['hiw/pub/products/' + pid] = { name: nm.slice(0, 120), cat: ec, brand: $('#e_br').value.trim().slice(0, 40), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, ec, eft)), best: num($('#e_b').value), isNew: x === 'new', hidden: x === 'hide', hasImg: !!(S.editP.img || (ex && ex.hasImg)) };
         u['hiw/priv/pmeta/' + pid] = { store: $('#e_s').value.trim() || 'อื่นๆ', won: w, wonFull: wf, ft: eft };
         if (S.editP.img) { u['hiw/pub/pimg/' + pid] = S.editP.img; S.img[pid] = S.editP.img; }
         closeM(); run(db.ref().update(u), 'บันทึกแล้ว · ขึ้นหน้าร้านทันที'); break;

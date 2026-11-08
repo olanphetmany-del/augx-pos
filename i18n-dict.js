@@ -92,3 +92,5 @@ window.I18N_DICT.staff.push(["⚠️ ไม่มีราคาวอน", "⚠
 window.I18N_DICT.cust.push(["ລາຄາລວມຄ່າຫິ້ວ", "ราคารวมค่าหิ้ว", "price incl. service fee"]);
 window.I18N_DICT.staff.push(["ราคาเต็ม (วอน) ไม่ลด = ว่าง", "ລາຄາເຕັມ (ວອນ) ບໍ່ຫຼຸດ = ວ່າງ", "Full price (won), blank if not on sale"]);
 window.I18N_DICT.staff.push(["ราคาที่ซื้อ (วอน · ราคาลด)", "ລາຄາທີ່ຊື້ (ວອນ · ລາຄາຫຼຸດ)", "Price paid (won, sale price)"]);
+window.I18N_DICT.cust.push(["🏷️ ທຸກແບຣນ", "🏷️ ทุกแบรนด์", "🏷️ All brands"]);
+window.I18N_DICT.staff.push(["แบรนด์ (ว่าง = เดาจากชื่อ)", "ແບຣນ (ວ່າງ = ເດົາຈາກຊື່)", "Brand (blank = from the name)"]);

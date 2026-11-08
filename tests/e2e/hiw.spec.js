@@ -64,6 +64,15 @@ test.describe('hiw.html (customer)', () => {
         expect(errors).toEqual([]);
     });
 
+    test('brand chips filter the shop (brand guessed from the name)', async ({ page, errors }) => {
+        await page.goto('hiw.html');
+        await expect(page.locator('.chips.brands')).toContainText('Smoke');
+        await page.click('[data-a=brand][data-v=smoke]');
+        await expect(page.locator('.p .nm', { hasText: 'Smoke Toner' }).first()).toBeVisible();
+        await page.click('[data-a=brand][data-v=all]');
+        expect(errors).toEqual([]);
+    });
+
     test('installable: manifest and icons load', async ({ page, errors }) => {
         await page.goto('hiw.html');
         const href = await page.getAttribute('link[rel=manifest]', 'href');

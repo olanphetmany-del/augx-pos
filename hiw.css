@@ -122,3 +122,6 @@ textarea.cap{height:200px;font-size:14px}
 .pfull{font-size:12.5px;color:var(--mut);margin-top:6px}
 .pfull b{color:var(--red)}
 .p .pfull+.pr{margin-top:0}
+.chips.brands{padding-top:2px}
+.chips.brands .chip{font-size:12.5px;padding:5px 11px}
+.chip small{opacity:.6;font-size:11px}
