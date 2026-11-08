@@ -141,7 +141,7 @@ test.describe('hiw-admin.html (owner)', () => {
 function feeData() {
     const d = hiwData();
     d.hiw.pub.products = {
-        p1: { name: 'Fee Toner', cat: 'skin', sell: 546000, won: 25000, fee: 136000 },
+        p1: { name: 'Fee Toner', cat: 'skin', sell: 546000, won: 25000, fee: 136000, size: '250ml × 2' },
         p4: { name: 'Fee Tint', cat: 'makeup', sell: 232000, won: 10000, wonFull: 16000, fee: 68000 },
     };
     d.hiw.priv = { settings: { rate: 15.9, buffer: 3, fee: 0, step: 1000, thb: 680, feeThb: 200, feeLite: 100 }, pmeta: { p1: { store: 'Olive Young', won: 25000 }, p4: { store: 'Olive Young', won: 10000, wonFull: 16000 } } };
@@ -155,6 +155,7 @@ test.describe('hiw baht service fee (customer)', () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('hiw.html');
         await expect(page.locator('.p', { hasText: 'Fee Toner' })).toContainText('₩25,000');
+        await expect(page.locator('.p', { hasText: 'Fee Toner' }).locator('.psz')).toContainText('250ml × 2');
         await expect(page.locator('.p', { hasText: 'Fee Toner' }).locator('.prk')).toContainText('546,000');
         await expect(page.locator('.p', { hasText: 'Fee Tint' }).locator('.pfull')).toContainText('₩16,000');
         await expect(page.locator('.p', { hasText: 'Fee Tint' }).locator('.pfull')).toContainText('-38%');
