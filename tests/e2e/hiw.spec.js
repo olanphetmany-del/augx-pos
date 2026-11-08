@@ -349,3 +349,67 @@ test.describe('hiw shades (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// 🗂️ ໜ້າໝວດ: ໝວດຍ່ອຍ · ແບນເນີ · ວົງມົນທີມ
+function catData() {
+    const d = hiwData();
+    Object.assign(d.hiw.pub.products, {
+        m1: { name: 'Cat Tint', cat: 'makeup', sub: 'lip', sell: 200000, opts: ['01', '02'] },
+        m2: { name: 'Cat Cushion', cat: 'makeup', sub: 'base', sell: 500000 },
+        m3: { name: 'Cat Palette', cat: 'makeup', sub: 'eye', sell: 400000 },
+    });
+    d.hiw.pub.settings.cpage = { makeup: { banners: [{ pid: 'm2', t1: 'Cushion Banner', t2: 'sub line' }, { pid: 'gone', t1: 'x' }], themes: [{ name: 'Lip Hits', ids: ['m1'] }, { name: 'Base Picks', ids: ['m2', 'm3'] }] } };
+    return d;
+}
+
+test.describe('hiw category page (customer)', () => {
+    test.use({ db: catData(), user: null });
+
+    test('makeup page shows banners, theme circles and sub-category filters', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        await page.click('[data-a=cat][data-v=makeup]');
+        await expect(page.locator('.bn')).toHaveCount(1); // unknown product is skipped
+        await expect(page.locator('.bn')).toContainText('Cushion Banner');
+        await expect(page.locator('.thc')).toHaveCount(2);
+        await expect(page.locator('main .grid .p')).toHaveCount(3);
+        await page.click('[data-a=sub][data-v=lip]');
+        await expect(page.locator('main .grid .p')).toHaveCount(1);
+        await expect(page.locator('main .grid .p')).toContainText('Cat Tint');
+        await expect(page.locator('.bn')).toHaveCount(0);
+        await page.click('[data-a=th][data-v="1"]');
+        await expect(page.locator('main .grid .p')).toHaveCount(2);
+        await page.click('[data-a=th][data-v="-1"]');
+        await page.locator('.bn').click();
+        await expect(page.locator('.sheet')).toContainText('Cat Cushion');
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw category page (owner)', () => {
+    test.use({ db: catData(), user: OWNER });
+
+    test('owner edits banners and themes; product sub-category is saved', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=cpage]');
+        await expect(page.locator('#cb_p0')).toHaveValue('m2');
+        await page.selectOption('#cb_p1', 'm3');
+        await page.fill('#cb_a1', 'Palette Week');
+        await page.fill('#ct_n2', 'New');
+        await page.selectOption('#ct_p2', ['m1', 'm3']);
+        await page.click('[data-a=cpsave]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/settings/cpage/makeup/banners/1/pid')).toBe('m3');
+        const t2 = await fakeDb(page, 'hiw/pub/settings/cpage/makeup/themes/2');
+        expect(t2.name).toBe('New');
+        expect([...t2.ids].sort()).toEqual(['m1', 'm3']);
+        await page.click('[data-a=sub][data-v=""]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await page.locator('.card[data-a=pedit]', { hasText: 'Cat Palette' }).click();
+        await expect(page.locator('#e_sb')).toHaveValue('eye');
+        await page.selectOption('#e_sb', 'cheek');
+        await page.click('[data-a=psave]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/products/m3/sub')).toBe('cheek');
+        expect(errors).toEqual([]);
+    });
+});
