@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <meta name="color-scheme" content="light">
+<meta name="theme-color" content="#004aad">
+<!-- ติดตั้งเป็นแอปได้ (Android: ปุ่มติดตั้ง · iPhone: เพิ่มไปยังหน้าจอโฮม) -->
+<link rel="manifest" href="hiw.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-hiw-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-hiw.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AUGUSTX Pre-order">
 <title>ຮັບຫິ້ວສິນຄ້າເກົາຫຼີ</title>
 <meta name="description" content="ສັ່ງສິນຄ້າແທ້ຈາກເກົາຫຼີ · ຈ່າຍ ແລະ ແນບສະລິບໃນໜ້າດຽວ">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,6 +21,15 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
+<div class="appbar" id="appbar" hidden>
+  <div class="appbar-in">
+    <img src="icon-hiw-192.png" alt="">
+    <div class="t"><b>ຕິດຕັ້ງແອັບ AUGUSTX Pre-order</b><span>ສັ່ງໄວ ເປີດຈາກໜ້າຈໍໂທລະສັບໄດ້ເລີຍ</span></div>
+    <button class="go" type="button" id="appbar-go">ຕິດຕັ້ງ</button>
+    <button class="no" type="button" id="appbar-no" aria-label="ປິດ">×</button>
+  </div>
+  <div class="ios" id="appbar-ios" hidden>iPhone: ກົດປຸ່ມ ແຊຣ໌ (□↑) ຢູ່ລຸ່ມ Safari ແລ້ວເລືອກ “ເພີ່ມໃສ່ໜ້າຈໍໂຮມ” (Add to Home Screen)</div>
+</div>
 <div class="langslot" data-i18n-slot></div>
 <div id="app"><div class="empty"><b>⏳</b>ກຳລັງໂຫຼດ…</div></div>
 <div id="layer"></div>
@@ -348,6 +365,27 @@
   function ok() { if (S.set && S.products) clearTimeout(timer); schedule(); }
   db.ref('hiw/pub/settings').on('value', function (s) { S.set = s.val() || {}; ok(); }, function (e) { console.warn(e); S.set = {}; ok(); });
   db.ref('hiw/pub/products').on('value', function (s) { S.products = s.val() || {}; ok(); }, function (e) { console.warn(e); S.products = {}; ok(); });
+})();
+</script>
+<script>
+// แถบชวนติดตั้งแอป · Android = ปุ่มติดตั้งจริง · iPhone = บอกวิธี · ติดตั้งแล้ว/กดปิดแล้ว = ไม่โชว์
+(function () {
+  var bar = document.getElementById('appbar'); if (!bar) return;
+  var KEY = 'hiw-appbar-off', ev = null;
+  var app = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+  var off = false; try { off = localStorage.getItem(KEY) === '1'; } catch (e) { /* storage off */ }
+  if (app || off) return;
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) bar.hidden = false;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); ev = e; bar.hidden = false; });
+  window.addEventListener('appinstalled', function () { bar.hidden = true; });
+  document.getElementById('appbar-go').addEventListener('click', function () {
+    if (ev) { ev.prompt(); ev.userChoice.then(function (r) { if (r.outcome === 'accepted') bar.hidden = true; }); ev = null; return; }
+    document.getElementById('appbar-ios').hidden = false;
+  });
+  document.getElementById('appbar-no').addEventListener('click', function () {
+    bar.hidden = true; try { localStorage.setItem(KEY, '1'); } catch (e) { /* storage off */ }
+  });
 })();
 </script>
 <script>window.I18N_SET = "cust";</script>

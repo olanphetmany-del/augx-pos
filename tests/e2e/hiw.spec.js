@@ -64,6 +64,15 @@ test.describe('hiw.html (customer)', () => {
         expect(errors).toEqual([]);
     });
 
+    test('installable: manifest and icons load', async ({ page, errors }) => {
+        await page.goto('hiw.html');
+        const href = await page.getAttribute('link[rel=manifest]', 'href');
+        const m = await page.evaluate(async (h) => (await fetch(h)).json(), href);
+        expect(m).toMatchObject({ start_url: './hiw.html', display: 'standalone' });
+        for (const i of m.icons) expect((await page.request.get(i.src)).ok()).toBe(true);
+        expect(errors).toEqual([]);
+    });
+
     test('ask-for-an-item request is saved', async ({ page, errors }) => {
         await page.goto('hiw.html');
         await page.click('[data-a=ct][data-v=req]');

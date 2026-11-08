@@ -21,7 +21,7 @@ export const SITE = [
     // pages
     'index.html', 'order.html', 'cashier.html', 'kitchen.html', 'shop.html', 'admin.html',
     // รับหิ้ว (pre-order from Korea): customer storefront + owner back office
-    'hiw.html', 'hiw-admin.html', 'hiw.css',
+    'hiw.html', 'hiw-admin.html', 'hiw.css', 'hiw.webmanifest', 'icon-hiw-192.png', 'icon-hiw-512.png', 'apple-touch-icon-hiw.png', 'hiw-admin.webmanifest', 'icon-hiw-admin-192.png', 'icon-hiw-admin-512.png', 'apple-touch-icon-hiw-admin.png',
     // scripts and styles
     'shared.js', 'augustx-menu.js', 'i18n.js', 'i18n-dict.js', 'old-ios.js', 'online-cashier.js', 'preorder.js', 'theme7.js', 'theme7.css',
     // installable apps
