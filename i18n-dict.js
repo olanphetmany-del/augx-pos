@@ -96,3 +96,4 @@ window.I18N_DICT.cust.push(["🏷️ ທຸກແບຣນ", "🏷️ ทุก�
 window.I18N_DICT.staff.push(["แบรนด์ (ว่าง = เดาจากชื่อ)", "ແບຣນ (ວ່າງ = ເດົາຈາກຊື່)", "Brand (blank = from the name)"]);
 window.I18N_DICT.staff.push(["ปริมาณต่อชิ้น × จำนวน (เช่น 50ml × 2)", "ປະລິມານຕໍ່ຊິ້ນ × ຈຳນວນ (ເຊັ່ນ 50ml × 2)", "Size per unit × count (e.g. 50ml × 2)"], ["⚠️ ยังไม่ใส่ปริมาณ", "⚠️ ຍັງບໍ່ໃສ່ປະລິມານ", "⚠️ No size yet"]);
 window.I18N_DICT.cust.push(["ປະລິມານ", "ปริมาณ", "Size"]);
+window.I18N_DICT.staff.push(["ค่าหิ้วของหนัก (บาท)", "ຄ່າຫິ້ວຂອງໜັກ (ບາດ)", "Heavy-item fee (baht)"], ["ของหนัก = ปริมาณรวมตั้งแต่ (ml/g)", "ຂອງໜັກ = ປະລິມານລວມຕັ້ງແຕ່ (ml/g)", "Heavy = total size from (ml/g)"]);
