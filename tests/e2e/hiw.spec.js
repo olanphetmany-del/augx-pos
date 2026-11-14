@@ -231,7 +231,7 @@ function rankData() {
 test.describe('hiw ranking (customer)', () => {
     test.use({ db: rankData(), user: null });
 
-    test('ranking shows top 5 in order with movement, rating, hook and Lao order count', async ({ page, errors }) => {
+    test('ranking shows top 3 in order with movement, rating, hook and Lao order count', async ({ page, errors }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('hiw.html');
         const rank = page.locator('section.rank');
@@ -239,7 +239,7 @@ test.describe('hiw ranking (customer)', () => {
         await expect(rank).toContainText('ອັບເດດ 8/11');
         await expect(rank).toContainText('ສະກິນແຄທີ່ ພ.ສ ເກົາຫຼີກຳລັງນິຍົມ');
         const rows = rank.locator('.rrow');
-        await expect(rows).toHaveCount(5);
+        await expect(rows).toHaveCount(3);
         await expect(rows.nth(0)).toContainText('Rank Item 1');
         await expect(rows.nth(0).locator('.mv')).toHaveText('▲2');
         await expect(rows.nth(1).locator('.mv')).toHaveText('NEW');
@@ -410,6 +410,91 @@ test.describe('hiw category page (owner)', () => {
         await page.selectOption('#e_sb', 'cheek');
         await page.click('[data-a=psave]');
         await expect.poll(() => fakeDb(page, 'hiw/pub/products/m3/sub')).toBe('cheek');
+        expect(errors).toEqual([]);
+    });
+});
+
+// 🔥 ເທຣນ TikTok: ຫ້ອງໜ້າທຳອິດ ຫຼັງ Ranking · ປຸ່ມເປີດໜ້າຄົ້ນຫາ TikTok
+function trendData() {
+    const d = rankData();
+    Object.assign(d.hiw.pub.products.u1, { tt: true, ttLine: 'ຄຣີມທີ່ເຫັນໃນ TikTok', ttTags: '#cream #glow' });
+    d.hiw.pub.products.u2 = { name: 'Plain Trend Serum 30ml', brand: 'Brandx', cat: 'skin', sell: 100000, tt: true };
+    return d;
+}
+
+test.describe('hiw TikTok trend (customer)', () => {
+    test.use({ db: trendData(), user: null });
+
+    test('trend section comes after the ranking and links to TikTok search', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        const trend = page.locator('section.trend');
+        await expect(trend.locator('.ttc')).toHaveCount(2);
+        const order = await page.evaluate(() => { const r = document.querySelector('section.rank'), t = document.querySelector('section.trend'); return r.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING; });
+        expect(order).toBeTruthy();
+        const card = trend.locator('.ttc', { hasText: 'Unranked Cream' });
+        await expect(card).toContainText('ຄຣີມທີ່ເຫັນໃນ TikTok');
+        await expect(card.locator('.tg')).toHaveText('#cream #glow');
+        await expect(card.locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/search?q=cream%20glow');
+        await expect(trend.locator('.ttc', { hasText: 'Plain Trend' }).locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/search?q=Brandx%20Plain%20Trend%20Serum');
+        await card.locator('[data-a=cp]').click();
+        await expect(page.locator('.cbar')).toContainText('1');
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw TikTok trend (owner)', () => {
+    test.use({ db: trendData(), user: OWNER });
+
+    test('owner ticks a product as a TikTok trend with a line and hashtags', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await page.locator('.card[data-a=pedit]', { hasText: 'Rank Item 2' }).click();
+        await page.check('#e_tt');
+        await page.fill('#e_tl', 'ຕົວດັງ');
+        await page.fill('#e_tg', '#brand2');
+        await page.click('[data-a=psave]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/products/r2/tt')).toBe(true);
+        expect(await fakeDb(page, 'hiw/pub/products/r2/ttLine')).toBe('ຕົວດັງ');
+        expect(await fakeDb(page, 'hiw/pub/products/r2/ttTags')).toBe('#brand2');
+        expect(errors).toEqual([]);
+    });
+});
+
+// 🧭 ໜ້າທຳອິດ: ໄອຄອນໝວດ · ຫ້ອງມີຫົວສີ · ແຖບໝວດຕິດກັບສິນຄ້າ ແລະ ຄ້າງເທິງຈໍ · ໂໝດມືດ
+test.describe('hiw home layout (customer)', () => {
+    test.use({ db: trendData(), user: null });
+
+    test('category icons jump to a category; the category bar sits by the products and sticks', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        await expect(page.locator('.cgrid .cg')).toHaveCount(2); // skincare + sun in this data
+        await expect(page.locator('.sh.h-rank')).toBeVisible();
+        await expect(page.locator('.sh.h-tt')).toBeVisible();
+        const strip = page.locator('section.box', { has: page.locator('.sh.h-skin') });
+        await expect(strip.locator('.hs .p')).toHaveCount(8);
+        await expect(strip.locator('.hsm')).toBeVisible();
+        // category bar comes right before the category strips and stays under the tabs when scrolled
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        const top = await page.locator('#catbar').evaluate((e) => Math.round(e.getBoundingClientRect().top));
+        const tabs = await page.locator('.ctabs').evaluate((e) => Math.round(e.getBoundingClientRect().bottom));
+        expect(Math.abs(top - tabs)).toBeLessThanOrEqual(2);
+        await page.locator('.cgrid [data-a=cat][data-v=skin]').click();
+        await expect(page.locator('.sh.h-skin.solo')).toContainText('8');
+        await expect(page.locator('#catbar [data-a=cat][data-v=skin]')).toHaveClass(/on/);
+        await page.locator('#catbar [data-a=cat][data-v=all]').click();
+        await expect(page.locator('.cgrid')).toBeVisible();
+        expect(errors).toEqual([]);
+    });
+
+    test('dark phones get our own dark colours (not the browser\'s forced dark)', async ({ page, errors }) => {
+        await page.emulateMedia({ colorScheme: 'dark' });
+        await page.goto('hiw.html');
+        await expect(page.locator('.box.rank')).toBeVisible();
+        const bg = await page.locator('.box.rank').evaluate((e) => getComputedStyle(e).backgroundColor);
+        expect(bg).toBe('rgb(28, 30, 34)');
+        expect(await page.locator('meta[name=color-scheme]').getAttribute('content')).toBe('light dark');
         expect(errors).toEqual([]);
     });
 });
