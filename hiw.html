@@ -235,9 +235,15 @@
     return h + (G.length ? '<div class="grid">' + G.map(pcard).join('') + '</div>' : '<div class="empty"><b>🔍</b>ບໍ່ພົບສິນຄ້າ</div>');
   }
   // 🔥 ເທຣນ TikTok: ສິນຄ້າທີ່ຕິກ p.tt · ປຸ່ມເປີດໜ້າຄົ້ນຫາໃນ TikTok (ບໍ່ໄດ້ເອົາຄລິບໃຜມາໃຊ້)
-  function ttTags(p) { return String(p.ttTags || '').split(/[\s,]+/).map(function (t) { return t.replace(/^#+/, '').trim(); }).filter(Boolean).slice(0, 4); }
-  function ttUrl(p) { var t = ttTags(p), q = t.length ? t.join(' ') : (brandOf(p) + ' ' + String(p.name || '').replace(/\(.*?\)|\d+\s*(ml|g)\b|[×x]\s*\d+|1\+1/gi, '')).replace(/\s+/g, ' ').trim(); return 'https://www.tiktok.com/search?q=' + encodeURIComponent(q); }
-  function ttBtn(p) { return '<a class="ttb" href="' + esc(ttUrl(p)) + '" target="_blank" rel="noopener">▶ ເບິ່ງຄລິບໃນ TikTok</a>'; }
+  // ແຮຊແທັກ: ທີ່ຮ້ານໃສ່ (ສູງສຸດ 3) · ຖ້າບໍ່ໃສ່ ໃຊ້ #ແບຣນ + #ໝວດ · ປຸ່ມເປີດໜ້າແຮຊແທັກ (tiktok.com/tag/…) ເພາະໜ້າຄົ້ນຫາໃນເວັບມືຖືຫວ່າງເປົ່າ
+  var TT_CAT = { toner: 'toner', serum: 'serum', cream: 'moisturizer', pad: 'tonerpad', lip: 'liptint', base: 'cushion', eye: 'eyeshadow', cheek: 'blush', sun: 'sunscreen', mask: 'sheetmask', clean: 'cleanser', makeup: 'makeup', nail: 'nails', body: 'bodycare', skin: 'skincare', other: 'kbeauty' };
+  function tagOk(t) { return String(t || '').replace(/^#+/, '').replace(/[^\p{L}\p{N}_]/gu, ''); }
+  function ttOwn(p) { return String(p.ttTags || '').split(/[\s,]+/).map(tagOk).filter(Boolean).slice(0, 3); }
+  function ttTags(p) { var t = ttOwn(p); if (t.length) return t; var b = tagOk(brandOf(p)).toLowerCase(), c = TT_CAT[p.sub] || TT_CAT[catOf(p)]; return [b, c].filter(Boolean); }
+  function ttMain(p) { var t = ttOwn(p); return t.length ? t[1] || t[0] : ttTags(p)[0]; }
+  function tagUrl(t) { return 'https://www.tiktok.com/tag/' + encodeURIComponent(t); }
+  function ttChips(p) { return '<div class="tg">' + ttTags(p).map(function (t) { return '<a class="tgc" href="' + esc(tagUrl(t)) + '" target="_blank" rel="noopener">#' + esc(t) + '</a>'; }).join('') + '</div>'; }
+  function ttBtn(p) { var m = ttMain(p); return m ? '<a class="ttb" href="' + esc(tagUrl(m)) + '" target="_blank" rel="noopener">▶ ເບິ່ງຄລິບໃນ TikTok</a>' : ''; }
   function vTrend(all) {
     var T = all.filter(function (p) { return p.tt; }).sort(function (a, b) { return (+a.ttOrder || 99) - (+b.ttOrder || 99) || a.name.localeCompare(b.name); });
     if (!T.length) return '';
@@ -245,7 +251,7 @@
       var op = opts(p).length, q = op ? 0 : inCart(p.id);
       return '<div class="ttc"><div class="ti" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '<span>🔥 ເທຣນ</span></div><div class="tb">' +
         '<div class="rnm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + (p.ttLine ? '<div class="tl">“' + esc(p.ttLine) + '”</div>' : '') +
-        (ttTags(p).length ? '<div class="tg">' + ttTags(p).map(function (t) { return '#' + esc(t); }).join(' ') + '</div>' : '') +
+        ttChips(p) +
         '<div class="rp"><b>' + kip(p.sell) + '</b></div>' + ttBtn(p) +
         (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
           : '<button class="add" data-a="' + (op ? 'pview' : 'cp') + '" data-id="' + esc(p.id) + '">' + (op ? '🎨 ເລືອກສີ' : '+ ໃສ່ກະຕ່າ') + '</button>') + '</div></div>';
@@ -296,7 +302,7 @@
   function mPview(p) {
     var r = round(); if (S.pickId !== p.id) { S.pickId = p.id; S.pick = ''; }
     modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
-      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.tt ? '<div class="ttv">' + (p.ttLine ? '<span class="tl">🔥 “' + esc(p.ttLine) + '”</span>' : '<span class="tl">🔥 ເທຣນ TikTok</span>') + ttBtn(p) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
+      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.tt ? '<div class="ttv">' + (p.ttLine ? '<span class="tl">🔥 “' + esc(p.ttLine) + '”</span>' : '<span class="tl">🔥 ເທຣນ TikTok</span>') + ttChips(p) + ttBtn(p) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
       (opts(p).length ? '<div class="opth">🎨 ເລືອກສີ / ເບີ <span>' + opts(p).length + ' ແບບ</span></div><div class="opts">' + opts(p).map(function (o) { return '<button class="opt' + (S.pick === o ? ' on' : '') + '" data-a="opt" data-id="' + esc(p.id) + '" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button>' + (opts(p).length && !S.pick ? '<button class="btn" data-a="needopt">🎨 ເລືອກສີກ່ອນ</button>' : '<button class="btn" data-a="cp" data-id="' + esc(opts(p).length ? p.id + '|' + S.pick : p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ' + (opts(p).length ? ' · ' + esc(S.pick) : '') + '</button>') + '</div>');

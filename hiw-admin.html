@@ -317,8 +317,11 @@
       (p.sell !== want ? ' · <b style="color:var(--red)">⚠️ ยังไม่อัปเดตราคา (สูตรได้ ' + fm(want) + ')</b>' : '');
   }
   function sProd() {
-    var st = stores(), L = plist().sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
+    var st = stores(), q = String(S.pq || '').toLowerCase().trim(), all = plist();
+    var L = all.filter(function (p) { return !q || [p.name, p.brand, p.size, p.id, p.store].join(' ').toLowerCase().indexOf(q) >= 0; }).sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
     return '<div class="row"><button class="btn" data-a="pedit" data-id="">+ เพิ่มสินค้า</button><label class="btn ghost nf">📥 นำเข้า<input type="file" accept=".json,application/json" data-f="import" hidden></label></div>' +
+      '<input id="pq" type="search" placeholder="🔍 ค้นหาสินค้า (ชื่อ · แบรนด์ · ปริมาณ)" value="' + E(S.pq || '') + '" style="margin-top:10px">' +
+      (q ? '<p class="mut">พบ ' + L.length + ' จาก ' + all.length + ' รายการ</p>' + (L.length ? '' : '<div class="empty"><b>🔍</b>ไม่พบสินค้า</div>') : '') +
       st.map(function (s) {
         var G = L.filter(function (p) { return p.store === s; });
         return G.length ? '<div class="sec"><h2>🏬 ' + E(s) + '</h2><span>' + G.length + ' รายการ</span></div>' + G.map(function (p) {
@@ -341,7 +344,7 @@
       '<div class="row"><div><label>อันดับขายดี (0 = ไม่แสดง)</label><input id="e_b" inputmode="numeric" value="' + (p ? num(p.best) : 0) + '"></div><div><label>ป้าย / การแสดง</label><select id="e_x"><option value="">ปกติ</option><option value="new"' + (p && p.isNew ? ' selected' : '') + '>✨ ใหม่</option><option value="hide"' + (p && p.hidden ? ' selected' : '') + '>🙈 ซ่อนจากหน้าร้าน</option></select></div></div>' +
       '<label>🎨 สี / เบอร์ ให้ลูกค้าเลือก (1 บรรทัด = 1 สี · ว่าง = ไม่มีสี)</label><textarea id="e_op" rows="3" placeholder="01 Peach&#10;02 Rose&#10;03 Berry">' + E(p && Array.isArray(p.opts) ? p.opts.join('\n') : '') + '</textarea>' +
       '<h3 style="margin:14px 0 0">🔥 เทรนด์ TikTok</h3><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="e_tt" style="width:22px;height:22px;flex:none"' + (p && p.tt ? ' checked' : '') + '> ขึ้นห้อง “ເທຣນ TikTok” หน้าแรก</label>' +
-      '<div class="row"><div><label>ประโยคสั้น (ลาว) ที่ลูกค้าจำได้จาก TikTok</label><input id="e_tl" maxlength="50" value="' + E(p && p.ttLine ? p.ttLine : '') + '" placeholder="ແພດເຊັດໜ້າ ທີ່ສາວໆ ໃຊ້ກ່ອນແຕ່ງໜ້າ"></div><div><label>แฮชแท็ก (ใช้ค้นใน TikTok)</label><input id="e_tg" maxlength="60" value="' + E(p && p.ttTags ? p.ttTags : '') + '" placeholder="#medicube #zeroporepad"></div></div>' +
+      '<div class="row"><div><label>ประโยคสั้น (ลาว) ที่ลูกค้าจำได้จาก TikTok</label><input id="e_tl" maxlength="50" value="' + E(p && p.ttLine ? p.ttLine : '') + '" placeholder="ແພດເຊັດໜ້າ ທີ່ສາວໆ ໃຊ້ກ່ອນແຕ່ງໜ້າ"></div><div><label>แฮชแท็ก สูงสุด 3 (แบรนด์ · ตัวสินค้า · หมวด) · ว่าง = แบรนด์ + หมวด</label><input id="e_tg" maxlength="60" value="' + E(p && p.ttTags ? p.ttTags : '') + '" placeholder="#medicube #zeroporepad #tonerpad"></div></div>' +
       '<h3 style="margin:14px 0 0">🏆 Ranking</h3>' +
       '<div class="row"><div><label>อันดับ Ranking (1–10 · 0 = ไม่อยู่)</label><input id="e_rk" inputmode="numeric" value="' + (p ? num(p.rank) : 0) + '"></div><div><label>จุดเด่น 1 บรรทัด (ภาษาลาว)</label><input id="e_hk" maxlength="40" value="' + E(p && p.hook ? p.hook : '') + '" placeholder="ຮູຂຸມຂົນ · ຜິວໃສ"></div></div>' +
       '<div class="row"><div><label>ดาวรีวิวในเกาหลี (เช่น 4.8)</label><input id="e_rt" inputmode="decimal" value="' + (p && p.rating ? p.rating : '') + '"></div><div><label>จำนวนรีวิวในเกาหลี</label><input id="e_rv" inputmode="numeric" value="' + (p && p.reviews ? p.reviews : '') + '"></div></div>' +
@@ -448,6 +451,7 @@
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (t.id === 'e_w' || t.id === 'e_p' || t.id === 'e_c' || t.id === 'e_ft' || t.id === 'e_sz') return updPv();
+    if (t.id === 'pq') { S.pq = t.value; render(); return; }
     if (['s_rate', 's_buffer', 's_fee', 's_step', 's_thb', 's_feeThb', 's_feeLite', 's_feeHeavy', 's_heavyMl'].indexOf(t.id) >= 0) { var y = $('#s_pv'); if (y) { var o = {}; ['rate', 'buffer', 'fee', 'step', 'thb', 'feeThb', 'feeLite', 'feeHeavy', 'heavyMl'].forEach(function (k) { o[k] = num($('#s_' + k).value); }); y.textContent = pvText(o); } return; }
   });
   document.addEventListener('change', function (e) {
