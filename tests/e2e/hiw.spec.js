@@ -425,7 +425,7 @@ function trendData() {
 test.describe('hiw TikTok trend (customer)', () => {
     test.use({ db: trendData(), user: null });
 
-    test('trend section comes after the ranking and links to TikTok search', async ({ page, errors }) => {
+    test('trend section comes after the ranking and links to TikTok hashtag pages', async ({ page, errors }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await page.goto('hiw.html');
         const trend = page.locator('section.trend');
@@ -434,9 +434,12 @@ test.describe('hiw TikTok trend (customer)', () => {
         expect(order).toBeTruthy();
         const card = trend.locator('.ttc', { hasText: 'Unranked Cream' });
         await expect(card).toContainText('ຄຣີມທີ່ເຫັນໃນ TikTok');
-        await expect(card.locator('.tg')).toHaveText('#cream #glow');
-        await expect(card.locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/search?q=cream%20glow');
-        await expect(trend.locator('.ttc', { hasText: 'Plain Trend' }).locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/search?q=Brandx%20Plain%20Trend%20Serum');
+        await expect(card.locator('.tg a')).toHaveText(['#cream', '#glow']);
+        await expect(card.locator('.tg a').first()).toHaveAttribute('href', 'https://www.tiktok.com/tag/cream');
+        await expect(card.locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/tag/glow'); // 2nd tag = the product itself
+        const plain = trend.locator('.ttc', { hasText: 'Plain Trend' });
+        await expect(plain.locator('.tg a')).toHaveText(['#brandx', '#skincare']); // no tags → brand + category
+        await expect(plain.locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/tag/brandx');
         await card.locator('[data-a=cp]').click();
         await expect(page.locator('.cbar')).toContainText('1');
         expect(errors).toEqual([]);
