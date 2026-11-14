@@ -164,7 +164,7 @@
   function feeP(p) { return Math.min(Math.max(+p.fee || 0, 0), +p.sell || 0); }
   function pcard(p) {
     var q = inCart(p.id), op = opts(p).length;
-    return '<div class="p">' + (p.best > 0 && p.best <= 5 ? '<span class="badge">🔥 ຂາຍດີ #' + p.best + '</span>' : p.isNew ? '<span class="badge new">✨ ໃໝ່</span>' : '') +
+    return '<div class="p">' + (p.best > 0 && p.best <= 5 ? '<span class="badge">🔥 ຂາຍດີ #' + p.best + '</span>' : p.tt ? '<span class="badge tt">🔥 ເທຣນ TikTok</span>' : p.isNew ? '<span class="badge new">✨ ໃໝ່</span>' : '') +
       '<div class="im" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '</div><div class="b"><div class="nm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + (p.size ? '<div class="psz">📦 ' + esc(p.size) + '</div>' : '') + (p.heavy ? '<div class="pheavy">⚖️ ສິນຄ້າມີນ້ຳໜັກ</div>' : '') + price(p) +
       (op ? '<div class="nopt">🎨 ' + op + ' ສີ / ເບີ</div><button class="add" data-a="pview" data-id="' + esc(p.id) + '">' + (q ? '✓ ໃນກະຕ່າ ' + q + ' · ເລືອກເພີ່ມ' : '🎨 ເລືອກສີ') + '</button>'
         : q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
@@ -231,6 +231,23 @@
     if (S.th >= 0) h += '<div class="info">🎯 ' + esc(th[S.th].name) + ' · <button class="mini" data-a="th" data-v="-1">ເບິ່ງທັງໝົດ</button></div>';
     return h + (G.length ? '<div class="grid">' + G.map(pcard).join('') + '</div>' : '<div class="empty"><b>🔍</b>ບໍ່ພົບສິນຄ້າ</div>');
   }
+  // 🔥 ເທຣນ TikTok: ສິນຄ້າທີ່ຕິກ p.tt · ປຸ່ມເປີດໜ້າຄົ້ນຫາໃນ TikTok (ບໍ່ໄດ້ເອົາຄລິບໃຜມາໃຊ້)
+  function ttTags(p) { return String(p.ttTags || '').split(/[\s,]+/).map(function (t) { return t.replace(/^#+/, '').trim(); }).filter(Boolean).slice(0, 4); }
+  function ttUrl(p) { var t = ttTags(p), q = t.length ? t.join(' ') : (brandOf(p) + ' ' + String(p.name || '').replace(/\(.*?\)|\d+\s*(ml|g)\b|[×x]\s*\d+|1\+1/gi, '')).replace(/\s+/g, ' ').trim(); return 'https://www.tiktok.com/search?q=' + encodeURIComponent(q); }
+  function ttBtn(p) { return '<a class="ttb" href="' + esc(ttUrl(p)) + '" target="_blank" rel="noopener">▶ ເບິ່ງຄລິບໃນ TikTok</a>'; }
+  function vTrend(all) {
+    var T = all.filter(function (p) { return p.tt; }).sort(function (a, b) { return (+a.ttOrder || 99) - (+b.ttOrder || 99) || a.name.localeCompare(b.name); });
+    if (!T.length) return '';
+    return '<section class="trend"><h2>🔥 ເທຣນ TikTok ຕອນນີ້</h2><p class="rks">ຕົວທີ່ເຫັນໃນ TikTok ຢູ່ນີ້ໝົດ · ສັ່ງຈາກເກົາຫຼີໄດ້ເລີຍ</p><div class="tts">' + T.map(function (p) {
+      var op = opts(p).length, q = op ? 0 : inCart(p.id);
+      return '<div class="ttc"><div class="ti" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '<span>🔥 ເທຣນ</span></div><div class="tb">' +
+        '<div class="rnm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + (p.ttLine ? '<div class="tl">“' + esc(p.ttLine) + '”</div>' : '') +
+        (ttTags(p).length ? '<div class="tg">' + ttTags(p).map(function (t) { return '#' + esc(t); }).join(' ') + '</div>' : '') +
+        '<div class="rp"><b>' + kip(p.sell) + '</b></div>' + ttBtn(p) +
+        (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
+          : '<button class="add" data-a="' + (op ? 'pview' : 'cp') + '" data-id="' + esc(p.id) + '">' + (op ? '🎨 ເລືອກສີ' : '+ ໃສ່ກະຕ່າ') + '</button>') + '</div></div>';
+    }).join('') + '</div></section>';
+  }
   function vShop() {
     var all = plist(), q = S.q.toLowerCase().trim();
     if (!all.length) return '<div class="empty"><b>🧴</b>ຍັງບໍ່ມີສິນຄ້າ — ລໍຖ້າບໍ່ດົນ</div>';
@@ -243,7 +260,7 @@
       used.map(function (c) { return '<button class="chip ' + (S.cat === c[0] ? 'on' : '') + '" data-a="cat" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' +
       '<div class="chips brands"><button class="chip ' + (S.brand === 'all' ? 'on' : '') + '" data-a="brand" data-v="all">🏷️ ທຸກແບຣນ</button>' +
       brands(all).map(function (b) { return '<button class="chip ' + (S.brand === b.k ? 'on' : '') + '" data-a="brand" data-v="' + esc(b.k) + '">' + esc(b.b) + ' <small>' + b.n + '</small></button>'; }).join('') + '</div>';
-    if (!q && S.cat === 'all' && S.brand === 'all') h += vRank(all);
+    if (!q && S.cat === 'all' && S.brand === 'all') h += vRank(all) + vTrend(all);
     var showBest = !q && S.cat === 'all' && S.brand === 'all' && best.length;
     if (showBest) h += '<div class="sec"><h2>🔥 ຂາຍດີປະຈຳຮອບ</h2><span>ຄົນສັ່ງຫຼາຍທີ່ສຸດ</span></div><div class="grid">' + best.map(pcard).join('') + '</div>';
     if (!q && S.cat !== 'all') return h + vCat(S.cat, L);
@@ -257,7 +274,7 @@
   function mPview(p) {
     var r = round(); if (S.pickId !== p.id) { S.pickId = p.id; S.pick = ''; }
     modal('<div class="p" style="box-shadow:none"><div class="im" style="border-radius:14px">' + img(p) + '</div></div>' +
-      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
+      '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.tt ? '<div class="ttv">' + (p.ttLine ? '<span class="tl">🔥 “' + esc(p.ttLine) + '”</span>' : '<span class="tl">🔥 ເທຣນ TikTok</span>') + ttBtn(p) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
       (opts(p).length ? '<div class="opth">🎨 ເລືອກສີ / ເບີ <span>' + opts(p).length + ' ແບບ</span></div><div class="opts">' + opts(p).map(function (o) { return '<button class="opt' + (S.pick === o ? ' on' : '') + '" data-a="opt" data-id="' + esc(p.id) + '" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button>' + (opts(p).length && !S.pick ? '<button class="btn" data-a="needopt">🎨 ເລືອກສີກ່ອນ</button>' : '<button class="btn" data-a="cp" data-id="' + esc(opts(p).length ? p.id + '|' + S.pick : p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ' + (opts(p).length ? ' · ' + esc(S.pick) : '') + '</button>') + '</div>');

@@ -413,3 +413,51 @@ test.describe('hiw category page (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// 🔥 ເທຣນ TikTok: ຫ້ອງໜ້າທຳອິດ ຫຼັງ Ranking · ປຸ່ມເປີດໜ້າຄົ້ນຫາ TikTok
+function trendData() {
+    const d = rankData();
+    Object.assign(d.hiw.pub.products.u1, { tt: true, ttLine: 'ຄຣີມທີ່ເຫັນໃນ TikTok', ttTags: '#cream #glow' });
+    d.hiw.pub.products.u2 = { name: 'Plain Trend Serum 30ml', brand: 'Brandx', cat: 'skin', sell: 100000, tt: true };
+    return d;
+}
+
+test.describe('hiw TikTok trend (customer)', () => {
+    test.use({ db: trendData(), user: null });
+
+    test('trend section comes after the ranking and links to TikTok search', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html');
+        const trend = page.locator('section.trend');
+        await expect(trend.locator('.ttc')).toHaveCount(2);
+        const order = await page.evaluate(() => { const r = document.querySelector('section.rank'), t = document.querySelector('section.trend'); return r.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING; });
+        expect(order).toBeTruthy();
+        const card = trend.locator('.ttc', { hasText: 'Unranked Cream' });
+        await expect(card).toContainText('ຄຣີມທີ່ເຫັນໃນ TikTok');
+        await expect(card.locator('.tg')).toHaveText('#cream #glow');
+        await expect(card.locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/search?q=cream%20glow');
+        await expect(trend.locator('.ttc', { hasText: 'Plain Trend' }).locator('a.ttb')).toHaveAttribute('href', 'https://www.tiktok.com/search?q=Brandx%20Plain%20Trend%20Serum');
+        await card.locator('[data-a=cp]').click();
+        await expect(page.locator('.cbar')).toContainText('1');
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw TikTok trend (owner)', () => {
+    test.use({ db: trendData(), user: OWNER });
+
+    test('owner ticks a product as a TikTok trend with a line and hashtags', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await page.locator('.card[data-a=pedit]', { hasText: 'Rank Item 2' }).click();
+        await page.check('#e_tt');
+        await page.fill('#e_tl', 'ຕົວດັງ');
+        await page.fill('#e_tg', '#brand2');
+        await page.click('[data-a=psave]');
+        await expect.poll(() => fakeDb(page, 'hiw/pub/products/r2/tt')).toBe(true);
+        expect(await fakeDb(page, 'hiw/pub/products/r2/ttLine')).toBe('ຕົວດັງ');
+        expect(await fakeDb(page, 'hiw/pub/products/r2/ttTags')).toBe('#brand2');
+        expect(errors).toEqual([]);
+    });
+});

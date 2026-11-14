@@ -167,3 +167,15 @@ textarea.cap{height:200px;font-size:14px}
 .thc{flex:none;width:76px;border:0;background:none;font:inherit;font-size:12px;color:var(--ink);text-align:center;padding:0}
 .thc .ci{display:flex;width:68px;height:68px;margin:0 auto 4px;border-radius:50%;overflow:hidden;background:#f1f2f4;align-items:center;justify-content:center;font-size:26px;border:2px solid transparent}
 .thc .ci img{width:100%;height:100%;object-fit:cover}.thc.on .ci{border-color:var(--pur)}.thc.on{color:var(--pur);font-weight:700}
+/* 🔥 ເທຣນ TikTok */
+.badge.tt{background:#111;color:#fff}
+.trend{background:#fff;border-radius:16px;padding:14px 12px 12px;margin:12px 0;border:1px solid var(--line)}.trend h2{margin:0;font-size:18px}
+.tts{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.ttc{flex:0 0 158px;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.ttc .ti{position:relative;height:130px;background:#f1f2f4;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer}.ttc .ti img{width:100%;height:100%;object-fit:cover}
+.ttc .ti span{position:absolute;top:6px;left:6px;font-size:10px;font-weight:700;background:#111;color:#fff;border-radius:6px;padding:2px 6px}
+.ttc .tb{padding:8px;display:flex;flex-direction:column;gap:3px;flex:1}.ttc .rnm{font-size:13px;cursor:pointer}
+.tl{font-size:12px;color:#444;line-height:1.35}.tg{font-size:11px;color:var(--blue)}
+.ttb{display:block;text-align:center;font-size:12px;font-weight:600;color:#111;border:1px solid #111;border-radius:9px;padding:6px 4px;text-decoration:none;margin-top:4px}
+.ttc .add{margin-top:4px}.ttc .qty{margin-top:4px}
+.ttv{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:10px;border-radius:12px;background:#f6f6f6}
