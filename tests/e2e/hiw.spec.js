@@ -498,3 +498,22 @@ test.describe('hiw home layout (customer)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+test.describe('hiw product search (owner)', () => {
+    test.use({ db: trendData(), user: OWNER });
+
+    test('the product list can be searched by name or brand and keeps typing focus', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await expect(page.locator('.card[data-a=pedit]')).toHaveCount(9);
+        await page.locator('#pq').pressSequentially('brand3');
+        await expect(page.locator('.card[data-a=pedit]')).toHaveCount(1);
+        await expect(page.locator('.card[data-a=pedit]')).toContainText('Rank Item 3');
+        await expect(page.locator('#pq')).toBeFocused();
+        await page.fill('#pq', 'zzz');
+        await expect(page.locator('.card[data-a=pedit]')).toHaveCount(0);
+        await expect(page.locator('#app')).toContainText('ไม่พบสินค้า');
+        expect(errors).toEqual([]);
+    });
+});
