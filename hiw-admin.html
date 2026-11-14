@@ -317,8 +317,11 @@
       (p.sell !== want ? ' · <b style="color:var(--red)">⚠️ ยังไม่อัปเดตราคา (สูตรได้ ' + fm(want) + ')</b>' : '');
   }
   function sProd() {
-    var st = stores(), L = plist().sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
+    var st = stores(), q = String(S.pq || '').toLowerCase().trim(), all = plist();
+    var L = all.filter(function (p) { return !q || [p.name, p.brand, p.size, p.id, p.store].join(' ').toLowerCase().indexOf(q) >= 0; }).sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
     return '<div class="row"><button class="btn" data-a="pedit" data-id="">+ เพิ่มสินค้า</button><label class="btn ghost nf">📥 นำเข้า<input type="file" accept=".json,application/json" data-f="import" hidden></label></div>' +
+      '<input id="pq" type="search" placeholder="🔍 ค้นหาสินค้า (ชื่อ · แบรนด์ · ปริมาณ)" value="' + E(S.pq || '') + '" style="margin-top:10px">' +
+      (q ? '<p class="mut">พบ ' + L.length + ' จาก ' + all.length + ' รายการ</p>' + (L.length ? '' : '<div class="empty"><b>🔍</b>ไม่พบสินค้า</div>') : '') +
       st.map(function (s) {
         var G = L.filter(function (p) { return p.store === s; });
         return G.length ? '<div class="sec"><h2>🏬 ' + E(s) + '</h2><span>' + G.length + ' รายการ</span></div>' + G.map(function (p) {
@@ -448,6 +451,7 @@
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (t.id === 'e_w' || t.id === 'e_p' || t.id === 'e_c' || t.id === 'e_ft' || t.id === 'e_sz') return updPv();
+    if (t.id === 'pq') { S.pq = t.value; render(); return; }
     if (['s_rate', 's_buffer', 's_fee', 's_step', 's_thb', 's_feeThb', 's_feeLite', 's_feeHeavy', 's_heavyMl'].indexOf(t.id) >= 0) { var y = $('#s_pv'); if (y) { var o = {}; ['rate', 'buffer', 'fee', 'step', 'thb', 'feeThb', 'feeLite', 'feeHeavy', 'heavyMl'].forEach(function (k) { o[k] = num($('#s_' + k).value); }); y.textContent = pvText(o); } return; }
   });
   document.addEventListener('change', function (e) {
