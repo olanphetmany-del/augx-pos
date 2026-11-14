@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="lo">
+<html lang="lo" class="cust">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#004aad">
 <!-- ติดตั้งเป็นแอปได้ (Android: ปุ่มติดตั้ง · iPhone: เพิ่มไปยังหน้าจอโฮม) -->
 <link rel="manifest" href="hiw.webmanifest">
@@ -153,7 +153,10 @@
     var q = $('#q'), focus = q && document.activeElement === q, pos = focus ? q.selectionStart : 0;
     $('#app').innerHTML = h;
     if (focus) { q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); }
+    var ct = $('.ctabs'); if (ct) document.documentElement.style.setProperty('--ctabsH', ct.offsetHeight + 'px');
   }
+  // ເລື່ອນໃຫ້ແຖບໝວດຂຶ້ນໄປຢູ່ເທິງຈໍ (ໃຕ້ແຖບ ຮ້ານ/ຕິດຕາມ)
+  function toBar() { var a = $('#cata'), ct = $('.ctabs'); if (!a) return; var y = a.getBoundingClientRect().top + window.scrollY - (ct ? ct.offsetHeight : 0); if (window.scrollY > y || S.cat !== 'all') window.scrollTo(0, Math.max(0, y)); }
   // ₩ ເດັ່ນ + ≈ ກີບ (ລວມຄ່າຫິ້ວ) · ສິນຄ້າທີ່ບໍ່ມີ won ໂຊກີບຄືເກົ່າ
   function price(p, big) {
     if (!(p.won > 0)) return big ? '<div class="big" style="color:var(--g)">' + kip(p.sell) + '</div>' : '<div class="pr">' + kip(p.sell) + '</div>';
@@ -199,9 +202,9 @@
     if (!R.length) return '';
     var cats = CATS.filter(function (c) { return R.some(function (p) { return catOf(p) === c[0]; }); });
     if (S.rk !== 'all' && !cats.some(function (c) { return c[0] === S.rk; })) S.rk = 'all';
-    var L = R.filter(function (p) { return S.rk === 'all' || catOf(p) === S.rk; }), shown = L.slice(0, S.rkMore ? 10 : 5);
+    var L = R.filter(function (p) { return S.rk === 'all' || catOf(p) === S.rk; }), shown = L.slice(0, S.rkMore ? 10 : 3);
     var at = S.set && S.set.rankAt ? '<span class="rkat">ອັບເດດ ' + esc(S.set.rankAt) + '</span>' : '';
-    return '<section class="rank"><div class="rkh"><h2>🏆 Today\'s Ranking</h2>' + at + '</div><p class="rks">ສະກິນແຄທີ່ ພ.ສ ເກົາຫຼີກຳລັງນິຍົມ · ຂາຍດີທີ່ສຸດໃນ Olive Young</p>' +
+    return '<section class="box rank"><div class="sh h-rank"><div><h2>🏆 Today\'s Ranking</h2><p>ສະກິນແຄທີ່ ພ.ສ ເກົາຫຼີກຳລັງນິຍົມ · ຂາຍດີທີ່ສຸດໃນ Olive Young</p></div>' + at + '</div><div class="bx">' +
       (cats.length > 1 ? '<div class="chips"><button class="chip ' + (S.rk === 'all' ? 'on' : '') + '" data-a="rk" data-v="all">ທັງໝົດ</button>' + cats.map(function (c) { return '<button class="chip ' + (S.rk === c[0] ? 'on' : '') + '" data-a="rk" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' : '') +
       shown.map(function (p, i) {
         var n = i + 1, q = opts(p).length ? 0 : inCart(p.id), off = p.wonFull > p.won ? Math.round((1 - p.won / p.wonFull) * 100) : 0;
@@ -214,7 +217,7 @@
           (q ? '<div class="qty v"><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button><b>' + q + '</b><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button></div>'
             : '<button class="radd" data-a="' + (opts(p).length ? 'pview' : 'cp') + '" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມໃສ່ກະຕ່າ">+</button>') + '</div>';
       }).join('') +
-      (L.length > 5 ? '<button class="rkmore" data-a="rkmore">' + (S.rkMore ? 'ຫຍໍ້ລົງ ▲' : 'ເບິ່ງອັນດັບ 6–' + Math.min(10, L.length) + ' ▼') + '</button>' : '') + '</section>';
+      (L.length > 3 ? '<button class="rkmore" data-a="rkmore">' + (S.rkMore ? 'ຫຍໍ້ລົງ ▲' : 'ເບິ່ງອັນດັບ 4–' + Math.min(10, L.length) + ' ▼') + '</button>' : '') + '</div></section>';
   }
   // 🗂️ ໜ້າໝວດ (ແບບ Olive Young): ໝວດຍ່ອຍ · ແບນເນີ · ວົງມົນທີມ · ສິນຄ້າ — ຂໍ້ມູນຈາກ hiw/pub/settings/cpage/<ໝວດ>
   function vCat(cat, L) {
@@ -224,7 +227,7 @@
     if (S.th >= th.length) S.th = -1;
     var G = L.filter(function (p) { return (!S.sub || p.sub === S.sub) && (S.th < 0 || th[S.th].ids.indexOf(p.id) >= 0); });
     var c = CATS.filter(function (x) { return x[0] === cat; })[0] || ['', '✨', ''];
-    var h = '<div class="cph"><h2>' + c[1] + ' ' + c[2] + '</h2><span>' + G.length + ' ລາຍການ</span></div>';
+    var h = '<div class="sh h-' + cat + ' solo"><div><h2>' + c[1] + ' ' + c[2] + ' <small>' + G.length + ' ລາຍການ</small></h2></div></div>';
     if (subs.length) h += '<div class="chips subs"><button class="chip ' + (!S.sub ? 'on' : '') + '" data-a="sub" data-v="">ທັງໝົດ</button>' + subs.map(function (x) { return '<button class="chip ' + (S.sub === x[0] ? 'on' : '') + '" data-a="sub" data-v="' + x[0] + '">' + x[1] + ' ' + x[2] + '</button>'; }).join('') + '</div>';
     if (bn.length && !S.sub && S.th < 0) h += '<div class="bnr">' + bn.map(function (b, i) { return '<div class="bn c' + (i % 3) + '" data-a="pview" data-id="' + esc(b.p.id) + '"><div class="bt"><b>' + esc(b.t1 || b.p.name) + '</b>' + (b.t2 ? '<span>' + esc(b.t2) + '</span>' : '') + '<small>' + (bn.length > 1 ? (i + 1) + ' / ' + bn.length : '') + '</small></div><div class="bi">' + img(b.p) + '</div></div>'; }).join('') + '</div>';
     if (th.length) h += '<div class="thh">ຕອນນີ້ ພ.ສ ເກົາຫຼີຊອກຫາຫຼາຍທີ່ສຸດ</div><div class="ths">' + th.map(function (t, i) { return '<button class="thc' + (S.th === i ? ' on' : '') + '" data-a="th" data-v="' + i + '"><span class="ci">' + img(t.p) + '</span>' + esc(t.name) + '</button>'; }).join('') + '</div>';
@@ -238,7 +241,7 @@
   function vTrend(all) {
     var T = all.filter(function (p) { return p.tt; }).sort(function (a, b) { return (+a.ttOrder || 99) - (+b.ttOrder || 99) || a.name.localeCompare(b.name); });
     if (!T.length) return '';
-    return '<section class="trend"><h2>🔥 ເທຣນ TikTok ຕອນນີ້</h2><p class="rks">ຕົວທີ່ເຫັນໃນ TikTok ຢູ່ນີ້ໝົດ · ສັ່ງຈາກເກົາຫຼີໄດ້ເລີຍ</p><div class="tts">' + T.map(function (p) {
+    return '<section class="box trend"><div class="sh h-tt"><div><h2>🔥 ເທຣນ TikTok ຕອນນີ້</h2><p>ຕົວທີ່ເຫັນໃນ TikTok ຢູ່ນີ້ໝົດ · ສັ່ງຈາກເກົາຫຼີໄດ້ເລີຍ</p></div><span class="shm">ເລື່ອນ →</span></div><div class="bx"><div class="tts">' + T.map(function (p) {
       var op = opts(p).length, q = op ? 0 : inCart(p.id);
       return '<div class="ttc"><div class="ti" data-a="pview" data-id="' + esc(p.id) + '">' + img(p) + '<span>🔥 ເທຣນ</span></div><div class="tb">' +
         '<div class="rnm" data-a="pview" data-id="' + esc(p.id) + '">' + esc(p.name) + '</div>' + (p.ttLine ? '<div class="tl">“' + esc(p.ttLine) + '”</div>' : '') +
@@ -246,7 +249,21 @@
         '<div class="rp"><b>' + kip(p.sell) + '</b></div>' + ttBtn(p) +
         (q ? '<div class="qty"><button data-a="cm" data-id="' + esc(p.id) + '" aria-label="ລົບ 1">−</button><b>' + q + '</b><button data-a="cp" data-id="' + esc(p.id) + '" aria-label="ເພີ່ມ 1">+</button></div>'
           : '<button class="add" data-a="' + (op ? 'pview' : 'cp') + '" data-id="' + esc(p.id) + '">' + (op ? '🎨 ເລືອກສີ' : '+ ໃສ່ກະຕ່າ') + '</button>') + '</div></div>';
-    }).join('') + '</div></section>';
+    }).join('') + '</div></div></section>';
+  }
+  // ໜ້າທຳອິດ: ໄອຄອນໝວດ · ແຕ່ລະຫ້ອງມີຫົວສີຂອງຕົນ · ແຖບໝວດຕິດກັບລາຍການສິນຄ້າ (ຄ້າງເທິງຈໍເວລາເລື່ອນ)
+  function catGrid(used, all) {
+    return '<div class="cgrid">' + used.map(function (c) { var n = all.filter(function (p) { return catOf(p) === c[0]; }).length; return '<button class="cg h-' + c[0] + '" data-a="cat" data-v="' + c[0] + '"><b>' + c[1] + '</b>' + c[2] + '<small>' + n + '</small></button>'; }).join('') + '</div>';
+  }
+  function catBar(used, all) {
+    return '<div id="cata"></div><div class="catbar" id="catbar"><div class="chips"><button class="chip ' + (S.cat === 'all' ? 'on' : '') + '" data-a="cat" data-v="all">🏠 ໜ້າຫຼັກ</button>' +
+      used.map(function (c) { return '<button class="chip ' + (S.cat === c[0] ? 'on' : '') + '" data-a="cat" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' +
+      '<div class="chips brands"><button class="chip ' + (S.brand === 'all' ? 'on' : '') + '" data-a="brand" data-v="all">🏷️ ທຸກແບຣນ</button>' +
+      brands(all).map(function (b) { return '<button class="chip ' + (S.brand === b.k ? 'on' : '') + '" data-a="brand" data-v="' + esc(b.k) + '">' + esc(b.b) + ' <small>' + b.n + '</small></button>'; }).join('') + '</div></div>';
+  }
+  function strip(cls, title, sub, G, more) {
+    return '<section class="box"><div class="sh ' + cls + '"><div><h2>' + title + '</h2>' + (sub ? '<p>' + sub + '</p>' : '') + '</div>' + (more ? '<button class="shm" data-a="cat" data-v="' + more + '">ເບິ່ງທັງໝົດ ›</button>' : '') + '</div>' +
+      '<div class="bx"><div class="hs">' + G.map(pcard).join('') + (more ? '<button class="hsm" data-a="cat" data-v="' + more + '">ເບິ່ງທັງໝົດ<b>›</b></button>' : '') + '</div></div></section>';
   }
   function vShop() {
     var all = plist(), q = S.q.toLowerCase().trim();
@@ -254,19 +271,24 @@
     var used = CATS.filter(function (c) { return all.some(function (p) { return catOf(p) === c[0]; }); });
     var L = all.filter(function (p) { return (!q || p.name.toLowerCase().indexOf(q) >= 0) && (S.cat === 'all' || catOf(p) === S.cat) && (S.brand === 'all' || bkey(brandOf(p)) === S.brand); }).sort(function (a, b) { return a.name.localeCompare(b.name); });
     var best = all.filter(function (p) { return p.best > 0; }).sort(function (a, b) { return a.best - b.best; }).slice(0, 6);
-    var dl = daysLeft();
+    var dl = daysLeft(), home = !q && S.cat === 'all' && S.brand === 'all';
     var h = (dl != null && dl < 0 ? '<div class="info">ຮອບນີ້ປິດຮັບແລ້ວ — ສັ່ງໄວ້ໄດ້ ຈະເຂົ້າຮອບຕໍ່ໄປ</div>' : '') +
-      '<input class="search" id="q" placeholder="🔍 ຊອກຫາສິນຄ້າ" value="' + esc(S.q) + '"><div class="chips"><button class="chip ' + (S.cat === 'all' ? 'on' : '') + '" data-a="cat" data-v="all">ທັງໝົດ</button>' +
-      used.map(function (c) { return '<button class="chip ' + (S.cat === c[0] ? 'on' : '') + '" data-a="cat" data-v="' + c[0] + '">' + c[1] + ' ' + c[2] + '</button>'; }).join('') + '</div>' +
-      '<div class="chips brands"><button class="chip ' + (S.brand === 'all' ? 'on' : '') + '" data-a="brand" data-v="all">🏷️ ທຸກແບຣນ</button>' +
-      brands(all).map(function (b) { return '<button class="chip ' + (S.brand === b.k ? 'on' : '') + '" data-a="brand" data-v="' + esc(b.k) + '">' + esc(b.b) + ' <small>' + b.n + '</small></button>'; }).join('') + '</div>';
-    if (!q && S.cat === 'all' && S.brand === 'all') h += vRank(all) + vTrend(all);
-    var showBest = !q && S.cat === 'all' && S.brand === 'all' && best.length;
-    if (showBest) h += '<div class="sec"><h2>🔥 ຂາຍດີປະຈຳຮອບ</h2><span>ຄົນສັ່ງຫຼາຍທີ່ສຸດ</span></div><div class="grid">' + best.map(pcard).join('') + '</div>';
+      '<input class="search" id="q" placeholder="🔍 ຊອກຫາສິນຄ້າ" value="' + esc(S.q) + '">';
+    if (home) {
+      h += catGrid(used, all) + vRank(all) + vTrend(all);
+      if (best.length) h += strip('h-best', '🔥 ຂາຍດີປະຈຳຮອບ', 'ຄົນສັ່ງຫຼາຍທີ່ສຸດ', best, '');
+      h += catBar(used, all);
+      used.forEach(function (c) {
+        var G = L.filter(function (p) { return catOf(p) === c[0]; });
+        if (G.length) h += strip('h-' + c[0], c[1] + ' ' + c[2] + ' <small>' + G.length + '</small>', '', G.slice(0, 8), c[0]);
+      });
+      return h;
+    }
+    h += catBar(used, all);
     if (!q && S.cat !== 'all') return h + vCat(S.cat, L);
     used.forEach(function (c) {
-      var G = L.filter(function (p) { return catOf(p) === c[0] && (!showBest || best.indexOf(p) < 0 && !best.some(function (b) { return b.id === p.id; })); });
-      if (G.length) h += '<div class="sec"><h2>' + c[1] + ' ' + c[2] + '</h2><span>' + G.length + ' ລາຍການ</span></div><div class="grid">' + G.map(pcard).join('') + '</div>';
+      var G = L.filter(function (p) { return catOf(p) === c[0]; });
+      if (G.length) h += '<section class="box"><div class="sh h-' + c[0] + '"><div><h2>' + c[1] + ' ' + c[2] + ' <small>' + G.length + '</small></h2></div></div><div class="bx"><div class="grid">' + G.map(pcard).join('') + '</div></div></section>';
     });
     if (!L.length) h += '<div class="empty"><b>🔍</b>ບໍ່ພົບສິນຄ້າ<br><button class="btn sm lite" style="margin-top:10px" data-a="ct" data-v="req">🙋 ຝາກຫາຂອງ</button></div>';
     return h;
@@ -424,10 +446,10 @@
     switch (a) {
       case 'close': closeM(); render(); break;
       case 'ct': S.ct = v; closeM(); render(); scrollTo(0, 0); break;
-      case 'cat': S.cat = v; S.sub = ''; S.th = -1; render(); break;
+      case 'cat': S.cat = v; S.sub = ''; S.th = -1; render(); toBar(); break;
       case 'sub': S.sub = v; S.th = -1; render(); break;
       case 'th': S.th = +v; S.sub = ''; render(); break;
-      case 'brand': S.brand = v; render(); break;
+      case 'brand': S.brand = v; render(); toBar(); break;
       case 'rk': S.rk = v; S.rkMore = false; render(); break;
       case 'rkmore': S.rkMore = !S.rkMore; render(); break;
       case 'pview': { var p = P(id); if (p) mPview(p); break; }
