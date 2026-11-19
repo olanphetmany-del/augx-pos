@@ -520,3 +520,35 @@ test.describe('hiw product search (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// 🧹 ລ້າງຂໍ້ມູນທົດສອບ: ດາວໂຫຼດໄຟລ໌ສຳຮອງກ່ອນ · ຕ້ອງພິມ "ล้าง" · ສິນຄ້າຍັງຢູ່
+test.describe('hiw clear test data (owner)', () => {
+    const d = hiwData();
+    d.hiw.orders = { o1: { no: 1005, phone: '02011111111', name: 'Test', items: [{ pid: 'p1', n: 'x', q: 1, s: 1, st: 'wait' }], total: 1, pay: 'pend', at: 1 } };
+    d.hiw.track = { tok1: { no: 1005, items: [] } };
+    d.hiw.requests = { r1: { w: 'test', p: '020' } };
+    d.hiw.seq = 1005;
+    d.hiw.pub.settings.ordered = { p1: 6 };
+    test.use({ db: d, user: OWNER });
+
+    test('clears orders, tracking, requests and counts, restarts numbering, keeps products', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=sec]');
+        await page.click('[data-a=resetask]');
+        await expect(page.locator('.sheet')).toContainText('#1001');
+        await page.click('[data-a=resetgo]'); // not confirmed yet
+        expect(await fakeDb(page, 'hiw/orders/o1/no')).toBe(1005);
+        await page.fill('#rs_ok', 'ล้าง');
+        const dl = page.waitForEvent('download');
+        await page.click('[data-a=resetgo]');
+        expect((await dl).suggestedFilename()).toMatch(/^hiw-backup-.*\.json$/);
+        await expect.poll(() => fakeDb(page, 'hiw/seq')).toBe(1000);
+        expect(await fakeDb(page, 'hiw/orders')).toBeNull();
+        expect(await fakeDb(page, 'hiw/track')).toBeNull();
+        expect(await fakeDb(page, 'hiw/requests')).toBeNull();
+        expect(await fakeDb(page, 'hiw/pub/products/p1/name')).toBe('Smoke Toner');
+        await expect.poll(async () => JSON.stringify(await fakeDb(page, 'hiw/pub/settings/ordered') || {})).toBe('{}');
+        expect(errors).toEqual([]);
+    });
+});
