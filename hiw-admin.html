@@ -444,7 +444,28 @@
       '<div class="card" style="margin-top:10px"><h3>🔒 สิ่งที่ระบบป้องกันให้</h3>' +
       ['ลูกค้า <b>สร้างออเดอร์ได้อย่างเดียว</b> — อ่าน/แก้ออเดอร์คนอื่นไม่ได้', 'หน้าติดตามใช้รหัสสุ่ม ไม่มีชื่อ/เบอร์ลูกค้า', 'หน้านี้ต้องล็อกอินบัญชีเจ้าของร้าน', 'ร้านที่ซื้อ ราคาวอน และกำไร เก็บแยก ลูกค้าอ่านไม่ได้', 'เบอร์เดียวกันสั่งได้ 1 ครั้งต่อนาที', 'จับสลิปซ้ำอัตโนมัติ (ดูในหน้าตรวจสลิป)']
         .map(function (t) { return '<div class="li">✅<div class="nm">' + t + '</div></div>'; }).join('') + '</div>' +
-      '<button class="btn lite w" data-a="backup">💾 สำรองข้อมูล (คัดลอก JSON)</button><p class="mut">เก็บไฟล์สำรองไว้ในเครื่อง/Drive ทุกสัปดาห์</p>';
+      '<button class="btn lite w" data-a="backup">💾 สำรองข้อมูล (คัดลอก JSON)</button><p class="mut">เก็บไฟล์สำรองไว้ในเครื่อง/Drive ทุกสัปดาห์</p>' +
+      '<div class="card" style="margin-top:14px"><h3>🧹 ล้างข้อมูลทดสอบ (ก่อนเปิดใช้จริง)</h3><p class="mut">ลบออเดอร์ · สถานะติดตาม · คำขอฝากหาของ · ยอด “คนลาวสั่งแล้ว” และเริ่มเลขออเดอร์ใหม่ที่ #1001 — สินค้า ราคา รูป ตั้งค่าร้าน และ Ranking ยังอยู่ครบ</p>' +
+      '<button class="btn red w" data-a="resetask">🧹 ล้างข้อมูลทดสอบ…</button></div>';
+  }
+  // ล้างข้อมูลทดสอบ: ดาวน์โหลดไฟล์สำรองก่อนเสมอ · ต้องพิมพ์ “ล้าง” ยืนยัน · ลบทีละส่วน ส่วนไหนลบไม่ได้แจ้งชื่อ
+  function resetCounts() { return { o: olist().length, t: Object.keys(S.track || {}).length, r: Object.keys(S.reqs || {}).length }; }
+  function mReset() {
+    var c = resetCounts();
+    modal('<h2>🧹 ล้างข้อมูลทดสอบ</h2><div class="warn">ลบถาวร กู้คืนได้จากไฟล์สำรองเท่านั้น</div>' +
+      '<div class="li">📥<div class="nm">ออเดอร์ทั้งหมด <b>' + c.o + '</b> (รวมสลิป)</div></div><div class="li">📦<div class="nm">สถานะติดตามของลูกค้า <b>' + c.t + '</b></div></div>' +
+      '<div class="li">🙋<div class="nm">คำขอฝากหาของ <b>' + c.r + '</b></div></div><div class="li">🇱🇦<div class="nm">ยอด “คนลาวสั่งแล้ว” กลับเป็น 0</div></div><div class="li">🔢<div class="nm">ออเดอร์ถัดไปเริ่มที่ <b>#1001</b></div></div>' +
+      '<p class="mut">กดแล้วระบบจะดาวน์โหลดไฟล์สำรองให้ก่อน แล้วจึงลบ</p><label>พิมพ์คำว่า <b>ล้าง</b> เพื่อยืนยัน</label><input id="rs_ok" autocomplete="off">' +
+      '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ยกเลิก</button><button class="btn red" data-a="resetgo">ล้างข้อมูล</button></div>');
+  }
+  function backupJson() { return JSON.stringify({ at: new Date().toISOString(), pub: { settings: S.pub, products: S.products }, priv: { settings: S.priv, pmeta: S.meta }, orders: S.orders, track: S.track, requests: S.reqs }); }
+  function downloadBackup() {
+    try { var a = document.createElement('a'), u = URL.createObjectURL(new Blob([backupJson()], { type: 'application/json' })); a.href = u; a.download = 'hiw-backup-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); return true; } catch (e) { console.warn('backup', e); return false; }
+  }
+  function doReset() {
+    var parts = [['ออเดอร์', 'hiw/orders', null], ['สถานะติดตาม', 'hiw/track', null], ['ฝากหาของ', 'hiw/requests', null], ['ยอดคนลาวสั่ง', 'hiw/pub/settings/ordered', null], ['เลขออเดอร์', 'hiw/seq', 1000], ['กันสั่งซ้ำ', 'hiw/throttle', null]];
+    var bad = [];
+    return parts.reduce(function (pr, x) { return pr.then(function () { return db.ref(x[1]).set(x[2]).catch(function (e) { console.warn('reset', x[1], e); bad.push(x[0]); }); }); }, Promise.resolve()).then(function () { return bad; });
   }
 
   /* ---------- events ---------- */
@@ -571,6 +592,12 @@
         plist().forEach(function (p) { if (p.won) { var b = 'hiw/pub/products/' + p.id + '/'; up3[b + 'sell'] = autoSell(p.won, s, catOf(p), p.ft, p.size); up3[b + 'fee'] = feeOf(p.won, s, catOf(p), p.ft, p.size); up3[b + 'heavy'] = tier(catOf(p), p.ft, p.size, s) === 'h'; up3[b + 'won'] = p.won; up3[b + 'wonFull'] = p.wonFull > p.won ? p.wonFull : 0; cnt++; } });
         if (!cnt) { say('ไม่มีสินค้าที่ใส่ราคาวอน', false); return; }
         run(db.ref().update(up3), 'คิดราคาใหม่ ' + cnt + ' รายการ ✓'); break;
+      }
+      case 'resetask': mReset(); break;
+      case 'resetgo': {
+        if (($('#rs_ok').value || '').trim() !== 'ล้าง') { say('พิมพ์คำว่า “ล้าง” ก่อน', false); return; }
+        if (!downloadBackup()) { copy(backupJson(), 'คัดลอกข้อมูลสำรองแล้ว — วางเก็บก่อน แล้วกดล้างอีกครั้ง'); return; }
+        closeM(); doReset().then(function (bad) { say(bad.length ? 'ล้างแล้ว ยกเว้น: ' + bad.join(', ') : 'ล้างข้อมูลทดสอบแล้ว ✓ ออเดอร์ถัดไป #1001', !bad.length); }); break;
       }
       case 'backup': copy(JSON.stringify({ at: new Date().toISOString(), pub: { settings: S.pub, products: S.products }, priv: { settings: S.priv, pmeta: S.meta }, orders: S.orders, requests: S.reqs }), 'คัดลอกข้อมูลสำรองแล้ว ✓ วางเก็บในไฟล์'); break;
       case 'logout': logoutApp(); break;
