@@ -552,3 +552,34 @@ test.describe('hiw clear test data (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ສິນຄ້າໃນອໍເດີ: ຮູບ + ປະລິມານ + ₩ ໃນໜ້າກວດສະລິບ · ແຕະເບິ່ງລາຍລະອຽດ · ລາຍການຊື້ແຍກສີ
+test.describe('hiw order items show the product (owner)', () => {
+    const d = shadeData();
+    d.hiw.pub.products.p1.size = '150ml';
+    d.hiw.priv.pmeta.l1 = { store: 'Olive Young', won: 12000, wonFull: 15000 };
+    d.hiw.orders = {
+        o1: { no: 1001, name: 'Nina', phone: '02055551234', pay: 'pend', total: 1, at: 1, slip: 'data:image/png;base64,iVBORw0KGgo=', items: [{ pid: 'p1', n: 'Smoke Toner', q: 1, s: 1, st: 'wait' }, { pid: 'l1', n: 'Shade Tint — 02 Rose', o: '02 Rose', q: 2, s: 1, st: 'wait' }] },
+        o2: { no: 1002, name: 'Ana', phone: '02055550000', pay: 'ok', total: 1, at: 2, items: [{ pid: 'l1', n: 'Shade Tint — 01 Peach', o: '01 Peach', q: 1, s: 1, st: 'wait' }, { pid: 'l1', n: 'Shade Tint — 02 Rose', o: '02 Rose', q: 1, s: 1, st: 'wait' }] },
+    };
+    test.use({ db: d, user: OWNER });
+
+    test('slip check lists items with size and won; tapping opens the product; buy list splits shades', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=go][data-v=orders]');
+        const rows = page.locator('.oil .oi');
+        await expect(rows).toHaveCount(2);
+        await expect(rows.nth(0)).toContainText('📦 150ml');
+        await expect(rows.nth(0)).toContainText('₩25,000');
+        await expect(rows.nth(1)).toContainText('🎨 02 Rose');
+        await rows.nth(1).click();
+        await expect(page.locator('.sheet')).toContainText('Shade Tint');
+        await expect(page.locator('.sheet')).toContainText('02 Rose');
+        await expect(page.locator('.sheet')).toContainText('Olive Young');
+        await expect(page.locator('.sheet')).toContainText('₩12,000');
+        await page.click('.sheet [data-a=close]');
+        await page.click('[data-a=ot][data-v=buy]');
+        await expect(page.locator('.card', { hasText: 'Shade Tint' })).toContainText('01 Peach ×1 · 02 Rose ×1');
+        expect(errors).toEqual([]);
+    });
+});
