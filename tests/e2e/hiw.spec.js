@@ -583,3 +583,25 @@ test.describe('hiw order items show the product (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ໜ້າຕິດຕາມ: ຮູບ + ປະລິມານ + ສີ · ແຕະເປີດສິນຄ້າ
+test.describe('hiw tracking shows product photos (customer)', () => {
+    const d = shadeData();
+    d.hiw.pub.products.p1.size = '150ml';
+    d.hiw.track = { TrackTok12345: { no: 1002, at: 1, total: 2, pay: 'pend', items: [{ n: 'Smoke Toner', q: 1, s: 1, st: 'wait' }, { n: 'Shade Tint — 02 Rose', q: 1, s: 1, st: 'wait' }, { n: 'Gone Product', q: 1, s: 1, st: 'wait' }] } };
+    test.use({ db: d, user: null });
+
+    test('each tracked item shows its product, size and shade, and opens the product', async ({ page, errors }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html#t=TrackTok12345');
+        const rows = page.locator('main .card .li');
+        await expect(rows).toHaveCount(3);
+        await expect(rows.nth(0)).toContainText('📦 150ml');
+        await expect(rows.nth(1).locator('.lopt')).toHaveText('🎨 02 Rose');
+        await expect(rows.nth(1).locator('.nm')).toContainText('Shade Tint × 1');
+        await expect(rows.nth(2).locator('.th')).toHaveText('🛍️');
+        await rows.nth(0).locator('.nm').click();
+        await expect(page.locator('.sheet')).toContainText('Smoke Toner');
+        expect(errors).toEqual([]);
+    });
+});

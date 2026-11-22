@@ -393,6 +393,12 @@
     var m = { wait: 1, ask: 1, got: 2, arrived: 3, done: 4 };
     return Math.min.apply(null, L.map(function (i) { return m[i.st] || 1; }));
   }
+  // ໜ້າຕິດຕາມ: ຫາສິນຄ້າຈາກຊື່ໃນອໍເດີ (ຂໍ້ມູນຕິດຕາມບໍ່ມີ id) · ຊື່ທີ່ມີ " — ສີ" ແຍກສີອອກ
+  function trackP(i) {
+    var n = String(i.n || ''), cut = n.lastIndexOf(' — '), base = cut > 0 ? n.slice(0, cut) : n, sh = cut > 0 ? n.slice(cut + 3) : '';
+    var id = Object.keys(S.products || {}).filter(function (k) { return S.products[k] && S.products[k].name === base; })[0] || Object.keys(S.products || {}).filter(function (k) { return S.products[k] && S.products[k].name === n; })[0];
+    return { p: id ? P(id) : null, base: id && S.products[id].name === n ? n : base, sh: id && S.products[id].name === n ? '' : sh };
+  }
   function vTrack() {
     var T = S.toks.map(function (k) { return [k, S.track[k]]; }).filter(function (x) { return x[1]; }).sort(function (a, b) { return (b[1].at || 0) - (a[1].at || 0); });
     if (!S.toks.length) return '<div class="empty"><b>📭</b>ຍັງບໍ່ມີອໍເດີໃນເຄື່ອງນີ້<br><span class="mut">ຖ້າສັ່ງຈາກເຄື່ອງອື່ນ ໃຫ້ເປີດລິ້ງຕິດຕາມທີ່ໄດ້ຫຼັງສັ່ງ</span></div>';
@@ -409,7 +415,8 @@
       (t.pay === 'pend' ? '<p class="mut" style="text-align:center">⏳ ຮ້ານກຳລັງກວດສະລິບ</p>' : '') +
       items.map(function (i, k) {
         var asked = i.st === 'ask';
-        return '<div class="li"><div class="nm">' + esc(i.n) + ' × ' + esc(i.q) + '<small>' + kip(i.s * i.q) + '</small></div><span class="st ' + esc(i.st) + '">' + (STL[i.st] || '') + '</span></div>' +
+        var m = trackP(i), tap = m.p ? ' data-a="pview" data-id="' + esc(m.p.id) + '" style="cursor:pointer"' : '';
+        return '<div class="li"><div class="th"' + tap + '>' + (m.p ? img(m.p) : '🛍️') + '</div><div class="nm"' + tap + '>' + esc(m.base) + ' × ' + esc(i.q) + (m.sh ? '<small class="lopt">🎨 ' + esc(m.sh) + '</small>' : '') + '<small>' + (m.p && m.p.size ? '📦 ' + esc(m.p.size) + ' · ' : '') + kip(i.s * i.q) + '</small></div><span class="st ' + esc(i.st) + '">' + (STL[i.st] || '') + '</span></div>' +
           (asked ? (req[k] ? '<div class="info" style="margin-top:0">✓ ເລືອກແລ້ວ: ' + (req[k] === 'refund' ? '💸 ຄືນເງິນ' : '⏳ ລໍຮອບໜ້າ') + ' · ລໍຖ້າຮ້ານຢືນຢັນ</div>'
             : '<div class="info" style="margin-top:0">😢 ສິນຄ້ານີ້ໝົດຢູ່ຮ້ານ ເລືອກໄດ້ເລີຍ:<div class="row" style="margin-top:8px"><button class="btn sm lite" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="wait">⏳ ລໍຮອບໜ້າ</button><button class="btn sm amb" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="refund">💸 ຄືນເງິນ ' + kip(i.s * i.q) + '</button></div></div>') : '');
       }).join('') +
@@ -506,6 +513,9 @@
   var off = false; try { off = localStorage.getItem(KEY) === '1'; } catch (e) { /* storage off */ }
   if (app || off) return;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // ໃຫ້ປຸ່ມເລືອກພາສາຢູ່ໃຕ້ແຖບຕິດຕັ້ງແອັບ ບໍ່ທັບປຸ່ມ "ຕິດຕັ້ງ"
+  var syncH = function () { document.documentElement.style.setProperty('--abH', bar.hidden ? '0px' : bar.offsetHeight + 'px'); };
+  try { new MutationObserver(syncH).observe(bar, { attributes: true, subtree: true, attributeFilter: ['hidden'] }); } catch (e) { /* old browser */ }
   if (ios) bar.hidden = false;
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); ev = e; bar.hidden = false; });
   window.addEventListener('appinstalled', function () { bar.hidden = true; });
