@@ -224,8 +224,8 @@
   function render() {
     if (!S.pub || !S.priv || !S.products || !S.meta || !S.orders) return;
     applyCustomer();
-    var c = { pend: pend().length, ref: refundList().length, pack: packList().length, req: reqOpen() };
-    var tabs = [['home', '🏠', 'วันนี้', c.pend + c.ref], ['orders', '📥', 'ออเดอร์', c.pend], ['buy', '🛒', 'ซื้อของ', 0], ['pack', '📦', 'แพ็ก', c.pack], ['more', '☰', 'เพิ่มเติม', c.req]];
+    var c = { pend: pend().length, ref: refundList().length, pack: packList().length, req: reqOpen(), inb: inbList().length };
+    var tabs = [['home', '🏠', 'วันนี้', c.pend + c.ref], ['orders', '📥', 'ออเดอร์', c.pend], ['buy', '🛒', 'ซื้อของ', 0], ['pack', '📦', 'แพ็ก', c.pack], ['more', '☰', 'เพิ่มเติม', c.req + c.inb]];
     var body = { home: oHome, orders: oOrders, buy: oBuy, pack: oPack, more: oMore }[S.ot](c);
     var r = round();
     var keep = document.activeElement && document.activeElement.id, pos = keep && document.activeElement.selectionStart;
@@ -248,6 +248,7 @@
       todo('🛒', 'ต้องซื้อ', byStore.length ? byStore.map(function (x) { return E(x[0]) + ' ' + x[1]; }).join(' · ') : 'ยังไม่มีของต้องซื้อ', bn, 'buy') +
       todo('📦', 'รอแพ็ก / ส่ง', 'ของถึงลาวแล้ว รอส่งให้ลูกค้า', c.pack, 'pack') +
       todo('🙋', 'ฝากหาของ', 'ลูกค้าขอให้หาสินค้าที่ไม่มีในร้าน', c.req, 'req') +
+      (c.inb ? todo('📥', 'สินค้ารอเพิ่ม', 'Claude เตรียมไว้จากรูปที่ส่ง · ตรวจแล้วกดเพิ่ม', c.inb, 'inbox', 1) : '') +
       '<div class="sec"><h2>ทางลัด</h2></div><div class="menu"><button data-a="go" data-v="mkt"><b>📣</b>สร้างโพสต์เปิดรอบ<small>แคปชันลาว พร้อมโพสต์</small></button>' +
       '<button data-a="copystore"><b>🔗</b>ลิงก์หน้าร้าน<small>คัดลอกส่งลูกค้า</small></button></div>';
   }
@@ -322,8 +323,8 @@
 
   /* ---------- more ---------- */
   function oMore(c) {
-    if (S.sub) return '<button class="back" data-a="sub" data-v="">← เมนู</button>' + ({ prod: sProd, cust: sCust, acct: sAcct, refund: sRefund, round: sRound, mkt: sMkt, cpage: sCpage, req: sReq, set: sSet, sec: sSec }[S.sub])(c);
-    var M = [['prod', '📦', 'สินค้า', plist().length + ' รายการ'], ['cust', '👥', 'ลูกค้า', 'ประวัติ · ยอดซื้อ'], ['acct', '💰', 'บัญชี', 'กำไรรอบนี้'], ['refund', '💸', 'คืนเงิน', c.ref + ' รายการ'], ['round', '✈️', 'รอบหิ้ว', 'วันบิน · วันปิดรับ'],
+    if (S.sub) return '<button class="back" data-a="sub" data-v="">← เมนู</button>' + ({ inbox: sInbox, prod: sProd, cust: sCust, acct: sAcct, refund: sRefund, round: sRound, mkt: sMkt, cpage: sCpage, req: sReq, set: sSet, sec: sSec }[S.sub])(c);
+    var M = [['inbox', '📥', 'รอเพิ่ม', c.inb ? c.inb + ' รอกด' : 'จาก Claude'], ['prod', '📦', 'สินค้า', plist().length + ' รายการ'], ['cust', '👥', 'ลูกค้า', 'ประวัติ · ยอดซื้อ'], ['acct', '💰', 'บัญชี', 'กำไรรอบนี้'], ['refund', '💸', 'คืนเงิน', c.ref + ' รายการ'], ['round', '✈️', 'รอบหิ้ว', 'วันบิน · วันปิดรับ'],
       ['cpage', '🗂️', 'หน้าหมวด', 'แบนเนอร์ · ธีม'], ['mkt', '📣', 'การตลาด', 'โพสต์ · ลูกค้าประจำ'], ['req', '🙋', 'ฝากหาของ', c.req + ' รอตอบ'], ['set', '⚙️', 'ตั้งค่าร้าน', 'บัญชี · QR · ราคา'], ['sec', '🔒', 'ความปลอดภัย', 'สลิปซ้ำ · สำรองข้อมูล']];
     return '<div class="menu">' + M.map(function (m) { return '<button data-a="sub" data-v="' + m[0] + '"><b>' + m[1] + '</b>' + m[2] + '<small>' + m[3] + '</small></button>'; }).join('') + '</div>' +
       '<button class="btn ghost w" style="margin-top:14px" data-a="logout">ออกจากระบบ</button>';
@@ -506,6 +507,81 @@
       else if (k === 'qr') run(db.ref('hiw/pub/settings/qr').set(im), 'บันทึก QR แล้ว');
     }, function () { say('เปิดรูปไม่ได้', false); });
   });
+  /* ---------- Claude inbox: products Claude prepares (branch hiw-inbox on GitHub) → owner taps เพิ่ม ---------- */
+  var INBOX_URL = 'https://api.github.com/repos/olanphetmany-del/augx-pos/contents/hiw-inbox.json?ref=hiw-inbox';
+  function loadInbox() {
+    if (!window.fetch) return;
+    S.inboxErr = false;
+    fetch(INBOX_URL, { cache: 'no-store' }).then(function (r) {
+      if (r.status === 404) return { items: [] };
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json().then(function (j) {
+        var bin = atob(String(j.content || '').replace(/\s/g, '')), bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return JSON.parse(new TextDecoder().decode(bytes));
+      });
+    }).then(function (j) { S.inbox = Array.isArray(j && j.items) ? j.items : []; schedule(); }, function () { S.inboxErr = true; if (!S.inbox) S.inbox = []; schedule(); });
+  }
+  function inbSkipped() { try { return JSON.parse(localStorage.getItem('hiwInboxSkip') || '{}') || {}; } catch (e) { return {}; } }
+  function inbSkip(k) { var o = inbSkipped(); o[k] = 1; try { localStorage.setItem('hiwInboxSkip', JSON.stringify(o)); } catch (e) { /* ไม่มีที่เก็บ = ซ่อนจนรีเฟรช */ } S.inbHide = S.inbHide || {}; S.inbHide[k] = 1; }
+  // new = ยังไม่มีในร้าน · upd = มีแล้วแต่ราคา/ชื่อ/ปริมาณต่าง · done = ในร้านตรงกับการ์ดแล้ว (ไม่ต้องโชว์)
+  function inbState(x) {
+    var p = P(x.id); if (!p) return 'new';
+    var same = num(x.won) === num(p.won) && (num(x.wonFull) > num(x.won) ? num(x.wonFull) : 0) === num(p.wonFull) && (!x.name || x.name === p.name) && (!x.size || x.size === p.size);
+    return same ? 'done' : 'upd';
+  }
+  function inbList() {
+    var sk = inbSkipped(), hid = S.inbHide || {};
+    return (S.inbox || []).filter(function (x) { if (!x || !x.key || !x.id || sk[x.key] || hid[x.key]) return false; var st = inbState(x); return st === 'upd' || (st === 'new' && !!x.name); });
+  }
+  function inbCard(x) {
+    var st = inbState(x), p = P(x.id), w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, cat = x.cat || (p && catOf(p)) || 'other';
+    var sell = num(x.sell) || autoSell(w, null, cat, p ? p.ft : '', x.size || (p && p.size));
+    var price = (wf ? '<s>' + won(wf) + '</s> ' : '') + won(w) + ' → <b style="color:var(--ink)">' + kip(sell) + '</b>';
+    var was = st === 'upd' ? '<div class="mut">เดิม: ' + won(p.won) + ' · ' + kip(p.sell) + '</div>' : '';
+    return '<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><b>' + (st === 'new' ? '🆕 สินค้าใหม่' : '✏️ แก้ราคา') + '</b><small class="mut">' + E(x.at || '') + '</small></div>' +
+      '<h3 style="margin:6px 0 2px">' + E(x.name || p.name) + '</h3>' + (x.size ? '<div class="mut">📦 ' + E(x.size) + '</div>' : '') +
+      '<div style="margin-top:4px">' + price + '</div>' + was + (x.hook ? '<p class="mut" style="margin:6px 0 0">' + E(x.hook) + '</p>' : '') +
+      '<div class="row" style="margin-top:10px"><button class="btn" data-a="inbadd" data-v="' + E(x.key) + '">' + (st === 'new' ? '+ เพิ่ม (ซ่อนไว้ก่อน)' : '✓ อัปเดตราคา') + '</button><button class="btn ghost" data-a="inbskip" data-v="' + E(x.key) + '">ไม่เอา</button></div></div>';
+  }
+  function sInbox() {
+    var L = inbList();
+    return '<div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">📥 สินค้ารอเพิ่ม</h2><button class="btn ghost sm" data-a="inbload">🔄 โหลดใหม่</button></div>' +
+      '<p class="mut">Claude เตรียมไว้จากรูปที่คุณส่ง · 1 การ์ด = 1 สินค้า · สินค้าใหม่ลงแบบซ่อน ตรวจแล้วค่อยเปิดขาย</p>' +
+      (S.inbox === undefined || S.inbox === null ? '<div class="empty"><b>⏳</b>กำลังโหลด…</div>' : '') +
+      (S.inboxErr ? '<p class="mut" style="color:var(--red)">โหลดกล่องไม่ได้ ลองกดโหลดใหม่</p>' : '') +
+      (S.inbox && !L.length ? '<div class="empty"><b>✓</b>ไม่มีสินค้ารอเพิ่ม</div>' : '') +
+      (L.length > 1 ? '<button class="btn w" data-a="inbadd" data-v="*" style="margin-bottom:10px">เพิ่มทั้งหมด (' + L.length + ')</button>' : '') +
+      L.map(inbCard).join('');
+  }
+  function inbAdd(keys) {
+    var L = inbList().filter(function (x) { return keys === '*' || x.key === keys; }), up = {};
+    if (!L.length) return;
+    L.forEach(function (x) {
+      if (inbState(x) === 'new') { impProd(Object.assign({ store: 'Olive Young' }, x), up, true); return; }
+      var p = P(x.id), id = p.id, w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, c = catOf(p), sz = x.size || p.size || '', sell = num(x.sell) || autoSell(w, null, c, p.ft, sz), pp = 'hiw/pub/products/' + id + '/';
+      up[pp + 'won'] = w; up[pp + 'wonFull'] = wf; up[pp + 'sell'] = sell; up[pp + 'fee'] = Math.min(sell, feeOf(w, null, c, p.ft, sz)); up[pp + 'heavy'] = tier(c, p.ft, sz) === 'h';
+      if (x.name) up[pp + 'name'] = String(x.name).slice(0, 120);
+      if (x.size) up[pp + 'size'] = String(x.size).slice(0, 60);
+      if (x.hook) up[pp + 'hook'] = String(x.hook).trim().slice(0, 80);
+      up['hiw/priv/pmeta/' + id + '/won'] = w; up['hiw/priv/pmeta/' + id + '/wonFull'] = wf;
+    });
+    run(db.ref().update(up), (L.length > 1 ? 'เพิ่มแล้ว ' + L.length + ' รายการ ✓' : 'บันทึกแล้ว ✓') + ' ไปดูใน 📦 สินค้า');
+  }
+  // one product from an import file or the Claude inbox → multi-path update (whole product)
+  function impProd(x, up, hide) {
+    var id = String(x.id || db.ref('hiw/pub/products').push().key).replace(/[.#$/[\]]/g, '_');
+    var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc, '', x.size);
+    up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), size: String(x.size || '').slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc, '', x.size)), heavy: tier(xc, '', x.size) === 'h', best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
+    up['hiw/pub/products/' + id].opts = optList(x.opts);
+    up['hiw/pub/products/' + id].sub = subOk(xc, x.sub);
+    Object.assign(up['hiw/pub/products/' + id], ttFields(x.tt, x.ttLine, x.ttTags));
+    Object.assign(up['hiw/pub/products/' + id], rankFields(P(id), num(x.rank), x.hook, x.rating, x.reviews));
+    up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
+    if (x.img) up['hiw/pub/pimg/' + id] = x.img;
+    if (hide) up['hiw/pub/products/' + id].hidden = true;
+    return id;
+  }
   function importFile(file) {
     var r = new FileReader();
     r.onload = function () {
@@ -514,15 +590,7 @@
       var up = {}, n = 0;
       L.forEach(function (x) {
         if (!x || !x.name) return;
-        var id = String(x.id || db.ref('hiw/pub/products').push().key).replace(/[.#$/[\]]/g, '_');
-        var w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, xc = x.cat || 'other', sell = num(x.sell) || autoSell(w, null, xc, '', x.size);
-        up['hiw/pub/products/' + id] = { name: String(x.name).slice(0, 120), cat: xc, brand: String(x.brand || '').slice(0, 40), size: String(x.size || '').slice(0, 60), sell: sell, won: w, wonFull: wf, fee: Math.min(sell, feeOf(w, null, xc, '', x.size)), heavy: tier(xc, '', x.size) === 'h', best: num(x.best), isNew: !!x.isNew, hasImg: !!x.img, hidden: !!x.hidden };
-        up['hiw/pub/products/' + id].opts = optList(x.opts);
-        up['hiw/pub/products/' + id].sub = subOk(xc, x.sub);
-        Object.assign(up['hiw/pub/products/' + id], ttFields(x.tt, x.ttLine, x.ttTags));
-        Object.assign(up['hiw/pub/products/' + id], rankFields(P(id), num(x.rank), x.hook, x.rating, x.reviews));
-        up['hiw/priv/pmeta/' + id] = { store: x.store || 'อื่นๆ', won: w, wonFull: wf };
-        if (x.img) up['hiw/pub/pimg/' + id] = x.img;
+        impProd(x, up);
         n++;
       });
       if (!n) { say('ไม่มีสินค้าในไฟล์', false); return; }
@@ -541,8 +609,11 @@
       case 'ot': S.ot = v; S.sub = null; closeM(); render(); scrollTo(0, 0); break;
       case 'go': if (v === 'orders') { S.ot = 'orders'; S.of = 'slip'; } else if (v === 'buy' || v === 'pack') S.ot = v; else { S.ot = 'more'; S.sub = v; } render(); scrollTo(0, 0); break;
       case 'of': S.of = v; render(); break;
+      case 'inbload': S.inbox = null; loadInbox(); render(); break;
+      case 'inbadd': inbAdd(v); break;
+      case 'inbskip': inbSkip(v); render(); break;
       case 'store': S.store = v; render(); break;
-      case 'sub': S.sub = v || null; render(); scrollTo(0, 0); break;
+      case 'sub': S.sub = v || null; if (v === 'inbox') loadInbox(); render(); scrollTo(0, 0); break;
       case 'cpsave': {
         var cat = S.cpc || 'makeup', bns = [0, 1, 2].map(function (i) { return { pid: $('#cb_p' + i).value, t1: $('#cb_a' + i).value.trim().slice(0, 40), t2: $('#cb_b' + i).value.trim().slice(0, 50) }; }).filter(function (x) { return x.pid; });
         var ths = [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { return { name: $('#ct_n' + i).value.trim().slice(0, 20), ids: [].slice.call($('#ct_p' + i).selectedOptions).map(function (o) { return o.value; }) }; }).filter(function (x) { return x.name && x.ids.length; });
@@ -629,6 +700,7 @@
     var on = function (path, key, def) {
       db.ref(path).on('value', function (snap) { S[key] = snap.val() || def; schedule(); }, function (er) { $('#app').innerHTML = '<div class="empty"><b>🔒</b>อ่านข้อมูลไม่ได้ (' + E(er && er.code) + ')<br><span class="mut">ตรวจกฎ Firebase ของ hiw/ ตามคู่มือใน PR</span></div>'; });
     };
+    loadInbox();
     on('hiw/pub/settings', 'pub', {}); on('hiw/priv/settings', 'priv', {}); on('hiw/pub/products', 'products', {}); on('hiw/priv/pmeta', 'meta', {});
     on('hiw/orders', 'orders', {}); db.ref('hiw/orders').on('value', function () { setTimeout(syncOrdered, 0); }); db.ref('hiw/pub/settings').on('value', function () { setTimeout(syncOrdered, 0); }); on('hiw/track', 'track', {}); on('hiw/requests', 'reqs', {});
   });

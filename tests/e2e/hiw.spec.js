@@ -605,3 +605,54 @@ test.describe('hiw tracking shows product photos (customer)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// กล่อง "สินค้ารอเพิ่ม": Claude เตรียมสินค้าใน hiw-inbox.json (branch hiw-inbox) → เจ้าของกดเพิ่มทีละการ์ด
+test.describe('hiw-admin inbox from Claude (owner)', () => {
+    const d = hiwData();
+    test.use({ db: d, user: OWNER });
+    const inbox = {
+        items: [
+            { key: 'k1', at: '22/11 20:55', id: 'drg_sun', name: 'Dr.G PDRN Sun Serum 50ml + 10ml', brand: 'Dr.G', cat: 'sun', size: '50ml + 10ml', won: 23100, wonFull: 32000, hook: 'ກັນແດດ PDRN' },
+            { key: 'k2', at: '22/11 20:56', id: 'p1', won: 26000, wonFull: 30000 },
+            { key: 'k3', at: '22/11 20:57', id: 'p2', name: 'Smoke Mask', won: 10000 },
+            { key: 'k4', at: '22/11 20:58', id: 'nope', name: 'Skip Me', cat: 'skin', won: 5000 },
+        ],
+    };
+    const serve = (page) => page.route('https://api.github.com/**', (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ content: Buffer.from(JSON.stringify(inbox)).toString('base64') }),
+    }));
+
+    test('one card per product; add and update write the shop; done and skipped cards disappear', async ({ page, errors }) => {
+        await serve(page);
+        await page.goto('hiw-admin.html');
+        await expect(page.locator('[data-a=go][data-v=inbox] .n')).toHaveText('3');
+        await page.click('[data-a=go][data-v=inbox]');
+        const cards = page.locator('main .card');
+        await expect(cards).toHaveCount(3); // p2 already matches → hidden
+        await expect(cards.nth(0)).toContainText('🆕 สินค้าใหม่');
+        await expect(cards.nth(0)).toContainText('₩32,000');
+        await expect(cards.nth(1)).toContainText('✏️ แก้ราคา');
+        await expect(cards.nth(1)).toContainText('เดิม: ₩25,000');
+
+        await cards.nth(0).locator('[data-a=inbadd]').click();
+        await expect(cards).toHaveCount(2);
+        const np = await fakeDb(page, 'hiw/pub/products/drg_sun');
+        expect(np.hidden).toBe(true);
+        expect(np.won).toBe(23100);
+        expect(np.sell).toBeGreaterThan(0);
+        expect((await fakeDb(page, 'hiw/priv/pmeta/drg_sun')).store).toBe('Olive Young');
+
+        await cards.nth(0).locator('[data-a=inbadd]').click();
+        await expect(cards).toHaveCount(1);
+        const p1 = await fakeDb(page, 'hiw/pub/products/p1');
+        expect(p1.name).toBe('Smoke Toner');
+        expect(p1.won).toBe(26000);
+        expect((await fakeDb(page, 'hiw/priv/pmeta/p1')).won).toBe(26000);
+
+        await cards.nth(0).locator('[data-a=inbskip]').click();
+        await expect(page.locator('main')).toContainText('ไม่มีสินค้ารอเพิ่ม');
+        expect(await fakeDb(page, 'hiw/pub/products/nope')).toBeFalsy();
+        expect(errors).toEqual([]);
+    });
+});
