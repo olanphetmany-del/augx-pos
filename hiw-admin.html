@@ -113,6 +113,23 @@
   function O(id) { return S.orders && S.orders[id] ? Object.assign({ id: id }, S.orders[id]) : null; }
   function items(o) { return Array.isArray(o.items) ? o.items : Object.keys(o.items || {}).map(function (k) { return o.items[k]; }); }
   function live(i) { return i.st !== 'refund'; }
+  // ສິນຄ້າໃນອໍເດີ: ຮູບນ້ອຍ + ປະລິມານ + ₩ · ແຕະເພື່ອເບິ່ງລາຍລະອຽດ (pinfo)
+  function iMeta(p, i) { return [p && p.size ? '📦 ' + E(p.size) : '', p && p.won ? won(p.won) : '', i && i.o ? '🎨 ' + E(i.o) : ''].filter(Boolean).join(' · '); }
+  function iRow(i) {
+    var p = P(i.pid), tap = p ? ' data-a="pinfo" data-id="' + E(p.id) + '" data-v="' + E(i.o || '') + '" style="cursor:pointer"' : '';
+    return '<div class="li oi"' + tap + '><div class="th">' + img(p) + '</div><div class="nm">' + E(i.n) + ' <b>×' + E(i.q) + '</b><small>' + (iMeta(p, i) || 'ไม่พบสินค้าในร้านแล้ว') + '</small></div>' + (p ? '<span class="mut nf">›</span>' : '') + '</div>';
+  }
+  function mPinfo(p, shade) {
+    var off = p.wonFull > p.won ? Math.round((1 - p.won / p.wonFull) * 100) : 0, big = p.hasImg && S.img[p.id] ? '<img src="' + E(S.img[p.id]) + '" alt="" style="width:100%;max-width:360px;display:block;margin:0 auto;border-radius:14px">' : '<div class="th" style="width:100%;height:180px;font-size:60px">' + img(p) + '</div>';
+    modal(big + '<h2 style="margin-top:12px">' + E(p.name) + '</h2>' +
+      '<div class="li"><div class="nm">แบรนด์</div><b>' + E(p.brand || '-') + '</b></div>' +
+      '<div class="li"><div class="nm">ปริมาณ</div><b>' + E(p.size || '⚠️ ยังไม่ใส่') + '</b></div>' +
+      (shade ? '<div class="li"><div class="nm">สี / เบอร์ที่ลูกค้าเลือก</div><b style="color:var(--pur)">🎨 ' + E(shade) + '</b></div>' : '') +
+      '<div class="li"><div class="nm">ราคาที่ร้าน</div><b>' + (p.won ? (off ? '<s class="mut">' + won(p.wonFull) + '</s> ' : '') + won(p.won) + (off ? ' (-' + off + '%)' : '') : '-') + '</b></div>' +
+      '<div class="li"><div class="nm">ซื้อที่ร้าน</div><b>🏬 ' + E(p.store) + '</b></div>' +
+      '<div class="li"><div class="nm">ขายลูกค้า</div><b>' + kip(p.sell) + '</b></div>' +
+      '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ปิด</button></div>');
+  }
   function sumItems(o, f) { return items(o).filter(f || live).reduce(function (a, i) { return a + num(i.s) * num(i.q); }, 0); }
   // ย่อรูปเป็น JPEG · ถ้าเบราว์เซอร์เปิดรูปจาก blob ไม่ได้ ลองอ่านเป็น dataURL · ถ้ายังไม่ได้และไฟล์เล็กพอ ใช้รูปเดิม
   function compress(file, max, q) {
@@ -187,7 +204,8 @@
         if (i.st !== 'wait') return;
         var p = P(i.pid) || { id: 'x:' + i.n, name: i.n, store: 'อื่นๆ', won: 0, cat: 'other' };
         if (store && store !== 'all' && p.store !== store) return;
-        var g = m[p.id] || (m[p.id] = { p: p, need: 0, who: {}, rows: [] });
+        var g = m[p.id] || (m[p.id] = { p: p, need: 0, who: {}, rows: [], sh: {} });
+        if (i.o) g.sh[i.o] = (g.sh[i.o] || 0) + num(i.q);
         g.need += num(i.q); g.who[o.name] = (g.who[o.name] || 0) + num(i.q); g.rows.push([o.id, k]);
       });
     });
@@ -250,7 +268,7 @@
     return '<div class="card"><div class="slip">' + (o.slip ? '<img src="' + E(o.slip) + '" data-a="zoom" alt="สลิป">' : '<div class="th" style="width:110px;height:140px">🧾</div>') +
       '<div style="flex:1;min-width:0"><b>#' + E(o.no) + ' · ' + E(o.name) + '</b><div class="mut">' + E(o.phone) + ' · ' + dstr(o.at) + (o.reslipAt ? ' · 📨 สลิปใหม่' : '') + '</div>' +
       '<div class="mut" style="margin-top:8px">ยอดที่ต้องโอน</div><div class="big">' + kip(o.total) + '</div>' +
-      '<div class="mut">' + items(o).map(function (i) { return E(i.n) + ' ×' + E(i.q); }).join(', ') + '</div></div></div>' +
+      '</div></div>' + '<div class="oil">' + items(o).map(iRow).join('') + '</div>' +
       (dup.length ? '<div class="warn">⚠️ สลิปนี้ซ้ำกับออเดอร์ #' + dup.map(function (x) { return E(x.no); }).join(', #') + ' — ระวังโกง</div>' : '') +
       (o.slip ? '' : '<div class="warn">ไม่มีรูปสลิป</div>') +
       '<p class="mut" style="margin:6px 0 0">แตะรูปเพื่อขยาย · เทียบยอดในสลิปกับยอดที่ต้องโอน</p>' +
@@ -264,7 +282,8 @@
     modal('<h2>#' + E(o.no) + ' · ' + E(o.name) + '</h2><div class="mut">' + E(o.phone) + ' · ' + dstr(o.at) + ' · ' + (o.deliv === 'send' ? '🚚 ส่ง: ' + E(o.addr) : '🏪 มารับเอง') + (o.note ? ' · 📝 ' + E(o.note) : '') + '</div>' +
       items(o).map(function (i, k) {
         var p = P(i.pid);
-        return '<div class="li"><div class="th">' + img(p) + '</div><div class="nm">' + E(i.n) + ' × ' + E(i.q) + '<small>' + kip(num(i.s) * num(i.q)) + (p ? ' · ' + E(p.store) : '') + '</small></div>' +
+        var tap = p ? ' data-a="pinfo" data-id="' + E(p.id) + '" data-v="' + E(i.o || '') + '" style="cursor:pointer"' : '';
+        return '<div class="li"><div class="th"' + tap + '>' + img(p) + '</div><div class="nm"' + tap + '>' + E(i.n) + ' × ' + E(i.q) + '<small>' + kip(num(i.s) * num(i.q)) + (p ? ' · ' + E(p.store) : '') + '</small>' + (iMeta(p, i) ? '<small>' + iMeta(p, i) + '</small>' : '') + '</div>' +
           '<select data-a="ist" data-id="' + E(o.id) + '" data-k="' + k + '" style="width:auto;padding:6px;font-size:13px">' + Object.keys(STT).map(function (s) { return '<option value="' + s + '"' + (i.st === s ? ' selected' : '') + '>' + STT[s] + '</option>'; }).join('') + '</select></div>';
       }).join('') +
       '<div class="tot"><span>รวม</span><span>' + kip(sumItems(o)) + '</span></div>' +
@@ -281,7 +300,7 @@
       '<div class="chips" style="padding-top:0"><button class="chip ' + (S.store === 'all' ? 'on' : '') + '" data-a="store" data-v="all">ทุกร้าน</button>' + used.map(function (s) { return '<button class="chip ' + (S.store === s ? 'on' : '') + '" data-a="store" data-v="' + E(s) + '">🏬 ' + E(s) + ' (' + needN(s) + ')</button>'; }).join('') + '</div>' +
       (L.length ? L.map(function (g, x) {
         return (x === 0 || L[x - 1].p.store !== g.p.store ? '<div class="sec"><h2>🏬 ' + E(g.p.store) + '</h2></div>' : '') +
-          '<div class="card"><div class="li" style="padding:0"><div class="th">' + img(g.p) + '</div><div class="nm"><b>' + E(g.p.name) + '</b><small>' + (g.p.won ? won(g.p.won) + ' /ชิ้น' : '⚠️ ยังไม่ใส่ราคาวอน') + '</small><small>สำหรับ: ' + E(Object.keys(g.who).map(function (n) { return n + (g.who[n] > 1 ? ' ×' + g.who[n] : ''); }).join(', ')) + '</small></div><div class="need">' + g.need + '</div></div>' +
+          '<div class="card"><div class="li" style="padding:0"><div class="th" data-a="pinfo" data-id="' + E(g.p.id) + '" style="cursor:pointer">' + img(g.p) + '</div><div class="nm" data-a="pinfo" data-id="' + E(g.p.id) + '" style="cursor:pointer"><b>' + E(g.p.name) + '</b><small>' + (g.p.size ? '📦 ' + E(g.p.size) + ' · ' : '') + (g.p.won ? won(g.p.won) + ' /ชิ้น' : '⚠️ ยังไม่ใส่ราคาวอน') + '</small>' + (Object.keys(g.sh).length ? '<small style="color:var(--pur);font-weight:700">🎨 ' + Object.keys(g.sh).map(function (k) { return E(k) + ' ×' + g.sh[k]; }).join(' · ') + '</small>' : '') + '<small>สำหรับ: ' + E(Object.keys(g.who).map(function (n) { return n + (g.who[n] > 1 ? ' ×' + g.who[n] : ''); }).join(', ')) + '</small></div><div class="need">' + g.need + '</div></div>' +
           '<div class="row" style="margin-top:10px"><button class="btn amb sm" data-a="oos" data-id="' + E(g.p.id) + '">😢 หมด</button><button class="btn sm" data-a="gotall" data-id="' + E(g.p.id) + '">✓ ได้ครบ ' + g.need + '</button></div></div>';
       }).join('') : '<div class="empty"><b>🛒</b>ไม่มีของต้องซื้อ' + (S.store !== 'all' ? 'ที่ร้านนี้' : '') + '</div>') +
       '<p class="mut" style="text-align:center">กด “หมด” → ลูกค้าที่สั่งตัวนี้เห็นในหน้าติดตาม และเลือกเองว่าจะรอรอบหน้าหรือรับเงินคืน</p>';
@@ -553,6 +572,7 @@
       case 'delivered': o = O(id); o.items = items(o).map(function (i) { return Object.assign({}, i, i.st === 'arrived' ? { st: 'done' } : {}); }); run(saveOrder(o), 'ปิดออเดอร์ #' + o.no + ' ✓'); break;
       case 'refpaid': o = O(id); its = items(o).map(function (i) { return Object.assign({}, i); }); its[+b.dataset.k].refPaid = true; o.items = its; run(saveOrder(o), 'บันทึกคืนเงินแล้ว'); break;
       case 'pedit': mPedit(id ? P(id) : null); break;
+      case 'pinfo': { var pp = P(id); if (pp) mPinfo(pp, v); break; }
       case 'psave': {
         var nm = $('#e_n').value.trim(), w = num($('#e_w').value), wf = num($('#e_wf').value) > w ? num($('#e_wf').value) : 0, ec = $('#e_c').value, eft = $('#e_ft').value || '', sell = num($('#e_p').value) || autoSell(w, null, ec, eft, $('#e_sz').value), x = $('#e_x').value;
         if (!nm || !sell) { say('ใส่ชื่อ และราคาวอน (หรือราคาขาย)', false); return; }

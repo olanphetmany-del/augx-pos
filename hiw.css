@@ -224,3 +224,6 @@ html.cust{color-scheme:light dark}
   html.cust .rn.n2{color:#c7ccd4}
   html.cust .appbar{background:var(--card)}
 }
+
+/* ສິນຄ້າໃນອໍເດີ (ຫຼັງຮ້ານ) */
+.oil{margin-top:8px;border-top:1px solid var(--line)}.oil .li{padding:7px 0}.oi .nm small{display:block}
