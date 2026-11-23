@@ -46,11 +46,15 @@ for (const [id, p] of miss) {
   if (!best) { out.push({ id, name: p.name, why: 'not found' }); console.log('NONE', id, p.name); continue; }
   try {
     const src = best.img.startsWith('//') ? 'https:' + best.img : best.img;
-    const buf = Buffer.from(await (await fetch(src + (src.includes('?') ? '&' : '?') + 'width=800', { headers: UA })).arrayBuffer());
+    console.log('TRY', id, best.score.toFixed(2), '|', p.name, '=>', best.title, best.url.split('?')[0], src);
+    let r = await fetch(src.replace(/\.(webp|avif)(\?|$)/, '.jpg$2'), { headers: { 'user-agent': UA['user-agent'], accept: 'image/jpeg,image/png,image/*;q=0.8' } });
+    if (!r.ok) r = await fetch(src, { headers: { 'user-agent': UA['user-agent'], accept: 'image/jpeg,image/png' } });
+    console.log('   ', r.status, r.headers.get('content-type'));
+    const buf = Buffer.from(await r.arrayBuffer());
     const jpg = await sharp(buf).flatten({ background: '#ffffff' }).resize(600, 600, { fit: 'contain', background: '#ffffff' }).jpeg({ quality: 80 }).toBuffer();
     fs.writeFileSync(`results/${id}.jpg`, jpg);
     out.push({ id, name: p.name, title: best.title, score: +best.score.toFixed(2), url: best.url, kb: Math.round(jpg.length / 1024) });
     console.log('HIT', id, best.score.toFixed(2), '|', p.name, '=>', best.title, best.url);
-  } catch (e) { out.push({ id, name: p.name, why: 'download ' + e.message }); }
+  } catch (e) { out.push({ id, name: p.name, title: best.title, url: best.url, why: 'download ' + e.message }); console.log('   FAIL', e.message); }
 }
 fs.writeFileSync('results/results.json', JSON.stringify(out, null, 1));
