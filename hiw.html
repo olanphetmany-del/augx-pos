@@ -126,6 +126,14 @@
     var done = function () { toast(ok || 'ກັອບປີ້ແລ້ວ ✓'); };
     try { navigator.clipboard.writeText(t).then(done, function () { toast(t); }); } catch (e) { toast(t); }
   }
+  // ແຊຣ໌ສິນຄ້າ: ລິ້ງ #p=id ເປີດສິນຄ້ານັ້ນໂດຍກົງ · ມືຖືມີເມນູແຊຣ໌ = ໃຊ້ເລີຍ, ບໍ່ມີ = ກັອບປີ້
+  function shareUrl(p) { return location.href.split('#')[0] + '#p=' + encodeURIComponent(p.id); }
+  function shareText(p) { return p.name + (p.size && p.name.indexOf(p.size) < 0 ? ' ' + p.size : '') + '\n' + kip(p.sell) + (p.hook ? ' · ' + p.hook : '') + '\nສັ່ງຈາກເກົາຫຼີໄດ້ທີ່ນີ້ 👉'; }
+  function shareP(p) {
+    var url = shareUrl(p), text = shareText(p), fall = function () { copy(text + ' ' + url, 'ກັອບປີ້ລິ້ງແລ້ວ ✓ ວາງສົ່ງໄດ້ເລີຍ'); };
+    if (!navigator.share) { fall(); return; }
+    navigator.share({ title: p.name, text: text, url: url }).then(null, function (e) { if (!e || e.name !== 'AbortError') fall(); });
+  }
   function round() { return (S.set && S.set.round) || {}; }
   function daysLeft() { var c = round().close; if (!c) return null; return Math.ceil((new Date(c + 'T23:59:59') - Date.now()) / DAY); }
 
@@ -305,6 +313,7 @@
       '<h2 style="margin-top:12px">' + esc(p.name) + '</h2>' + (p.size ? '<div class="psz" style="font-size:14px">📦 ປະລິມານ: ' + esc(p.size) + '</div>' : '') + (p.hook ? '<div class="hook">✨ ' + esc(p.hook) + '</div>' : '') + (p.tt ? '<div class="ttv">' + (p.ttLine ? '<span class="tl">🔥 “' + esc(p.ttLine) + '”</span>' : '<span class="tl">🔥 ເທຣນ TikTok</span>') + ttChips(p) + ttBtn(p) + '</div>' : '') + (p.rating > 0 || ordered(p) >= 5 ? '<div>' + stars(p) + boughtTag(p) + '</div>' : '') + (p.heavy ? '<div class="pheavy big">⚖️ ສິນຄ້າມີນ້ຳໜັກ — ຄ່າຫິ້ວອາດສູງກວ່ານີ້, ກະລຸນາສອບຖາມຮ້ານອີກຄັ້ງ</div>' : '') + price(p, true) +
       '<p class="mut">ສິນຄ້າແທ້ຊື້ຈາກຮ້ານໃນເກົາຫຼີ · ລາຄາລວມຄ່າຫິ້ວແລ້ວ' + (r.fly ? ' · ຂອງຮອດລາວປະມານ ' + dmy(plusDays(r.fly, 3)) : '') + '</p>' +
       (opts(p).length ? '<div class="opth">🎨 ເລືອກສີ / ເບີ <span>' + opts(p).length + ' ແບບ</span></div><div class="opts">' + opts(p).map(function (o) { return '<button class="opt' + (S.pick === o ? ' on' : '') + '" data-a="opt" data-id="' + esc(p.id) + '" data-v="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>' : '') +
+      '<button class="btn ghost w shr" data-a="share" data-id="' + esc(p.id) + '" style="margin-top:12px">📤 ແຊຣ໌ໃຫ້ໝູ່</button>' +
       '<div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ປິດ</button>' + (opts(p).length && !S.pick ? '<button class="btn" data-a="needopt">🎨 ເລືອກສີກ່ອນ</button>' : '<button class="btn" data-a="cp" data-id="' + esc(opts(p).length ? p.id + '|' + S.pick : p.id) + '" data-close="1">+ ເພີ່ມໃສ່ກະຕ່າ' + (opts(p).length ? ' · ' + esc(S.pick) : '') + '</button>') + '</div>');
   }
   function feeRows(L) {
@@ -466,6 +475,7 @@
       case 'rk': S.rk = v; S.rkMore = false; render(); break;
       case 'rkmore': S.rkMore = !S.rkMore; render(); break;
       case 'pview': { var p = P(id); if (p) mPview(p); break; }
+      case 'share': { var sp = P(id); if (sp) shareP(sp); break; }
       case 'opt': { S.pick = v; var po = P(id); if (po) mPview(po); break; }
       case 'needopt': toast('ກະລຸນາເລືອກສີ / ເບີກ່ອນ'); break;
       case 'cp': if (opts(P(id)).length) { mPview(P(id)); break; } S.cart[id] = (S.cart[id] || 0) + 1; saveCart(); if (b.dataset.close) { closeM(); toast('ເພີ່ມແລ້ວ ✓'); } else if ($('#layer').innerHTML) mCart(); render(); break;
@@ -499,7 +509,15 @@
   if (m) { S.toks = [m[1]].concat(S.toks.filter(function (x) { return x !== m[1]; })).slice(0, 20); store('hiw-toks', S.toks); S.ct = 'track'; }
   S.toks.forEach(watchTrack);
   var timer = setTimeout(function () { if (!S.set || !S.products) $('#app').innerHTML = '<div class="empty"><b>📶</b>ເຊື່ອມຕໍ່ບໍ່ໄດ້ · ກວດອິນເຕີເນັດ ແລ້ວໂຫຼດໜ້າໃໝ່</div>'; }, 12000);
-  function ok() { if (S.set && S.products) clearTimeout(timer); schedule(); }
+  var pm = /#p=([^&]+)/.exec(location.hash), openPid = pm ? decodeURIComponent(pm[1]) : '';
+  function ok() {
+    if (S.set && S.products) clearTimeout(timer);
+    schedule();
+    if (openPid && S.set && S.products) {
+      var op = P(openPid); openPid = '';
+      setTimeout(function () { if (op && !op.hidden && op.sell > 0) mPview(op); else toast('ສິນຄ້ານີ້ບໍ່ມີແລ້ວ · ເບິ່ງສິນຄ້າອື່ນໃນຮ້ານ'); }, 80);
+    }
+  }
   db.ref('hiw/pub/settings').on('value', function (s) { S.set = s.val() || {}; ok(); }, function (e) { console.warn(e); S.set = {}; ok(); });
   db.ref('hiw/pub/products').on('value', function (s) { S.products = s.val() || {}; ok(); }, function (e) { console.warn(e); S.products = {}; ok(); });
 })();
