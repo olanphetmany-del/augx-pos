@@ -531,19 +531,29 @@
       });
     }).then(function (j) { S.inbox = Array.isArray(j && j.items) ? j.items : []; schedule(); }, function () { S.inboxErr = true; if (!S.inbox) S.inbox = []; schedule(); });
   }
+  function inbImg(x) { return /^data:image\/(jpeg|png|webp);base64,/.test(String(x.img || '')) ? x.img : ''; }
   function inbSkipped() { try { return JSON.parse(localStorage.getItem('hiwInboxSkip') || '{}') || {}; } catch (e) { return {}; } }
   function inbSkip(k) { var o = inbSkipped(); o[k] = 1; try { localStorage.setItem('hiwInboxSkip', JSON.stringify(o)); } catch (e) { /* ไม่มีที่เก็บ = ซ่อนจนรีเฟรช */ } S.inbHide = S.inbHide || {}; S.inbHide[k] = 1; }
   // new = ยังไม่มีในร้าน · upd = มีแล้วแต่ราคา/ชื่อ/ปริมาณต่าง · done = ในร้านตรงกับการ์ดแล้ว (ไม่ต้องโชว์)
   function inbState(x) {
-    var p = P(x.id); if (!p) return 'new';
+    var p = P(x.id);
+    if (inbImg(x) && !x.won) return !p ? 'gone' : p.hasImg ? 'done' : 'img'; // การ์ดรูป: ใส่ให้สินค้าที่ยังไม่มีรูป
+    if (!p) return 'new';
     var same = num(x.won) === num(p.won) && (num(x.wonFull) > num(x.won) ? num(x.wonFull) : 0) === num(p.wonFull) && (!x.name || x.name === p.name) && (!x.size || x.size === p.size);
     return same ? 'done' : 'upd';
   }
   function inbList() {
     var sk = inbSkipped(), hid = S.inbHide || {};
-    return (S.inbox || []).filter(function (x) { if (!x || !x.key || !x.id || sk[x.key] || hid[x.key]) return false; var st = inbState(x); return st === 'upd' || (st === 'new' && !!x.name); });
+    return (S.inbox || []).filter(function (x) { if (!x || !x.key || !x.id || sk[x.key] || hid[x.key]) return false; var st = inbState(x); return st === 'upd' || st === 'img' || (st === 'new' && !!x.name); });
   }
   function inbCard(x) {
+    if (inbState(x) === 'img') {
+      var q = P(x.id);
+      return '<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><b>📷 รูปใหม่</b><small class="mut">' + E(x.at || '') + '</small></div>' +
+        '<div class="row" style="align-items:center;margin-top:6px"><img src="' + E(inbImg(x)) + '" alt="" style="width:110px;height:110px;object-fit:contain;border-radius:12px;background:#fff;flex:none">' +
+        '<div><h3 style="margin:0 0 2px">' + E(q.name) + '</h3>' + (q.size ? '<div class="mut">📦 ' + E(q.size) + '</div>' : '') + '<div class="mut">' + kip(q.sell) + '</div></div></div>' +
+        '<div class="row" style="margin-top:10px"><button class="btn" data-a="inbadd" data-v="' + E(x.key) + '">✓ ใส่รูปนี้</button><button class="btn ghost" data-a="inbskip" data-v="' + E(x.key) + '">ไม่ใช่ตัวนี้</button></div></div>';
+    }
     var st = inbState(x), p = P(x.id), w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, cat = x.cat || (p && catOf(p)) || 'other';
     var sell = num(x.sell) || autoSell(w, null, cat, p ? p.ft : '', x.size || (p && p.size));
     var price = (wf ? '<s>' + won(wf) + '</s> ' : '') + won(w) + ' → <b style="color:var(--ink)">' + kip(sell) + '</b>';
@@ -567,6 +577,7 @@
     var L = inbList().filter(function (x) { return keys === '*' || x.key === keys; }), up = {};
     if (!L.length) return;
     L.forEach(function (x) {
+      if (inbState(x) === 'img') { up['hiw/pub/pimg/' + x.id] = inbImg(x); up['hiw/pub/products/' + x.id + '/hasImg'] = true; S.img[x.id] = inbImg(x); return; }
       if (inbState(x) === 'new') { impProd(Object.assign({ store: 'Olive Young' }, x), up, true); return; }
       var p = P(x.id), id = p.id, w = num(x.won), wf = num(x.wonFull) > w ? num(x.wonFull) : 0, c = catOf(p), sz = x.size || p.size || '', sell = num(x.sell) || autoSell(w, null, c, p.ft, sz), pp = 'hiw/pub/products/' + id + '/';
       up[pp + 'won'] = w; up[pp + 'wonFull'] = wf; up[pp + 'sell'] = sell; up[pp + 'fee'] = Math.min(sell, feeOf(w, null, c, p.ft, sz)); up[pp + 'heavy'] = tier(c, p.ft, sz) === 'h';
