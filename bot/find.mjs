@@ -4,13 +4,15 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 const DB = 'https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app';
 const prods = await (await fetch(DB + '/hiw/pub/products.json')).json();
-const miss = Object.entries(prods).filter(([, p]) => p && !p.hasImg);
+const DONE = new Set(['a_oil350', 'a_toner500', 'pd_02', 'pd_11', 'pc_10']);
+const miss = Object.entries(prods).filter(([id, p]) => p && !p.hasImg && !DONE.has(id));
+const TYPES = ['mist', 'serum', 'cream', 'toner', 'oil', 'mask', 'patch', 'foam', 'balm', 'tint', 'gloss', 'sunscreen', 'sun', 'essence', 'device', 'booster', 'pad'];
 const DOM = {
-  anua: ['anua.us', 'anua.global', 'anuaglobal.com'], 'dr.g': ['drg.us', 'gowoonsesang.us', 'drgshop.com'], iope: ['iope.us', 'iope.com'],
-  medicube: ['medicube.us', 'themedicube.com', 'medicube.global'], bioderma: ['bioderma.us'], unove: ['unove.us', 'unove.com'],
-  'dashing diva': ['dashingdiva.com', 'dashingdiva.us'], fwee: ['fwee.us', 'fwee.kr', 'fweeglobal.com'], colorgram: ['colorgram.us', 'colorgram.co.kr'],
-  torriden: ['torriden.us', 'torriden.com', 'torridenglobal.com'], goodal: ['goodal.us', 'goodal.com', 'goodalglobal.com'], abib: ['abib.com', 'abib.us'],
-  vt: ['vtcosmetics.us', 'vtcosmetic.com', 'vtcosmetics.com'],
+  'dr.g': ['drg.us', 'gowoonsesang.us', 'drgshop.com'], iope: ['iope.us', 'iope.com'],
+  medicube: ['medicube.us'], bioderma: ['sokoglam.com'], unove: ['unove.co', 'unoveglobal.com', 'unove.global', 'sokoglam.com'],
+  colorgram: ['colorgram.global', 'colorgramglobal.com', 'sokoglam.com'],
+  goodal: ['goodalglobal.com', 'goodal.global', 'sokoglam.com'], abib: ['abib.global', 'abibglobal.com', 'sokoglam.com'],
+  vt: ['vtcosmetics.global', 'vt-cosmetics.us', 'vtcosmeticsus.com', 'sokoglam.com'], anua: ['anua.us', 'sokoglam.com'],
 };
 const UA = { 'user-agent': 'Mozilla/5.0 (compatible; augx-photo-finder/1.0)', accept: 'application/json' };
 const words = (s) => String(s).toLowerCase().replace(/\(.*?\)|—.*$/g, ' ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((w) => w.length > 1);
@@ -23,14 +25,17 @@ for (const [id, p] of miss) {
   const qw = words(p.name).filter((w) => !STOP.has(w) && !brandKey.split(/[ .]/).includes(w));
   let best = null;
   for (const dom of DOM[brandKey]) {
-    for (const q of [qw.slice(0, 4).join(' '), qw.slice(0, 2).join(' ')]) {
+    for (const q of [qw.slice(0, 4).join(' '), qw.slice(0, 2).join(' '), brandKey + ' ' + qw.slice(0, 2).join(' ')]) {
       try {
         const r = await fetch(`https://${dom}/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product&resources[limit]=6`, { headers: UA, signal: AbortSignal.timeout(12000) });
         if (!r.ok) { console.log('  ', dom, r.status); break; }
         const j = await r.json();
         for (const it of j?.resources?.results?.products || []) {
           const tw = new Set(words(it.title));
-          const score = qw.filter((w) => tw.has(w)).length / Math.max(qw.length, 1);
+          let score = qw.filter((w) => tw.has(w)).length / Math.max(qw.length, 1);
+          const need = TYPES.filter((t) => qw.includes(t));
+          if (need.length && !need.some((t) => tw.has(t))) score = 0;
+          if (dom === 'sokoglam.com' && !tw.has(brandKey.split(/[ .]/)[0])) score = 0;
           if (it.image && (!best || score > best.score)) best = { score, title: it.title, img: it.image, url: `https://${dom}${it.url}` };
         }
       } catch (e) { console.log('  ', dom, 'ERR', e.message); break; }
