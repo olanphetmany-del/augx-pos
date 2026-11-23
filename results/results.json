@@ -1,50 +1,34 @@
 [
  {
-  "id": "a_mist2",
-  "name": "Anua PDRN Hyaluronic Capsule Mist 1+1",
-  "why": "not found"
- },
- {
-  "id": "mc_ager_hk",
-  "name": "Medicube AGE-R Booster Ultrasonic Device — Hello Kitty Edition (Limited)",
-  "why": "not found"
- },
- {
-  "id": "pc_09",
-  "name": "UNOVE Glow Hand Cream 40ml",
-  "why": "not found"
- },
- {
-  "id": "pd_14",
-  "name": "Goodal Heartleaf Sunscreen 50+50ml",
-  "why": "not found"
- },
- {
   "id": "pm_03",
   "name": "Abib Gummy Sheet Mask Heartleaf 5 sheets",
   "title": "Gummy sheet mask Heartleaf sticker(10 sheets)",
-  "url": "https://abib.global/products/heartleaf-sticker?_pos=1&_psq=gummy+sheet+mask+heartleaf&_psid=ed4e3113a&_ss=e",
-  "why": "download Input buffer contains unsupported image format"
+  "score": 1,
+  "url": "https://abib.global/products/heartleaf-sticker?_pos=1&_psq=gummy+sheet+mask+heartleaf&_psid=117d3672f&_ss=e",
+  "kb": 26
  },
  {
   "id": "pt10_09",
   "name": "UNOVE Deep Damage Repair Hair Mask 320ml x2",
   "title": "UNOVE Deep Damage Repair Hair Mask",
-  "url": "https://unoveglobal.com/products/unove-deep-damage-repair-hair-mask?_pos=1&_psq=deep+damage+repair+hair&_psid=661d0e9b1&_ss=e",
-  "why": "download Input buffer contains unsupported image format"
+  "score": 0.83,
+  "url": "https://unoveglobal.com/products/unove-deep-damage-repair-hair-mask?_pos=1&_psq=deep+damage+repair+hair&_psid=eca576b85&_ss=e",
+  "kb": 19
  },
  {
   "id": "pt10_10",
   "name": "UNOVE Silk Hair Oil Essence 70ml x2",
   "title": "UNOVE Silk Hair Oil",
-  "url": "https://unoveglobal.com/products/unove-silk-hair-oil?_pos=1&_psq=silk+hair+oil+essence&_psid=087126835&_ss=e",
-  "why": "download Input buffer contains unsupported image format"
+  "score": 0.6,
+  "url": "https://unoveglobal.com/products/unove-silk-hair-oil?_pos=1&_psq=silk+hair+oil+essence&_psid=82c16eaee&_ss=e",
+  "kb": 17
  },
  {
   "id": "ptr_02",
   "name": "VT Reedle Shot 100 50ml",
   "title": "VT Reedle Shot 100",
-  "url": "https://sokoglam.com/products/vt-cosmetics-vt-reedle-shot-100?_pos=1&_psq=reedle+shot+100+50ml&_psid=d6ec2103d&_ss=e",
-  "why": "download Input buffer contains unsupported image format"
+  "score": 0.75,
+  "url": "https://sokoglam.com/products/vt-cosmetics-vt-reedle-shot-100?_pos=1&_psq=reedle+shot+100+50ml&_psid=6c28ed292&_ss=e",
+  "kb": 12
  }
 ]
