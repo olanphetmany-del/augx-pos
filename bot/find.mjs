@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 const DB = 'https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app';
 const prods = await (await fetch(DB + '/hiw/pub/products.json')).json();
-const DONE = new Set(['a_oil350', 'a_toner500', 'pd_02', 'pd_11', 'pc_10']);
-const miss = Object.entries(prods).filter(([id, p]) => p && !p.hasImg && !DONE.has(id));
+const ONLY = new Set(['pm_03', 'pt10_09', 'pt10_10', 'ptr_02', 'a_mist2', 'mc_ager_hk', 'pd_14', 'pc_09']);
+const miss = Object.entries(prods).filter(([id, p]) => p && !p.hasImg && ONLY.has(id));
 const TYPES = ['mist', 'serum', 'cream', 'toner', 'oil', 'mask', 'patch', 'foam', 'balm', 'tint', 'gloss', 'sunscreen', 'sun', 'essence', 'device', 'booster', 'pad'];
 const DOM = {
   'dr.g': ['drg.us', 'gowoonsesang.us', 'drgshop.com'], iope: ['iope.us', 'iope.com'],
@@ -36,7 +36,7 @@ for (const [id, p] of miss) {
           const need = TYPES.filter((t) => qw.includes(t));
           if (need.length && !need.some((t) => tw.has(t))) score = 0;
           if (dom === 'sokoglam.com' && !tw.has(brandKey.split(/[ .]/)[0])) score = 0;
-          if (it.image && (!best || score > best.score)) best = { score, title: it.title, img: it.image, url: `https://${dom}${it.url}` };
+          if (it.image && score >= 0.6 && (!best || score > best.score)) best = { score, title: it.title, img: it.image, url: `https://${dom}${it.url}` };
         }
       } catch (e) { console.log('  ', dom, 'ERR', e.message); break; }
       if (best && best.score >= 0.6) break;
@@ -47,8 +47,8 @@ for (const [id, p] of miss) {
   try {
     const src = best.img.startsWith('//') ? 'https:' + best.img : best.img;
     console.log('TRY', id, best.score.toFixed(2), '|', p.name, '=>', best.title, best.url.split('?')[0], src);
-    let r = await fetch(src.replace(/\.(webp|avif)(\?|$)/, '.jpg$2'), { headers: { 'user-agent': UA['user-agent'], accept: 'image/jpeg,image/png,image/*;q=0.8' } });
-    if (!r.ok) r = await fetch(src, { headers: { 'user-agent': UA['user-agent'], accept: 'image/jpeg,image/png' } });
+    let r = await fetch(src + (src.includes('?') ? '&' : '?') + 'width=800', { headers: UA });
+    if (!r.ok) r = await fetch(src, { headers: UA });
     console.log('   ', r.status, r.headers.get('content-type'));
     const buf = Buffer.from(await r.arrayBuffer());
     const jpg = await sharp(buf).flatten({ background: '#ffffff' }).resize(600, 600, { fit: 'contain', background: '#ffffff' }).jpeg({ quality: 80 }).toBuffer();
