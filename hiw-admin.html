@@ -346,8 +346,13 @@
   }
   function sProd() {
     var st = stores(), q = String(S.pq || '').toLowerCase().trim(), all = plist();
-    var L = all.filter(function (p) { return !q || [p.name, p.brand, p.size, p.id, p.store].join(' ').toLowerCase().indexOf(q) >= 0; }).sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
+    var L = all.filter(function (p) { return (!S.noImg || !p.hasImg) && (!q || [p.name, p.brand, p.size, p.id, p.store].join(' ').toLowerCase().indexOf(q) >= 0); }).sort(function (a, b) { return st.indexOf(a.store) - st.indexOf(b.store) || a.name.localeCompare(b.name); });
     return '<div class="row"><button class="btn" data-a="pedit" data-id="">+ เพิ่มสินค้า</button><label class="btn ghost nf">📥 นำเข้า<input type="file" accept=".json,application/json" data-f="import" hidden></label></div>' +
+      (function () {
+        var n = all.filter(function (p) { return !p.hasImg && !p.hidden; }).length, show = S.pub && S.pub.showNoImg;
+        return '<div class="row" style="margin-top:10px;align-items:center"><button class="btn ' + (S.noImg ? '' : 'ghost') + ' sm" data-a="noimg">📷 ยังไม่มีรูป ' + n + '</button>' +
+          '<small class="mut">' + (show ? 'ลูกค้าเห็นสินค้าที่ไม่มีรูปด้วย' : 'ลูกค้าไม่เห็นสินค้าที่ยังไม่มีรูป') + ' · <a href="#" data-a="shownoimg">' + (show ? 'ซ่อน' : 'ให้เห็น') + '</a></small></div>';
+      })() +
       '<input id="pq" type="search" placeholder="🔍 ค้นหาสินค้า (ชื่อ · แบรนด์ · ปริมาณ)" value="' + E(S.pq || '') + '" style="margin-top:10px">' +
       (q ? '<p class="mut">พบ ' + L.length + ' จาก ' + all.length + ' รายการ</p>' + (L.length ? '' : '<div class="empty"><b>🔍</b>ไม่พบสินค้า</div>') : '') +
       st.map(function (s) {
@@ -618,6 +623,8 @@
       case 'ot': S.ot = v; S.sub = null; closeM(); render(); scrollTo(0, 0); break;
       case 'go': if (v === 'orders') { S.ot = 'orders'; S.of = 'slip'; } else if (v === 'buy' || v === 'pack') S.ot = v; else { S.ot = 'more'; S.sub = v; } render(); scrollTo(0, 0); break;
       case 'of': S.of = v; render(); break;
+      case 'noimg': S.noImg = !S.noImg; render(); break;
+      case 'shownoimg': e.preventDefault(); run(db.ref('hiw/pub/settings/showNoImg').set(!(S.pub && S.pub.showNoImg)), 'บันทึกแล้ว ✓'); break;
       case 'pshare': { var sp = P(id); if (sp) shareP(sp); break; }
       case 'inbload': S.inbox = null; loadInbox(); render(); break;
       case 'inbadd': inbAdd(v); break;

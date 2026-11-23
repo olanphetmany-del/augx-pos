@@ -79,7 +79,8 @@
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* โหมดส่วนตัว: ไม่จำก็ได้ */ } }
   function load(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
   function P(id) { return S.products && S.products[id] ? Object.assign({ id: id }, S.products[id]) : null; }
-  function plist() { return Object.keys(S.products || {}).map(P).filter(function (p) { return p && !p.hidden && p.sell > 0; }); }
+  // ສິນຄ້າທີ່ຍັງບໍ່ມີຮູບ ບໍ່ໂຊລູກຄ້າ (ເຈົ້າຂອງເປີດ showNoImg ໄດ້ໃນຫຼັງຮ້ານ)
+  function plist() { var any = S.set && S.set.showNoImg; return Object.keys(S.products || {}).map(P).filter(function (p) { return p && !p.hidden && p.sell > 0 && (p.hasImg || any); }); }
   function catOf(p) { return CATS.some(function (c) { return c[0] === p.cat; }) ? p.cat : 'other'; }
   function catIc(p) { var c = CATS.filter(function (x) { return x[0] === catOf(p); })[0]; return c ? c[1] : '✨'; }
   function img(p) {

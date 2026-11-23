@@ -11,7 +11,7 @@ function hiwData(now = Date.now()) {
     return {
         hiw: {
             pub: {
-                settings: { shop: 'Smoke Hiw', tag: 'tag', wa: '02055550000', bank: 'BCEL One', accNo: '0302 1000', accName: 'SMOKE', round: { name: 'R1', close: iso(now + 5 * 864e5), fly: iso(now + 9 * 864e5) } },
+                settings: { showNoImg: true, shop: 'Smoke Hiw', tag: 'tag', wa: '02055550000', bank: 'BCEL One', accNo: '0302 1000', accName: 'SMOKE', round: { name: 'R1', close: iso(now + 5 * 864e5), fly: iso(now + 9 * 864e5) } },
                 products: {
                     p1: { name: 'Smoke Toner', cat: 'skin', sell: 471000, best: 1 },
                     p2: { name: 'Smoke Mask', cat: 'mask', sell: 189000 },
@@ -701,5 +701,39 @@ test.describe('hiw-admin product share (owner)', () => {
         expect(s.url).toMatch(/\/hiw\.html#p=p1$/);
         expect(s.text).toContain('Smoke Toner');
         expect(errors).toEqual([]);
+    });
+});
+
+// ສິນຄ້າບໍ່ມີຮູບ: ລູກຄ້າບໍ່ເຫັນ · ຫຼັງຮ້ານກອງ "📷 ຍັງບໍ່ມີຮູບ" ແລະ ເປີດ/ປິດໄດ້
+test.describe('hiw products without a photo', () => {
+    const d = hiwData();
+    delete d.hiw.pub.settings.showNoImg;
+    d.hiw.pub.products.p1.hasImg = true;
+    d.hiw.pub.pimg = { p1: 'data:image/png;base64,' + PNG.toString('base64') };
+
+    test.describe('customer', () => {
+        test.use({ db: d, user: null });
+        test('only products with a photo are shown', async ({ page, errors }) => {
+            await page.goto('hiw.html');
+            await expect(page.getByText('Smoke Toner').first()).toBeVisible();
+            await expect(page.getByText('Smoke Mask')).toHaveCount(0);
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('owner', () => {
+        test.use({ db: d, user: OWNER });
+        test('filter lists the products missing a photo and the switch lets customers see them', async ({ page, errors }) => {
+            await page.goto('hiw-admin.html');
+            await page.click('[data-a=ot][data-v=more]');
+            await page.click('[data-a=sub][data-v=prod]');
+            await expect(page.locator('[data-a=noimg]')).toHaveText('📷 ยังไม่มีรูป 1');
+            await page.click('[data-a=noimg]');
+            await expect(page.locator('.card[data-a=pedit]')).toHaveCount(2); // p2 + hidden p3
+            await expect(page.locator('.card[data-a=pedit][data-id=p1]')).toHaveCount(0);
+            await page.click('[data-a=shownoimg]');
+            await expect.poll(() => fakeDb(page, 'hiw/pub/settings/showNoImg')).toBe(true);
+            expect(errors).toEqual([]);
+        });
     });
 });
