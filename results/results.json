@@ -2,26 +2,7 @@
  {
   "id": "a_mist2",
   "name": "Anua PDRN Hyaluronic Capsule Mist 1+1",
-  "title": "PDRN Hyaluronic Acid Capsule 100 Serum",
-  "score": 0.75,
-  "url": "https://anua.us/products/pdrn-hyaluronic-acid-capsule-100-serum?_pos=1&_psq=pdrn+hyaluronic+capsule+mist&_psid=c210157ab&_ss=e",
-  "kb": 14
- },
- {
-  "id": "a_oil350",
-  "name": "Anua Heartleaf Pore Control Cleansing Oil 350ml (Sanrio Pochacco edition, +remover pads)",
-  "title": "Heartleaf Pore Control Cleansing Oil",
-  "score": 0.83,
-  "url": "https://anua.us/products/heartleaf-pore-control-cleansing-oil-200ml?_pos=1&_psq=heartleaf+pore+control+cleansing&_psid=cfdd2212b&_ss=e",
-  "kb": 9
- },
- {
-  "id": "a_toner500",
-  "name": "Anua Heartleaf 77% Soothing Toner 500ml (Sanrio Pochacco edition, +sticker)",
-  "title": "Heartleaf 77 Soothing Toner",
-  "score": 0.8,
-  "url": "https://anua.us/products/heartleaf-77-soothing-toner?_pos=1&_psq=heartleaf+77+soothing+toner&_psid=ff20efb88&_ss=e",
-  "kb": 11
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "drg_avfoam",
@@ -46,73 +27,46 @@
  {
   "id": "mc_ager_hk",
   "name": "Medicube AGE-R Booster Ultrasonic Device — Hello Kitty Edition (Limited)",
-  "title": "Booster Pro X2™",
-  "score": 0.25,
-  "url": "https://medicube.us/products/booster-pro-x2?_pos=1&_psq=age+booster+ultrasonic+device&_psid=4205fe4d2&_ss=e",
-  "kb": 53
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pc_08",
   "name": "Bioderma Atoderm Lip Balm 1+1",
-  "why": "not found"
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pc_09",
   "name": "UNOVE Glow Hand Cream 40ml",
-  "why": "not found"
- },
- {
-  "id": "pc_10",
-  "name": "Dashing Diva Magic Press Nails",
-  "title": "Playing Games",
-  "score": 0,
-  "url": "https://dashingdiva.com/products/magic-press-playing-games?_pos=1&_psq=magic+press+nails&_psid=2220e764c&_ss=e",
-  "kb": 27
- },
- {
-  "id": "pd_02",
-  "name": "fwee 3D Voluming Gloss",
-  "title": "3D Voluming Gloss",
-  "score": 1,
-  "url": "https://fwee.us/products/3d-voluming-gloss?_pos=1&_psq=3d+voluming+gloss&_psid=ed73ffb34&_ss=e",
-  "kb": 18
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pd_03",
   "name": "colorgram Nudy Blur Tint",
-  "why": "not found"
- },
- {
-  "id": "pd_11",
-  "name": "Torriden Dive-in Mask 10 sheets",
-  "title": "DIVE IN Mask",
-  "score": 0.75,
-  "url": "https://torriden.us/products/dive-in-mask?_pos=1&_psq=dive+in+mask+10&_psid=406026d5a&_ss=e",
-  "kb": 35
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pd_14",
   "name": "Goodal Heartleaf Sunscreen 50+50ml",
-  "why": "not found"
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pm_03",
   "name": "Abib Gummy Sheet Mask Heartleaf 5 sheets",
-  "why": "not found"
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pt10_09",
   "name": "UNOVE Deep Damage Repair Hair Mask 320ml x2",
-  "why": "not found"
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "pt10_10",
   "name": "UNOVE Silk Hair Oil Essence 70ml x2",
-  "why": "not found"
+  "why": "download Input buffer contains unsupported image format"
  },
  {
   "id": "ptr_02",
   "name": "VT Reedle Shot 100 50ml",
-  "why": "not found"
+  "why": "download Input buffer contains unsupported image format"
  }
 ]
