@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 const DB = 'https://augx-d75c2-default-rtdb.asia-southeast1.firebasedatabase.app';
 const prods = await (await fetch(DB + '/hiw/pub/products.json')).json();
-const ONLY = new Set(['pm_03', 'pt10_09', 'pt10_10', 'ptr_02', 'a_mist2', 'mc_ager_hk', 'pd_14', 'pc_09']);
+const ONLY = new Set(['pm_03', 'pt10_09', 'pt10_10', 'ptr_02']);
 const miss = Object.entries(prods).filter(([id, p]) => p && !p.hasImg && ONLY.has(id));
 const TYPES = ['mist', 'serum', 'cream', 'toner', 'oil', 'mask', 'patch', 'foam', 'balm', 'tint', 'gloss', 'sunscreen', 'sun', 'essence', 'device', 'booster', 'pad'];
 const DOM = {
