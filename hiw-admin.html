@@ -160,6 +160,14 @@
     });
   }
   function copy(t, ok) { try { navigator.clipboard.writeText(t).then(function () { say(ok || 'คัดลอกแล้ว ✓'); }, function () { say('คัดลอกไม่ได้ — กดค้างที่ข้อความแทน', false); }); } catch (e) { say('คัดลอกไม่ได้', false); } }
+  // แชร์สินค้า (ข้อความลาว + ลิงก์ที่เปิดสินค้านั้นในร้านโดยตรง)
+  function shareP(p) {
+    var url = location.href.split('#')[0].replace(/hiw-admin\.html.*$/, 'hiw.html') + '#p=' + encodeURIComponent(p.id);
+    var text = p.name + (p.size && p.name.indexOf(p.size) < 0 ? ' ' + p.size : '') + '\n' + kip(p.sell) + (p.hook ? ' · ' + p.hook : '') + '\nສັ່ງຈາກເກົາຫຼີໄດ້ທີ່ນີ້ 👉';
+    var fall = function () { copy(text + ' ' + url, 'คัดลอกลิงก์แล้ว ✓ วางส่งได้เลย'); };
+    if (!navigator.share) { fall(); return; }
+    navigator.share({ title: p.name, text: text, url: url }).then(null, function (e) { if (!e || e.name !== 'AbortError') fall(); });
+  }
   function run(p, okMsg) { return p.then(function () { if (okMsg) say(okMsg); return true; }, function (e) { say('บันทึกไม่สำเร็จ: ' + ((e && e.code) || 'ลองใหม่'), false); return false; }); }
   var rq = false;
   function schedule() { if (rq) return; rq = true; setTimeout(function () { rq = false; render(); }, 40); }
@@ -368,6 +376,7 @@
       '<h3 style="margin:14px 0 0">🏆 Ranking</h3>' +
       '<div class="row"><div><label>อันดับ Ranking (1–10 · 0 = ไม่อยู่)</label><input id="e_rk" inputmode="numeric" value="' + (p ? num(p.rank) : 0) + '"></div><div><label>จุดเด่น 1 บรรทัด (ภาษาลาว)</label><input id="e_hk" maxlength="40" value="' + E(p && p.hook ? p.hook : '') + '" placeholder="ຮູຂຸມຂົນ · ຜິວໃສ"></div></div>' +
       '<div class="row"><div><label>ดาวรีวิวในเกาหลี (เช่น 4.8)</label><input id="e_rt" inputmode="decimal" value="' + (p && p.rating ? p.rating : '') + '"></div><div><label>จำนวนรีวิวในเกาหลี</label><input id="e_rv" inputmode="numeric" value="' + (p && p.reviews ? p.reviews : '') + '"></div></div>' +
+      (p && !p.hidden ? '<button class="btn ghost w" data-a="pshare" data-id="' + E(p.id) + '" style="margin-top:14px">📤 แชร์สินค้านี้ให้ลูกค้า</button>' : '') +
       '<div class="row" style="margin-top:14px">' + (p ? '<button class="btn red nf" data-a="pdel" data-id="' + E(p.id) + '">🗑</button>' : '') + '<button class="btn ghost" data-a="close">ยกเลิก</button><button class="btn" data-a="psave">บันทึก</button></div>');
     updPv();
   }
@@ -609,6 +618,7 @@
       case 'ot': S.ot = v; S.sub = null; closeM(); render(); scrollTo(0, 0); break;
       case 'go': if (v === 'orders') { S.ot = 'orders'; S.of = 'slip'; } else if (v === 'buy' || v === 'pack') S.ot = v; else { S.ot = 'more'; S.sub = v; } render(); scrollTo(0, 0); break;
       case 'of': S.of = v; render(); break;
+      case 'pshare': { var sp = P(id); if (sp) shareP(sp); break; }
       case 'inbload': S.inbox = null; loadInbox(); render(); break;
       case 'inbadd': inbAdd(v); break;
       case 'inbskip': inbSkip(v); render(); break;

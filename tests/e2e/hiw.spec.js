@@ -656,3 +656,50 @@ test.describe('hiw-admin inbox from Claude (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ແຊຣ໌ສິນຄ້າ: ລິ້ງ #p=id ເປີດສິນຄ້ານັ້ນ · ປຸ່ມແຊຣ໌ສົ່ງຂໍ້ຄວາມລາວ + ລິ້ງ
+const stubShare = (page) => page.addInitScript(() => {
+    window.__shared = [];
+    navigator.share = (d) => { window.__shared.push(d); return Promise.resolve(); };
+});
+test.describe('hiw product share (customer)', () => {
+    const d = hiwData();
+    d.hiw.pub.products.p1.hook = 'ໂທນເນີດີ';
+    test.use({ db: d, user: null });
+
+    test('a #p= link opens that product and the share button sends text + link', async ({ page, errors }) => {
+        await stubShare(page);
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('hiw.html#p=p1');
+        await expect(page.locator('.sheet h2')).toHaveText('Smoke Toner');
+        await page.click('.sheet [data-a=share]');
+        const s = await page.evaluate(() => window.__shared[0]);
+        expect(s.url).toMatch(/hiw\.html#p=p1$/);
+        expect(s.text).toContain('471,000 ₭ · ໂທນເນີດີ');
+        expect(errors).toEqual([]);
+    });
+
+    test('a link to a hidden product says it is gone', async ({ page, errors }) => {
+        await page.goto('hiw.html#p=p3');
+        await expect(page.locator('.toast')).toContainText('ສິນຄ້ານີ້ບໍ່ມີແລ້ວ');
+        await expect(page.locator('.sheet')).toHaveCount(0);
+        expect(errors).toEqual([]);
+    });
+});
+
+test.describe('hiw-admin product share (owner)', () => {
+    test.use({ db: hiwData(), user: OWNER });
+
+    test('the product editor shares the storefront link', async ({ page, errors }) => {
+        await stubShare(page);
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=prod]');
+        await page.click('.card[data-a=pedit][data-id=p1]');
+        await page.click('.sheet [data-a=pshare]');
+        const s = await page.evaluate(() => window.__shared[0]);
+        expect(s.url).toMatch(/\/hiw\.html#p=p1$/);
+        expect(s.text).toContain('Smoke Toner');
+        expect(errors).toEqual([]);
+    });
+});
