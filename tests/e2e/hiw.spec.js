@@ -703,3 +703,34 @@ test.describe('hiw-admin product share (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ການ໌ດຮູບໃນກ່ອງ 📥: ໃສ່ຮູບໃຫ້ສິນຄ້າທີ່ຍັງບໍ່ມີຮູບ
+test.describe('hiw-admin inbox photo cards (owner)', () => {
+    const d = hiwData();
+    d.hiw.pub.products.p2.hasImg = true;
+    test.use({ db: d, user: OWNER });
+    const img = 'data:image/png;base64,' + PNG.toString('base64');
+    const inbox = { items: [
+        { key: 'i1', at: '24/11 00:20', id: 'p1', img },
+        { key: 'i2', at: '24/11 00:20', id: 'p2', img }, // already has a photo → hidden
+        { key: 'i3', at: '24/11 00:20', id: 'gone', img }, // not in the shop → hidden
+        { key: 'i4', at: '24/11 00:20', id: 'p3', img: 'javascript:alert(1)' }, // not an image → ignored
+    ] };
+
+    test('a photo card shows the photo and the product, and adding sets the product photo', async ({ page, errors }) => {
+        await page.route('https://api.github.com/**', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ content: Buffer.from(JSON.stringify(inbox)).toString('base64') }) }));
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=go][data-v=inbox]');
+        const cards = page.locator('main .card');
+        await expect(cards).toHaveCount(1);
+        await expect(cards.first()).toContainText('📷 รูปใหม่');
+        await expect(cards.first()).toContainText('Smoke Toner');
+        await expect(cards.first().locator('img')).toHaveAttribute('src', img);
+        await cards.first().locator('[data-a=inbadd]').click();
+        await expect(page.locator('main')).toContainText('ไม่มีสินค้ารอเพิ่ม');
+        expect(await fakeDb(page, 'hiw/pub/pimg/p1')).toBe(img);
+        expect(await fakeDb(page, 'hiw/pub/products/p1/hasImg')).toBe(true);
+        expect(await fakeDb(page, 'hiw/pub/products/p1/name')).toBe('Smoke Toner');
+        expect(errors).toEqual([]);
+    });
+});
