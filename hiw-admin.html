@@ -517,11 +517,11 @@
     }, function () { say('เปิดรูปไม่ได้', false); });
   });
   /* ---------- Claude inbox: products Claude prepares (branch hiw-inbox on GitHub) → owner taps เพิ่ม ---------- */
+  // อ่านกล่องจาก raw.githubusercontent ก่อน (ไม่ติดโควตา API 60 ครั้ง/ชม. ที่มือถือเครือข่ายเดียวกันใช้ร่วมกัน) · ไม่ได้ค่อยลอง API
+  var INBOX_RAW = 'https://raw.githubusercontent.com/olanphetmany-del/augx-pos/hiw-inbox/hiw-inbox.json';
   var INBOX_URL = 'https://api.github.com/repos/olanphetmany-del/augx-pos/contents/hiw-inbox.json?ref=hiw-inbox';
-  function loadInbox() {
-    if (!window.fetch) return;
-    S.inboxErr = false;
-    fetch(INBOX_URL, { cache: 'no-store' }).then(function (r) {
+  function inboxApi() {
+    return fetch(INBOX_URL, { cache: 'no-store' }).then(function (r) {
       if (r.status === 404) return { items: [] };
       if (!r.ok) throw new Error('http ' + r.status);
       return r.json().then(function (j) {
@@ -529,7 +529,15 @@
         for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         return JSON.parse(new TextDecoder().decode(bytes));
       });
-    }).then(function (j) { S.inbox = Array.isArray(j && j.items) ? j.items : []; schedule(); }, function () { S.inboxErr = true; if (!S.inbox) S.inbox = []; schedule(); });
+    });
+  }
+  function loadInbox() {
+    if (!window.fetch) return;
+    S.inboxErr = false;
+    fetch(INBOX_RAW + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(null, inboxApi).then(function (j) { S.inbox = Array.isArray(j && j.items) ? j.items : []; schedule(); }, function () { S.inboxErr = true; if (!S.inbox) S.inbox = []; schedule(); });
   }
   function inbImg(x) { return /^data:image\/(jpeg|png|webp);base64,/.test(String(x.img || '')) ? x.img : ''; }
   function inbSkipped() { try { return JSON.parse(localStorage.getItem('hiwInboxSkip') || '{}') || {}; } catch (e) { return {}; } }

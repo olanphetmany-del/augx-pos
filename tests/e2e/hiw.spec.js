@@ -734,3 +734,19 @@ test.describe('hiw-admin inbox photo cards (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ກ່ອງ 📥 ອ່ານຈາກ raw.githubusercontent ກ່ອນ (ບໍ່ຕິດໂຄຕາ API)
+test.describe('hiw-admin inbox reads raw GitHub first (owner)', () => {
+    test.use({ db: hiwData(), user: OWNER });
+    test('cards come from raw.githubusercontent.com without the API', async ({ page, errors }) => {
+        let api = 0;
+        await page.route('https://api.github.com/**', (r) => { api++; return r.fulfill({ status: 403, body: 'rate limited' }); });
+        await page.route('https://raw.githubusercontent.com/**', (r) => r.fulfill({ contentType: 'text/plain', body: JSON.stringify({ items: [{ key: 'r1', id: 'p1', img: 'data:image/png;base64,' + PNG.toString('base64') }] }) }));
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=go][data-v=inbox]');
+        await expect(page.locator('main .card')).toHaveCount(1);
+        await expect(page.locator('main .card')).toContainText('Smoke Toner');
+        expect(api).toBe(0);
+        expect(errors).toEqual([]);
+    });
+});
