@@ -117,3 +117,4 @@ window.I18N_DICT.staff.push(["📤 แชร์สินค้านี้ให
 window.I18N_DICT.staff.push(["📷 รูปใหม่", "📷 ຮູບໃໝ່", "📷 New photo"], ["✓ ใส่รูปนี้", "✓ ໃສ່ຮູບນີ້", "✓ Use this photo"], ["ไม่ใช่ตัวนี้", "ບໍ່ແມ່ນຕົວນີ້", "Wrong product"]);
 window.I18N_DICT.cust.push(["🔗 ແຊຣ໌ລິ້ງຕິດຕາມ (ເປີດໃນເຄື່ອງອື່ນໄດ້)", "🔗 แชร์ลิงก์ติดตาม (เปิดในเครื่องอื่นได้)", "🔗 Share tracking link (opens on other phones)"]);
 window.I18N_DICT.staff.push(["📤 ส่งลิงก์ติดตามให้ลูกค้า", "📤 ສົ່ງລິ້ງຕິດຕາມໃຫ້ລູກຄ້າ", "📤 Send the tracking link to the customer"]);
+window.I18N_DICT.staff.push(["❌ ยังไม่ได้รับเงิน (ยืนยันผิด)", "❌ ຍັງບໍ່ໄດ້ຮັບເງິນ (ຢືນຢັນຜິດ)", "❌ Payment not received (confirmed by mistake)"]);

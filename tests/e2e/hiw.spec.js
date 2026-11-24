@@ -785,3 +785,25 @@ test.describe('hiw tracking link share', () => {
         });
     });
 });
+
+// ຢືນຢັນເງິນຜິດ: ອໍເດີທີ່ ✅ ແລ້ວ ກັບເປັນ "ສະລິບບໍ່ຜ່ານ" ໄດ້
+test.describe('hiw-admin undo a payment confirmed by mistake (owner)', () => {
+    const d = hiwData();
+    d.hiw.orders = { o1: { no: 1004, tok: 'TrackTokUndo99', name: 'Nina', phone: '02055551234', pay: 'ok', okAt: 5, total: 471000, at: 1, items: [{ pid: 'p1', n: 'Smoke Toner', q: 1, s: 471000, st: 'wait' }] } };
+    d.hiw.track = { TrackTokUndo99: { no: 1004, at: 1, total: 471000, pay: 'ok', items: [{ n: 'Smoke Toner', q: 1, s: 471000, st: 'wait' }] } };
+    test.use({ db: d, user: OWNER });
+
+    test('a confirmed order goes back to "slip not accepted" with a reason the customer sees', async ({ page, errors }) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=orders]');
+        await page.click('[data-a=of][data-v=all]');
+        await page.locator('[data-a=odet][data-id=o1]').first().click();
+        await page.click('.sheet [data-a=bad]');
+        await page.click('.sheet [data-a=badgo][data-v="ບໍ່ພົບເງິນເຂົ້າບັນຊີ"]');
+        await expect.poll(() => fakeDb(page, 'hiw/orders/o1/pay')).toBe('bad');
+        expect(await fakeDb(page, 'hiw/orders/o1/okAt')).toBeFalsy();
+        expect(await fakeDb(page, 'hiw/track/TrackTokUndo99/pay')).toBe('bad');
+        expect(await fakeDb(page, 'hiw/track/TrackTokUndo99/badWhy')).toBe('ບໍ່ພົບເງິນເຂົ້າບັນຊີ');
+        expect(errors).toEqual([]);
+    });
+});

@@ -300,6 +300,7 @@
           '<select data-a="ist" data-id="' + E(o.id) + '" data-k="' + k + '" style="width:auto;padding:6px;font-size:13px">' + Object.keys(STT).map(function (s) { return '<option value="' + s + '"' + (i.st === s ? ' selected' : '') + '>' + STT[s] + '</option>'; }).join('') + '</select></div>';
       }).join('') +
       '<div class="tot"><span>รวม</span><span>' + kip(sumItems(o)) + '</span></div>' +
+      (o.pay === 'ok' ? '<button class="btn red w" data-a="bad" data-id="' + E(o.id) + '" style="margin-top:10px">❌ ยังไม่ได้รับเงิน (ยืนยันผิด)</button>' : '') +
       (o.tok ? '<button class="btn w" data-a="tshare" data-id="' + E(o.id) + '" style="margin:10px 0 8px">📤 ส่งลิงก์ติดตามให้ลูกค้า</button>' : '') +
       '<div class="row"><button class="btn lite" data-a="copybill" data-id="' + E(o.id) + '">📋 บิล (ลาว)</button>' + (wa ? '<a class="btn wa" href="https://wa.me/' + wa + '?text=' + encodeURIComponent(billText(o)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') + '</div>' +
       (o.slip ? '<img src="' + E(o.slip) + '" style="width:100%;border-radius:12px;margin-top:12px" alt="สลิป">' : '') +
@@ -658,7 +659,7 @@
       case 'copystore': copy(STORE_URL, 'คัดลอกลิงก์หน้าร้านแล้ว ✓'); break;
       case 'okpay': o = O(id); o.pay = 'ok'; o.badWhy = ''; o.okAt = Date.now(); run(saveOrder(o), 'ยืนยัน #' + o.no + ' ✓ เข้ารายการซื้อแล้ว'); break;
       case 'bad': o = O(id); modal('<h2>❌ สลิป #' + E(o.no) + ' ไม่ผ่าน เพราะ…</h2><p class="mut">ลูกค้าเห็นเหตุผลในหน้าติดตาม และแนบสลิปใหม่ได้เอง</p>' + BAD.map(function (r) { return '<button class="btn ghost w" style="margin-top:8px" data-a="badgo" data-id="' + E(o.id) + '" data-v="' + E(r) + '">' + E(r) + '</button>'; }).join('') + '<button class="btn ghost w" style="margin-top:12px" data-a="close">ยกเลิก</button>'); break;
-      case 'badgo': o = O(id); o.pay = 'bad'; o.badWhy = v; closeM(); run(saveOrder(o), 'แจ้งลูกค้าแล้ว'); break;
+      case 'badgo': o = O(id); o.pay = 'bad'; o.badWhy = v; o.okAt = null; closeM(); run(saveOrder(o), 'แจ้งลูกค้าแล้ว'); break;
       case 'odet': mODet(O(id)); break;
       case 'copybill': copy(billText(O(id))); break;
       case 'odel': o = O(id); modal('<h2>ลบออเดอร์ #' + E(o.no) + ' ?</h2><p class="mut">ลบแล้วกู้คืนไม่ได้ · ลูกค้าจะไม่เห็นออเดอร์นี้ในหน้าติดตาม</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-a="close">ไม่</button><button class="btn red" data-a="odelok" data-id="' + E(o.id) + '">ใช่, ลบ</button></div>'); break;
