@@ -115,3 +115,5 @@ window.I18N_DICT.staff.push(["📥 สินค้ารอเพิ่ม", "�
 window.I18N_DICT.cust.push(["📤 ແຊຣ໌ໃຫ້ໝູ່", "📤 แชร์ให้เพื่อน", "📤 Share with friends"], ["ກັອບປີ້ລິ້ງແລ້ວ ✓ ວາງສົ່ງໄດ້ເລີຍ", "คัดลอกลิงก์แล้ว ✓ วางส่งได้เลย", "Link copied ✓ paste it to send"], ["ສິນຄ້ານີ້ບໍ່ມີແລ້ວ · ເບິ່ງສິນຄ້າອື່ນໃນຮ້ານ", "สินค้านี้ไม่มีแล้ว · ดูสินค้าอื่นในร้าน", "This product is no longer available · see other products"]);
 window.I18N_DICT.staff.push(["📤 แชร์สินค้านี้ให้ลูกค้า", "📤 ແຊຣ໌ສິນຄ້ານີ້ໃຫ້ລູກຄ້າ", "📤 Share this product with customers"], ["คัดลอกลิงก์แล้ว ✓ วางส่งได้เลย", "ກັອບປີ້ລິ້ງແລ້ວ ✓ ວາງສົ່ງໄດ້ເລີຍ", "Link copied ✓ paste it to send"]);
 window.I18N_DICT.staff.push(["📷 รูปใหม่", "📷 ຮູບໃໝ່", "📷 New photo"], ["✓ ใส่รูปนี้", "✓ ໃສ່ຮູບນີ້", "✓ Use this photo"], ["ไม่ใช่ตัวนี้", "ບໍ່ແມ່ນຕົວນີ້", "Wrong product"]);
+window.I18N_DICT.cust.push(["🔗 ແຊຣ໌ລິ້ງຕິດຕາມ (ເປີດໃນເຄື່ອງອື່ນໄດ້)", "🔗 แชร์ลิงก์ติดตาม (เปิดในเครื่องอื่นได้)", "🔗 Share tracking link (opens on other phones)"]);
+window.I18N_DICT.staff.push(["📤 ส่งลิงก์ติดตามให้ลูกค้า", "📤 ສົ່ງລິ້ງຕິດຕາມໃຫ້ລູກຄ້າ", "📤 Send the tracking link to the customer"]);
