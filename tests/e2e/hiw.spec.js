@@ -750,3 +750,38 @@ test.describe('hiw-admin inbox reads raw GitHub first (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ລິ້ງຕິດຕາມ: ຫຼັງຮ້ານສົ່ງລິ້ງ #t= ຂອງອໍເດີໃດກໍໄດ້ · ໜ້າຕິດຕາມແຊຣ໌ລິ້ງໄດ້
+test.describe('hiw tracking link share', () => {
+    const d = hiwData();
+    d.hiw.orders = { o1: { no: 1003, tok: 'TrackTokAbc123', name: 'Nina', phone: '02055551234', pay: 'ok', total: 471000, at: 1, items: [{ pid: 'p1', n: 'Smoke Toner', q: 1, s: 471000, st: 'wait' }] } };
+    d.hiw.track = { TrackTokAbc123: { no: 1003, at: 1, total: 471000, pay: 'ok', items: [{ n: 'Smoke Toner', q: 1, s: 471000, st: 'wait' }] } };
+
+    test.describe('owner', () => {
+        test.use({ db: d, user: OWNER });
+        test('order detail sends the customer tracking link', async ({ page, errors }) => {
+            await stubShare(page);
+            await page.goto('hiw-admin.html');
+            await page.click('[data-a=ot][data-v=orders]');
+            await page.click('[data-a=of][data-v=all]');
+            await page.locator('[data-a=odet][data-id=o1]').first().click();
+            await page.click('.sheet [data-a=tshare]');
+            const s = await page.evaluate(() => window.__shared[0]);
+            expect(s.url).toMatch(/\/hiw\.html#t=TrackTokAbc123$/);
+            expect(s.text).toContain('#1003');
+            expect(errors).toEqual([]);
+        });
+    });
+
+    test.describe('customer', () => {
+        test.use({ db: d, user: null });
+        test('tracking card shares its own link', async ({ page, errors }) => {
+            await stubShare(page);
+            await page.goto('hiw.html#t=TrackTokAbc123');
+            await page.click('main [data-a=tshare]');
+            const s = await page.evaluate(() => window.__shared[0]);
+            expect(s.url).toMatch(/hiw\.html#t=TrackTokAbc123$/);
+            expect(errors).toEqual([]);
+        });
+    });
+});

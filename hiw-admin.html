@@ -161,13 +161,17 @@
   }
   function copy(t, ok) { try { navigator.clipboard.writeText(t).then(function () { say(ok || 'คัดลอกแล้ว ✓'); }, function () { say('คัดลอกไม่ได้ — กดค้างที่ข้อความแทน', false); }); } catch (e) { say('คัดลอกไม่ได้', false); } }
   // แชร์สินค้า (ข้อความลาว + ลิงก์ที่เปิดสินค้านั้นในร้านโดยตรง)
-  function shareP(p) {
-    var url = location.href.split('#')[0].replace(/hiw-admin\.html.*$/, 'hiw.html') + '#p=' + encodeURIComponent(p.id);
-    var text = p.name + (p.size && p.name.indexOf(p.size) < 0 ? ' ' + p.size : '') + '\n' + kip(p.sell) + (p.hook ? ' · ' + p.hook : '') + '\nສັ່ງຈາກເກົາຫຼີໄດ້ທີ່ນີ້ 👉';
+  function shopUrl() { return location.href.split('#')[0].split('?')[0].replace(/hiw-admin\.html$/, 'hiw.html'); }
+  function shareLink(title, text, url) {
     var fall = function () { copy(text + ' ' + url, 'คัดลอกลิงก์แล้ว ✓ วางส่งได้เลย'); };
     if (!navigator.share) { fall(); return; }
-    navigator.share({ title: p.name, text: text, url: url }).then(null, function (e) { if (!e || e.name !== 'AbortError') fall(); });
+    navigator.share({ title: title, text: text, url: url }).then(null, function (e) { if (!e || e.name !== 'AbortError') fall(); });
   }
+  function shareP(p) {
+    shareLink(p.name, p.name + (p.size && p.name.indexOf(p.size) < 0 ? ' ' + p.size : '') + '\n' + kip(p.sell) + (p.hook ? ' · ' + p.hook : '') + '\nສັ່ງຈາກເກົາຫຼີໄດ້ທີ່ນີ້ 👉', shopUrl() + '#p=' + encodeURIComponent(p.id));
+  }
+  // ລິ້ງຕິດຕາມ (ຂໍ້ຄວາມລາວ) ໃຫ້ລູກຄ້າເປີດເບິ່ງອໍເດີໃນເຄື່ອງຂອງລາວ
+  function shareTrack(o) { shareLink('AUGUSTX', 'ຕິດຕາມອໍເດີ #' + o.no + ' ຂອງທ່ານໄດ້ທີ່ນີ້ 👉', shopUrl() + '#t=' + o.tok); }
   function run(p, okMsg) { return p.then(function () { if (okMsg) say(okMsg); return true; }, function (e) { say('บันทึกไม่สำเร็จ: ' + ((e && e.code) || 'ลองใหม่'), false); return false; }); }
   var rq = false;
   function schedule() { if (rq) return; rq = true; setTimeout(function () { rq = false; render(); }, 40); }
@@ -296,6 +300,7 @@
           '<select data-a="ist" data-id="' + E(o.id) + '" data-k="' + k + '" style="width:auto;padding:6px;font-size:13px">' + Object.keys(STT).map(function (s) { return '<option value="' + s + '"' + (i.st === s ? ' selected' : '') + '>' + STT[s] + '</option>'; }).join('') + '</select></div>';
       }).join('') +
       '<div class="tot"><span>รวม</span><span>' + kip(sumItems(o)) + '</span></div>' +
+      (o.tok ? '<button class="btn w" data-a="tshare" data-id="' + E(o.id) + '" style="margin:10px 0 8px">📤 ส่งลิงก์ติดตามให้ลูกค้า</button>' : '') +
       '<div class="row"><button class="btn lite" data-a="copybill" data-id="' + E(o.id) + '">📋 บิล (ลาว)</button>' + (wa ? '<a class="btn wa" href="https://wa.me/' + wa + '?text=' + encodeURIComponent(billText(o)) + '" target="_blank" rel="noopener">WhatsApp</a>' : '') + '</div>' +
       (o.slip ? '<img src="' + E(o.slip) + '" style="width:100%;border-radius:12px;margin-top:12px" alt="สลิป">' : '') +
       '<div class="row" style="margin-top:10px"><button class="btn red nf" data-a="odel" data-id="' + E(o.id) + '">🗑</button><button class="btn ghost" data-a="close">ปิด</button></div>');
@@ -638,6 +643,7 @@
       case 'go': if (v === 'orders') { S.ot = 'orders'; S.of = 'slip'; } else if (v === 'buy' || v === 'pack') S.ot = v; else { S.ot = 'more'; S.sub = v; } render(); scrollTo(0, 0); break;
       case 'of': S.of = v; render(); break;
       case 'pshare': { var sp = P(id); if (sp) shareP(sp); break; }
+      case 'tshare': { var to = (S.orders || {})[id]; if (to && to.tok) shareTrack(to); break; }
       case 'inbload': S.inbox = null; loadInbox(); render(); break;
       case 'inbadd': inbAdd(v); break;
       case 'inbskip': inbSkip(v); render(); break;

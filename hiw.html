@@ -129,11 +129,14 @@
   // ແຊຣ໌ສິນຄ້າ: ລິ້ງ #p=id ເປີດສິນຄ້ານັ້ນໂດຍກົງ · ມືຖືມີເມນູແຊຣ໌ = ໃຊ້ເລີຍ, ບໍ່ມີ = ກັອບປີ້
   function shareUrl(p) { return location.href.split('#')[0] + '#p=' + encodeURIComponent(p.id); }
   function shareText(p) { return p.name + (p.size && p.name.indexOf(p.size) < 0 ? ' ' + p.size : '') + '\n' + kip(p.sell) + (p.hook ? ' · ' + p.hook : '') + '\nສັ່ງຈາກເກົາຫຼີໄດ້ທີ່ນີ້ 👉'; }
-  function shareP(p) {
-    var url = shareUrl(p), text = shareText(p), fall = function () { copy(text + ' ' + url, 'ກັອບປີ້ລິ້ງແລ້ວ ✓ ວາງສົ່ງໄດ້ເລີຍ'); };
+  function shareLink(title, text, url) {
+    var fall = function () { copy(text + ' ' + url, 'ກັອບປີ້ລິ້ງແລ້ວ ✓ ວາງສົ່ງໄດ້ເລີຍ'); };
     if (!navigator.share) { fall(); return; }
-    navigator.share({ title: p.name, text: text, url: url }).then(null, function (e) { if (!e || e.name !== 'AbortError') fall(); });
+    navigator.share({ title: title, text: text, url: url }).then(null, function (e) { if (!e || e.name !== 'AbortError') fall(); });
   }
+  function shareP(p) { shareLink(p.name, shareText(p), shareUrl(p)); }
+  // ລິ້ງ #t=tok ເປີດອໍເດີນີ້ໃນເຄື່ອງອື່ນ (ເຊັ່ນ ຮ້ານສັ່ງແທນລູກຄ້າ ແລ້ວສົ່ງລິ້ງໃຫ້)
+  function trackUrl(tok) { return location.href.split('#')[0] + '#t=' + tok; }
   function round() { return (S.set && S.set.round) || {}; }
   function daysLeft() { var c = round().close; if (!c) return null; return Math.ceil((new Date(c + 'T23:59:59') - Date.now()) / DAY); }
 
@@ -377,7 +380,7 @@
     }).then(function () {
       S.toks = [tok].concat(S.toks.filter(function (x) { return x !== tok; })).slice(0, 20); store('hiw-toks', S.toks); watchTrack(tok);
       S.cart = {}; S.slip = ''; S.busy = false; saveCart();
-      var link = location.href.split('#')[0] + '#t=' + tok;
+      var link = trackUrl(tok);
       var wa = waNum(S.set.wa), msg = 'ສະບາຍດີ 🙏 ສັ່ງອໍເດີ #' + no + ' (' + fm(total) + ' ກີບ) ແລະ ແນບສະລິບແລ້ວ\n' + link;
       modal('<div style="text-align:center;padding:10px 0"><div style="font-size:56px">🎉</div><h2>ສັ່ງສຳເລັດ!</h2><p>ເລກອໍເດີ <b>#' + no + '</b> · ' + kip(total) + '</p>' +
         '<p class="mut">ຮ້ານຈະກວດສະລິບ ແລະ ຢືນຢັນໃຫ້ໄວທີ່ສຸດ<br>ເບິ່ງສະຖານະໄດ້ຕະຫຼອດທີ່ແຖບ “ຕິດຕາມອໍເດີ”</p>' +
@@ -430,7 +433,8 @@
             : '<div class="info" style="margin-top:0">😢 ສິນຄ້ານີ້ໝົດຢູ່ຮ້ານ ເລືອກໄດ້ເລີຍ:<div class="row" style="margin-top:8px"><button class="btn sm lite" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="wait">⏳ ລໍຮອບໜ້າ</button><button class="btn sm amb" data-a="choose" data-id="' + esc(tok) + '" data-k="' + k + '" data-v="refund">💸 ຄືນເງິນ ' + kip(i.s * i.q) + '</button></div></div>') : '');
       }).join('') +
       '<div class="tot" style="font-size:15px"><span>ລວມ</span><span>' + kip((t.total || 0) - refund) + (refund ? ' <small class="mut">(ຄືນ ' + fm(refund) + ')</small>' : '') + '</span></div>' +
-      (t.deliv === 'send' ? '<p class="mut">🚚 ສົ່ງຕາມທີ່ຢູ່</p>' : '') + '</div>';
+      (t.deliv === 'send' ? '<p class="mut">🚚 ສົ່ງຕາມທີ່ຢູ່</p>' : '') +
+      '<button class="btn lite w" style="margin-top:10px" data-a="tshare" data-id="' + esc(tok) + '" data-v="' + esc(t.no) + '">🔗 ແຊຣ໌ລິ້ງຕິດຕາມ (ເປີດໃນເຄື່ອງອື່ນໄດ້)</button></div>';
   }
 
   /* ---------- request ---------- */
@@ -476,6 +480,7 @@
       case 'rkmore': S.rkMore = !S.rkMore; render(); break;
       case 'pview': { var p = P(id); if (p) mPview(p); break; }
       case 'share': { var sp = P(id); if (sp) shareP(sp); break; }
+      case 'tshare': shareLink('AUGUSTX', 'ຕິດຕາມອໍເດີ #' + v + ' ໄດ້ທີ່ນີ້ 👉', trackUrl(id)); break;
       case 'opt': { S.pick = v; var po = P(id); if (po) mPview(po); break; }
       case 'needopt': toast('ກະລຸນາເລືອກສີ / ເບີກ່ອນ'); break;
       case 'cp': if (opts(P(id)).length) { mPview(P(id)); break; } S.cart[id] = (S.cart[id] || 0) + 1; saveCart(); if (b.dataset.close) { closeM(); toast('ເພີ່ມແລ້ວ ✓'); } else if ($('#layer').innerHTML) mCart(); render(); break;
