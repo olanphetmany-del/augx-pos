@@ -118,3 +118,4 @@ window.I18N_DICT.staff.push(["📷 รูปใหม่", "📷 ຮູບໃໝ
 window.I18N_DICT.cust.push(["🔗 ແຊຣ໌ລິ້ງຕິດຕາມ (ເປີດໃນເຄື່ອງອື່ນໄດ້)", "🔗 แชร์ลิงก์ติดตาม (เปิดในเครื่องอื่นได้)", "🔗 Share tracking link (opens on other phones)"]);
 window.I18N_DICT.staff.push(["📤 ส่งลิงก์ติดตามให้ลูกค้า", "📤 ສົ່ງລິ້ງຕິດຕາມໃຫ້ລູກຄ້າ", "📤 Send the tracking link to the customer"]);
 window.I18N_DICT.staff.push(["❌ ยังไม่ได้รับเงิน (ยืนยันผิด)", "❌ ຍັງບໍ່ໄດ້ຮັບເງິນ (ຢືນຢັນຜິດ)", "❌ Payment not received (confirmed by mistake)"]);
+window.I18N_DICT.staff.push(["💬 ตอบราคา (WhatsApp)", "💬 ຕອບລາຄາ (WhatsApp)", "💬 Reply with price (WhatsApp)"]);

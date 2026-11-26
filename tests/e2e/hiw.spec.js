@@ -807,3 +807,39 @@ test.describe('hiw-admin undo a payment confirmed by mistake (owner)', () => {
         expect(errors).toEqual([]);
     });
 });
+
+// ຝາກຫາຂອງ: ທັກລູກຄ້າທາງ WhatsApp · ເບີ 8 ຕົວເຕີມ 20 · Android ເປີດ WhatsApp Business
+test.describe('hiw-admin requests WhatsApp', () => {
+    const d = hiwData();
+    d.hiw.requests = {
+        r1: { what: 'Lip balm Dinto 302', qty: 1, name: 'Nia', phone: '52354454', at: 2 },
+        r2: { what: 'Dr.G sun', qty: 1, name: 'Jung', phone: '02091925256', at: 1, done: true },
+    };
+    const open = async (page) => {
+        await page.goto('hiw-admin.html');
+        await page.click('[data-a=ot][data-v=more]');
+        await page.click('[data-a=sub][data-v=req]');
+    };
+    test.describe('desktop', () => {
+        test.use({ db: d, user: OWNER });
+        test('every request has a WhatsApp button with a full Lao number', async ({ page, errors }) => {
+            await open(page);
+            const wa = page.locator('main a.wa');
+            await expect(wa).toHaveCount(2);
+            await expect(wa.nth(0)).toHaveAttribute('href', /^https:\/\/wa\.me\/8562052354454\?text=/);
+            await expect(wa.nth(1)).toHaveAttribute('href', 'https://wa.me/8562091925256');
+            expect(errors).toEqual([]);
+        });
+    });
+    test.describe('android', () => {
+        test.use({ db: d, user: OWNER, userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36' });
+        test('opens WhatsApp Business, falling back to wa.me', async ({ page, errors }) => {
+            await open(page);
+            const href = await page.locator('main a.wa').first().getAttribute('href');
+            expect(href).toMatch(/^intent:\/\/send\?phone=8562052354454&text=/);
+            expect(href).toContain('package=com.whatsapp.w4b');
+            expect(href).toContain('S.browser_fallback_url=' + encodeURIComponent('https://wa.me/8562052354454?text='));
+            expect(errors).toEqual([]);
+        });
+    });
+});
